@@ -1,0 +1,21 @@
+{
+  "name": "alchemion",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "pnpm --filter play run dev",
+    "build": "pnpm --filter play run build",
+    "preview": "pnpm --filter play run preview",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.1",
+    "@typescript-eslint/parser": "^5.59.1",
+    "eslint": "^8.34.0",
+    "eslint-plugin-vue": "^9.11.0",
+    "prettier": "^2.8.4",
+    "typescript": "^5.0.4",
+    "vite": "^4.1.4"
+  }
+}

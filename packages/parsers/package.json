@@ -1,0 +1,9 @@
+{
+  "name": "@alchemion/parsers",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@alchemion/core": "workspace:*"
+  }
+}
