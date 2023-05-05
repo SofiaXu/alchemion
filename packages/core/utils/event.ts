@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { IDisposable } from './disposable'
 
 export interface IDelegram<T, R> {

@@ -1,5 +1,6 @@
 import { Element, elements } from '../elements'
 import * as uuid from 'uuid'
+import { AlchemionEvent, IEvent } from '../utils/event'
 
 export class Atom {
   private _mass = 0
@@ -7,7 +8,7 @@ export class Atom {
   x: number
   y: number
   z: number
-  element: Readonly<Element>
+  readonly element: Readonly<Element>
   readonly id: string
   name?: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,6 +91,18 @@ export class Bond {
   topology?: 'either' | 'ring' | 'chain'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: any = {}
+  checkDistance(): boolean {
+    const source = this.source
+    const target = this.target
+    const dx = source.x - target.x
+    const dy = source.y - target.y
+    const dz = source.z - target.z
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
+    const bond = source.element.radius + target.element.radius
+    const max_bond = bond * 1.2
+    const min_bond = bond * 0.5
+    return distance <= max_bond && distance > min_bond
+  }
   constructor(source: Atom, target: Atom, type?: 'single' | 'double' | 'triple' | 'aromatic') {
     if (source === target)
       throw Error('Unable to create bond. Source and target atoms are the same.')
@@ -201,6 +214,11 @@ export class Structure {
   get bonds(): ReadonlyArray<Bond> {
     return this._bonds
   }
+  structureUpdated: IEvent<{
+    atom?: Readonly<Atom>
+    bonds?: ReadonlyArray<Readonly<Bond>>
+    type: 'add' | 'remove' | 'update'
+  }> = new AlchemionEvent()
   addAtom(
     atom: Atom,
     withBond?: {
@@ -213,13 +231,36 @@ export class Structure {
         Array.from(this._atoms.values()).filter((x) => x.element.symbol === atom.element.symbol)
           .length + 1
       }`
-    this._atoms.push(atom)
+    this._atoms.push(
+      new Proxy(atom, {
+        set(target, p, newValue) {
+          if (p === 'x' || p === 'y' || p === 'z') {
+            const oldValue = target[p]
+            target[p] = newValue
+            if (oldValue !== newValue) {
+              for (const bond of this._bonds) {
+                if (bond.source === target || bond.target === target) {
+                  if (!bond.checkDistance()) {
+                    this.removeBond(bond.id)
+                  }
+                }
+              }
+            }
+            return true
+          }
+          target[p] = newValue
+          return true
+        }
+      })
+    )
+    this.structureUpdated.invoke({ atom: atom, type: 'add' })
     if (withBond) {
       this.addBond(new Bond(withBond.source, atom, withBond.type))
     }
   }
   protected addBond(bond: Bond): void {
     this._bonds.push(bond)
+    this.structureUpdated.invoke({ bonds: [bond], type: 'add' })
   }
   createBond(source: Atom, target: Atom, type?: 'single' | 'double' | 'triple' | 'aromatic'): Bond {
     const bond = new Bond(source, target, type)
@@ -227,11 +268,18 @@ export class Structure {
     return bond
   }
   removeAtom(id: string): void {
+    const removedAtom = this._atoms.find((x) => x.id === id)
+    if (!removedAtom) return
+    const removedBonds = this._bonds.filter((x) => x.source.id === id || x.target.id === id)
     this._atoms = this._atoms.filter((x) => x.id !== id)
     this._bonds = this._bonds.filter((x) => x.source.id !== id && x.target.id !== id)
+    this.structureUpdated.invoke({ type: 'remove', atom: removedAtom, bonds: removedBonds })
   }
   removeBond(id: string): void {
+    const removedBond = this._bonds.find((x) => x.id === id)
+    if (!removedBond) return
     this._bonds = this._bonds.filter((x) => x.id !== id)
+    this.structureUpdated.invoke({ type: 'remove', bonds: [removedBond] })
   }
   merge(structure: Structure, withBonds?: Bond[]): void {
     structure.atoms.forEach((atom) => this.addAtom(atom))

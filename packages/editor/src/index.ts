@@ -8,7 +8,7 @@ import { IEditor, IEditorOptions, IRenderer } from '@alchemion/core/editor'
 import { Structure } from '@alchemion/core/structure'
 import { IParser } from '@alchemion/core/utils/io'
 import { MolParser } from '@alchemion/parsers/mol-parser'
-import { AxesViewer } from '@babylonjs/core'
+import { AxesViewer, Color4 } from '@babylonjs/core'
 export class AlchemionEditor implements IEditor {
   private _engine: Engine
   private _canvas: HTMLCanvasElement
@@ -23,6 +23,7 @@ export class AlchemionEditor implements IEditor {
     this._canvas = canvas
     this._engine = new Engine(this._canvas)
     this._scene = new Scene(this._engine)
+    this._scene.clearColor = Color4.FromHexString('#ffffff')
     this._mainCamera = new ArcRotateCamera('Camera', 0, 0, 1, new Vector3(0, 0, 0), this._scene)
     this._mainCamera.setPosition(new Vector3(0, 10, 10))
     this._mainCamera.attachControl(this._canvas, true)
@@ -61,10 +62,15 @@ export class AlchemionEditor implements IEditor {
   loadStructure(structure: Structure): void {
     this._structures.set(structure.id, structure)
     this.renderer.render(structure)
+    structure.structureUpdated.addListener((e) => {
+      this.renderer.update(e.type, structure, e.atom, e.bonds)
+    })
   }
   removeStructure(id: string): void {
-    this._scene.getNodeById(id)?.dispose()
+    const structure = this._structures.get(id)
+    if (!structure) return
     this._structures.delete(id)
+    this.renderer.update('remove', structure)
   }
   clearStructures(): void {
     this._structures.forEach((structure) => {

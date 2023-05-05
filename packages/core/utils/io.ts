@@ -1,9 +1,9 @@
-import { IStructure } from '../structure'
+import { Structure } from '../structure'
 
 export interface IWriter {
-  write(structure: IStructure): string
+  write(structure: Structure): string
 }
 
 export interface IParser {
-  parse(data: string): IStructure
+  parse(data: string): Structure
 }

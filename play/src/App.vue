@@ -7,10 +7,10 @@ onMounted(() => {
   const editor = new AlchemionEditor(container.value!, {
     showAxes: true
   })
-  fetch('/mols/Fe3O4.mol')
+  fetch('/mols/C8H10N4O2.mol')
     .then((x) => x.text())
     .then((x) => {
-      const structure = ParserRegistry.get('mol')?.parse(x)
+      const structure = ParserRegistry.get('mol')!.parse(x)
       editor.loadStructure(structure)
       editor.centerStructure(structure.id)
     })
