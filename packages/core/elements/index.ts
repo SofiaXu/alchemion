@@ -5,39 +5,39 @@ export class Element {
   /**
    * 原子序数
    */
-  id: number
+  id!: number
   /**
    * 原子符号
    */
-  symbol: string
+  symbol!: string
   /**
    * 原子区块
    */
-  block: 's' | 'p' | 'd' | 'f'
+  block!: 's' | 'p' | 'd' | 'f'
   /**
    * 金属元素
    */
-  isMetal: boolean
+  isMetal!: boolean
   /**
    * 化合价
    */
-  valence: number
+  valence!: number
   /**
    * 原子量
    */
-  mass: number
+  mass!: number
   /**
    * 原子半径
    */
-  radius: number
+  radius!: number
   /**
    * 原子电负性
    */
-  electronegativity: number
+  electronegativity!: number
   /**
    * 可化合元素
    */
-  bondElements: number[]
+  bondElements!: number[]
 }
 const elementsJson = [
   {

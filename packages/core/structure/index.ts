@@ -5,14 +5,15 @@ import { AlchemionEvent, IEvent } from '../utils/event'
 export class Atom {
   private _mass = 0
   private _valence: number
-  x: number
-  y: number
-  z: number
+  _x: number
+  _y: number
+  _z: number
   readonly element: Readonly<Element>
   readonly id: string
   name?: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: any = {}
+  positionChanged: IEvent<{ x: number; y: number; z: number }> = new AlchemionEvent()
   get mass(): number {
     return this._mass === 0 || this._mass === this.element.mass ? this.element.mass : this._mass
   }
@@ -21,6 +22,27 @@ export class Atom {
   }
   get valence(): number {
     return this._valence
+  }
+  set x(value: number) {
+    this._x = value
+    this.positionChanged.invoke({ x: this.x, y: this.y, z: this.z })
+  }
+  get x(): number {
+    return this._x
+  }
+  set y(value: number) {
+    this._y = value
+    this.positionChanged.invoke({ x: this.x, y: this.y, z: this.z })
+  }
+  get y(): number {
+    return this._y
+  }
+  set z(value: number) {
+    this._z = value
+    this.positionChanged.invoke({ x: this.x, y: this.y, z: this.z })
+  }
+  get z(): number {
+    return this._z
   }
   set valence(value: number) {
     if (value < 0 || value > this.element.valence)
@@ -36,9 +58,9 @@ export class Atom {
         `Unable to create atom. ${element.symbol} is not a valid element. Get element from elements list.`
       )
     this.element = element
-    this.x = x
-    this.y = y
-    this.z = z
+    this._x = x
+    this._y = y
+    this._z = z
     this.id = uuid.v4()
     this.name = name
     this._valence = this.element.valence
@@ -86,7 +108,6 @@ export class Bond {
     this.target.valence = this.target.valence + oldValence - newValence
     this._type = value
   }
-  valence: number
   stereo?: 'up' | 'down' | 'either' | 'cis' | 'trans'
   topology?: 'either' | 'ring' | 'chain'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,13 +150,9 @@ export class Bond {
       throw Error(
         `Unable to create bond. ${source.element.symbol} or ${target.element.symbol} has no more valence.`
       )
-    if (
-      type === 'aromatic' &&
-      this.source.element.symbol !== 'C' &&
-      this.target.element.symbol !== 'C'
-    )
+    if (type === 'aromatic' && source.element.symbol !== 'C' && target.element.symbol !== 'C')
       throw Error(
-        `Unable to set bond type to aromatic. ${this.source.element.symbol}-${this.target.element.symbol} is not a valid aromatic bond.`
+        `Unable to set bond type to aromatic. ${source.element.symbol}-${target.element.symbol} is not a valid aromatic bond.`
       )
     if (!type) {
       switch (Math.min(source.valence, target.valence)) {
@@ -231,28 +248,10 @@ export class Structure {
         Array.from(this._atoms.values()).filter((x) => x.element.symbol === atom.element.symbol)
           .length + 1
       }`
-    this._atoms.push(
-      new Proxy(atom, {
-        set(target, p, newValue) {
-          if (p === 'x' || p === 'y' || p === 'z') {
-            const oldValue = target[p]
-            target[p] = newValue
-            if (oldValue !== newValue) {
-              for (const bond of this._bonds) {
-                if (bond.source === target || bond.target === target) {
-                  if (!bond.checkDistance()) {
-                    this.removeBond(bond.id)
-                  }
-                }
-              }
-            }
-            return true
-          }
-          target[p] = newValue
-          return true
-        }
-      })
-    )
+    this._atoms.push(atom)
+    atom.positionChanged.addListener(() => {
+      this.structureUpdated.invoke({ atom: atom, type: 'update' })
+    })
     this.structureUpdated.invoke({ atom: atom, type: 'add' })
     if (withBond) {
       this.addBond(new Bond(withBond.source, atom, withBond.type))

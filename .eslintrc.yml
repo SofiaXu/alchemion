@@ -2,11 +2,14 @@ env:
   browser: true
   es2021: true
   node: true
-extends:
-  - eslint:recommended
-  - plugin:vue/vue3-essential
+extend:
+  - plugin:vue/vue3-essentials
+  - eslint:recommendal
   - plugin:@typescript-eslint/recommended
-overrides: []
+  - '@vue/eslint-config-typescript'
+  - '@vue/eslint-config-prettier/skip-formatting'
+  - 'prettier'
+des: []
 parser: '@typescript-eslint/parser'
 parserOptions:
   ecmaVersion: latest
