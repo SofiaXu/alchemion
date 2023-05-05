@@ -1,9 +1,19 @@
+import { AtomColorMap, IColorMap } from '@alchemion/core/colors'
 import { IRenderer } from '@alchemion/core/editor'
 import { Atom, Bond, Structure } from '@alchemion/core/structure'
-import { MeshBuilder, Node, Scene, TransformNode, Vector3 } from '@babylonjs/core'
+import {
+  Color3,
+  MeshBuilder,
+  Node,
+  Scene,
+  StandardMaterial,
+  TransformNode,
+  Vector3
+} from '@babylonjs/core'
 
 export class BallAndStickRenderer implements IRenderer {
   private _scene: Scene
+  private _atomColorMap: IColorMap = new AtomColorMap()
   constructor(scene: Scene) {
     this._scene = scene
   }
@@ -79,7 +89,14 @@ export class BallAndStickRenderer implements IRenderer {
     return
   }
   private renderAtom(atom: Readonly<Atom>, parent: Node): void {
+    let material = this._scene.getMaterialById('atom-color-' + atom.element.id)
+    if (!material) {
+      material = new StandardMaterial('atom-color-' + atom.element.id, this._scene)
+      const color = this._atomColorMap.get(atom.element.id)
+      material.emissiveColor = new Color3(color.red, color.green, color.blue)
+    }
     const sphere = MeshBuilder.CreateSphere(atom.id, { diameter: atom.element.radius }, this._scene)
+    sphere.material = material
     sphere.metadata = atom
     sphere.position = new Vector3(atom.x, atom.y, atom.z)
     sphere.parent = parent

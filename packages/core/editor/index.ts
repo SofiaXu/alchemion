@@ -1,4 +1,4 @@
-import { Atom, Structure } from '../structure'
+import { Atom, Bond, Structure } from '../structure'
 import { IDisposable } from '../utils/disposable'
 export interface IEditorOptions {
   rendererType?: 'ball-and-stick' | 'space-filling'
@@ -12,7 +12,7 @@ export interface IRenderer extends IDisposable {
     type: 'add' | 'update' | 'remove',
     structure: Structure,
     atom?: Readonly<Atom>,
-    bond?: ReadonlyArray<ReadonlyBond>
+    bond?: ReadonlyArray<Readonly<Bond>>
   ): void
 }
 
