@@ -89,7 +89,7 @@ export class BallAndStickRenderer implements IRenderer {
     return
   }
   private renderAtom(atom: Readonly<Atom>, parent: Node): void {
-    let material = this._scene.getMaterialById('atom-color-' + atom.element.id)
+    let material = this._scene.getMaterialById('atom-color-' + atom.element.id) as StandardMaterial
     if (!material) {
       material = new StandardMaterial('atom-color-' + atom.element.id, this._scene)
       const color = this._atomColorMap.get(atom.element.id)
