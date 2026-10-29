@@ -1,0 +1,51 @@
+{
+  "generatedBy": "scripts/scientific-data/generate.py",
+  "python": "3.12.10",
+  "tools": {
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "spglib": "2.6.0",
+    "periodictable": "2.0.2"
+  },
+  "sources": {
+    "periodictable/core.py": {
+      "url": "https://raw.githubusercontent.com/pkienzle/periodictable/v2.0.2/periodictable/core.py",
+      "sha256": "95ff765dbd0113fc9d6f9cd57682a0c41b1ce7e901059e661032646ff7669fad"
+    },
+    "periodictable/mass.py": {
+      "url": "https://raw.githubusercontent.com/pkienzle/periodictable/v2.0.2/periodictable/mass.py",
+      "sha256": "b99817ef6b26aa5610445137c6d898350f6efaf60562d8786997923e52cbda73"
+    },
+    "periodictable/covalent_radius.py": {
+      "url": "https://raw.githubusercontent.com/pkienzle/periodictable/v2.0.2/periodictable/covalent_radius.py",
+      "sha256": "39ff2131bf3436653f71f4230d1a5755db54241a4622ec7d55608efdaff13e74"
+    },
+    "spglib/database/spg.csv": {
+      "url": "https://raw.githubusercontent.com/spglib/spglib/v2.6.0/database/spg.csv",
+      "sha256": "4457df1042b14a65ea62af0bad7b5b609a4fc33592df245802cfe005b221f95e"
+    },
+    "spglib/COPYING": {
+      "url": "https://raw.githubusercontent.com/spglib/spglib/v2.6.0/COPYING",
+      "sha256": "9c4e602ce15bf48206dad105b666ddaeedba747eeda6465807106bc11f4f587f"
+    },
+    "spglib/src/spg_database.c": {
+      "url": "https://raw.githubusercontent.com/spglib/spglib/v2.6.0/src/spg_database.c",
+      "sha256": "bf1ab8a74e1d275e20ee4145bd409b62b5295e680599d3a112a41d396bde56bd"
+    }
+  },
+  "outputs": {
+    "packages/alchemion/src/core/data/elements.ts": "98147baf747340a351126c90f8637f83d0ffb7536782b367b7e5caaedecc0d9a",
+    "packages/alchemion/src/core/data/space-groups.ts": "9cd5c111137855a379bf72f8c62e6aba3078225e2cb4bc080d495f25bd6a94b6"
+  },
+  "counts": {
+    "elements": 118,
+    "covalentRadii": 96,
+    "hallSettings": 530,
+    "internationalNumbers": 230,
+    "operations": 7388
+  },
+  "maximumTranslationRationalizationError": 0.0,
+  "radiusConvention": "Angstrom; C sp3; Mn/Fe/Co low spin; absent for atomic numbers 97-118; uncertainty zero is retained as reported, not a guarantee of exactness.",
+  "massConvention": "u; standard atomic weights for elements in periodictable.mass.element_mass (CIAAW2021); other elements use the explicitly identified representative isotope and its AME2020 mass, not a natural mean.",
+  "rotationConvention": "column vectors; operation IDs are hall:<Hall number>:<zero-based upstream index>; exact reduced rational translations."
+}

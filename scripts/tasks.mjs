@@ -135,6 +135,9 @@ async function packaged() {
   if (files.some((file) => /\.cjs$|__tests__|test-data/.test(file))) {
     throw new Error('Development or CJS files leaked into the tarball.')
   }
+  for (const notice of ['THIRD_PARTY_NOTICES.md', 'SCIENTIFIC_DATA_MANIFEST.json']) {
+    await readFile(join(consumer, 'node_modules/alchemion', notice), 'utf8')
+  }
   for (const [name, version] of [
     ['typescript', '5.9.3'],
     ['vite', '7.3.5']
@@ -160,6 +163,16 @@ async function packaged() {
       '--lib',
       'ES2022,DOM',
       'main.ts'
+    ],
+    consumer
+  )
+  await run(
+    [
+      'exec',
+      process.execPath,
+      join(consumer, 'node_modules/typescript/bin/tsc'),
+      '-p',
+      'tsconfig.core-only.json'
     ],
     consumer
   )

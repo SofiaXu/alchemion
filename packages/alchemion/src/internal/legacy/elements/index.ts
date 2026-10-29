@@ -1,4 +1,3 @@
-import { bvparmJson } from './bvparm'
 import { elementsJson } from './elements'
 
 /**
@@ -48,17 +47,3 @@ elements.forEach((element) => {
   _elementsMap.set(element.symbol, element)
 })
 export const elementsMap: ReadonlyMap<string, Readonly<IElement>> = _elementsMap
-export interface IBvParameter {
-  source: string
-  target: string
-  sourceValence: number
-  targetValence: number
-  ro: number
-  b: number
-}
-export const bvParameters = bvparmJson as ReadonlyArray<Readonly<IBvParameter>>
-const _bvParametersMap = new Map<string, Readonly<IBvParameter>>()
-bvParameters.forEach((bvParameter) => {
-  _bvParametersMap.set(`${bvParameter.source}-${bvParameter.target}`, bvParameter)
-})
-export const bvParametersMap = _bvParametersMap

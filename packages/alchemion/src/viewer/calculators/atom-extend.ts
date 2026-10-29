@@ -1,5 +1,5 @@
-import { IElement } from '../../core/elements'
-import { IAtom } from '../../core/structure'
+import { IElement } from '../../internal/legacy/elements'
+import { IAtom } from '../../internal/legacy/structure'
 
 export interface IAtomExtend extends IAtom {
   mass: number

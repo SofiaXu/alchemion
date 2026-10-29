@@ -1,6 +1,6 @@
 import { Color3, MeshBuilder, Scene, TransformNode, Vector3 } from '@babylonjs/core'
 import { IRenderer } from '../contracts'
-import { IStructure } from '../../core/structure'
+import { IStructure } from '../../internal/legacy/structure'
 
 export class ReciprocalLatticeRenderer implements IRenderer {
   private _scene: Scene

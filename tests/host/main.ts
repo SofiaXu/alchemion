@@ -1,4 +1,4 @@
-import { CrystalSystem, elementsMap, type IStructure } from 'alchemion/core'
+import { createCell, createStructureSnapshot, fractionalToCartesian } from 'alchemion/core'
 import { CifParser } from 'alchemion/formats'
 import { AlchemionEditor, type IEditorOptions } from 'alchemion/viewer'
 
@@ -28,10 +28,22 @@ const state = { picked: '', sourceCount: 0, loadMs: 0 }
 async function run(mode: 'basic' | 'nested' | 'bench' = 'basic') {
   const start = performance.now()
   const structure = new CifParser().parse(cif)
-  // Exercise all three public entrypoints, including a runtime export from core.
-  if (!elementsMap.has('C') || structure.lattice?.crystalSystem !== CrystalSystem.Triclinic) {
-    throw new Error('Public core/formats exports are inconsistent.')
-  }
+  // New scientific core is exercised independently of the historical parser/viewer model.
+  const cell = createCell({ a: 2, b: 3, c: 4, alpha: 90, beta: 90, gamma: 90 })
+  if (!cell.ok) throw new Error('Scientific core cell creation failed.')
+  const position = fractionalToCartesian(cell.value, [0.5, 0.5, 0.5])
+  const source = createStructureSnapshot({
+    kind: 'molecular',
+    atoms: [{ id: 'core-carbon', element: 'C', cartesian: [0, 0, 0] }],
+    bonds: []
+  })
+  if (
+    !position.ok ||
+    position.value.some((n, i) => Math.abs(n - [1, 1.5, 2][i]) > 1e-9) ||
+    !source.ok ||
+    source.value.atoms[0].id !== 'core-carbon'
+  )
+    throw new Error('Public scientific core consumer failed.')
   if (mode === 'bench') {
     const atom = structure.atoms[0]
     delete structure.lattice
@@ -79,7 +91,7 @@ function dispose() {
 }
 
 function inputIsolation() {
-  const snapshot = editor?.structure as IStructure
+  const snapshot = editor!.structure!
   snapshot.atoms.length = 0
   return editor?.structure?.atoms.length
 }

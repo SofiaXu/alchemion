@@ -36,7 +36,32 @@ export default ts.config(
     }
   },
   {
-    files: ['packages/alchemion/src/core/**/*.ts', 'packages/alchemion/src/formats/**/*.ts'],
+    files: ['packages/alchemion/src/core/**/*.ts'],
+    ignores: ['**/__tests__/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            '**/internal/**',
+            '**/formats/**',
+            '**/formats',
+            '**/viewer/**',
+            '**/viewer',
+            '@babylonjs/*',
+            'three',
+            'three/*',
+            '*?worker*',
+            'node:*',
+            'vite',
+            'vite/*'
+          ]
+        }
+      ]
+    }
+  },
+  {
+    files: ['packages/alchemion/src/formats/**/*.ts'],
     ignores: ['**/__tests__/**'],
     rules: {
       'no-restricted-imports': [

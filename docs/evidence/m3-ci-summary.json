@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Hong_Kong",
+  "sourceCommit": "93937da9dd9e69d4c92b83bd33b24f6ee41d2d79",
+  "pullRequest": "https://github.com/SofiaXu/alchemion/pull/6",
+  "workflowRun": "https://github.com/SofiaXu/alchemion/actions/runs/40851532341",
+  "jobId": 123371926616,
+  "attempt": 1,
+  "conclusion": "success",
+  "environment": {
+    "os": "Ubuntu 24.04.5",
+    "runnerImage": "ubuntu-24.04/20261025.353.1",
+    "workingDirectory": "/home/runner/work/alchemion/alchemion",
+    "node": "24.22.1",
+    "pnpm": "9.7.0",
+    "chromium": "153.0.8010.12",
+    "testWorkers": 4,
+    "softwareRendering": true
+  },
+  "checks": {
+    "scientificCore": {
+      "files": 7,
+      "passed": 58,
+      "durationSeconds": 2.88
+    },
+    "sdkAndDemoBuild": "passed",
+    "pureCoreTypes": "passed",
+    "consumerTypes": "passed",
+    "affectedLintAndFormat": "passed",
+    "markdownLinks": {
+      "documents": 27,
+      "status": "passed"
+    },
+    "tarballConsumer": {
+      "project": "chromium",
+      "workers": 1,
+      "passed": 1,
+      "durationSeconds": 26.5
+    }
+  },
+  "relevantLogLines": [
+    "2026-10-29T09:41:39.3620509Z  Test Files  7 passed (7)",
+    "2026-10-29T09:41:39.3621432Z       Tests  58 passed (58)",
+    "2026-10-29T09:41:39.3625881Z    Duration  2.88s (transform 2.26s, setup 0ms, import 3.48s, tests 2.54s, environment 3ms)",
+    "2026-10-29T09:43:15.7730702Z   1 passed (26.5s)"
+  ]
+}

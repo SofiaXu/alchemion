@@ -5,7 +5,9 @@
   "license": "MIT",
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "SCIENTIFIC_DATA_MANIFEST.json"
   ],
   "exports": {
     "./core": {

@@ -4,9 +4,11 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 ## 当前状态
 
-M1 工程基线已完成，Windows 本地与 Ubuntu CI 关卡均已通过：已建立 pnpm workspace、ESM 子路径、声明、两层模块 Worker、独立 demo 与定向检查。保留的 Babylon.js 与科学/格式实现仅用于历史场景迁移；渲染引擎由 M2 实测定案。稳定身份、统一科学模型、完整格式、编辑历史和异步协议尚待 M3–M5，不因搬迁而视为完成。
+M1 工程基线已完成，Windows 本地与 Ubuntu CI 关卡均已通过：已建立 pnpm workspace、ESM 子路径、声明、两层模块 Worker、独立 demo 与定向检查。保留的 Babylon.js 与科学/格式实现仅用于历史场景迁移；渲染引擎由 M2 实测定案。M3 已建立新版稳定身份、科学模型和纯算法；完整格式、编辑历史、异步协议及正式viewer仍由M4–M5完成，不因历史搬迁而视为完成。
 
 M2 已完成并选定 Three.js 0.186.1，Windows 与 Ubuntu 定向验证通过；现有 SDK viewer 仍为历史 Babylon 路径，M5/M6 迁移。实际进展见 [交接](docs/handoff.md)、[M2 计划](docs/plans/m2-renderer-selection.md) 和 [M2 证据](docs/evidence/m2-renderer-selection.md)。历史代码基准为 06784cf。
+
+M3 正式 `alchemion/core` 已切换到独立科学接口，旧 formats/viewer 暂用内部历史模型。科学能力、参考和验证见 [M3计划](docs/plans/m3-scientific-core.md)、[独立参考](docs/evidence/m3-scientific-reference.md) 与 [ADR0003](docs/decisions/0003-scientific-core.md)；不提供旧 core API 适配。
 
 ## 现有工程入口
 
@@ -62,6 +64,27 @@ window.addEventListener('pagehide', () => editor.dispose(), { once: true })
 
 上例仅展示 M1 入口，不承诺新版 CIF1/2 支持矩阵或 M4/M5 的最终 API。完整需求见 [产品规范](docs/product.md)。
 
+## 科学核心示例
+
+```ts
+import { createCell, createStructureSnapshot, deriveStructure } from 'alchemion/core'
+
+const cell = createCell({ a: 4, b: 4, c: 4, alpha: 90, beta: 90, gamma: 90 })
+if (!cell.ok) throw new Error(cell.diagnostics[0].message)
+const source = createStructureSnapshot({
+  kind: 'periodic',
+  cell: cell.value,
+  atoms: [{ id: 'C-source-1', element: 'C', fractional: [0.25, 0.25, 0.25] }],
+  bonds: []
+})
+if (source.ok) {
+  const displayed = deriveStructure(source.value, { neighborCells: [[1, 0, 0]] })
+  console.log(displayed)
+}
+```
+
+结果携带诊断，失败分支没有半成品；实例携带可逆来源。无对称信息时只假定恒等操作并报告警告。该快照供新版科学/后续M4接口使用，当前历史 `AlchemionEditor` 的格式模型尚未迁移。
+
 ## 文档导航
 
 - [Codex 指令](AGENTS.md)、[执行计划规则](PLANS.md)、[当前交接](docs/handoff.md)
@@ -69,4 +92,4 @@ window.addEventListener('pagehide', () => editor.dispose(), { once: true })
 - [历史审计](docs/baseline.md)、[数据来源](docs/data-sources.md)、[路线图](docs/roadmap.md)
 - [基础决策](docs/decisions/0001-project-foundation.md)、[已接受的渲染决策](docs/decisions/0002-renderer-selection.md)
 
-仓库代码使用 [MIT License](LICENSE)。科学数据和样例保留来源台账中的待核实状态，M1 搬迁不表示已经完成数据审核。
+仓库代码使用 [MIT License](LICENSE)。新版科学表的来源、版本、散列和许可见随包 `SCIENTIFIC_DATA_MANIFEST.json` 与 `THIRD_PARTY_NOTICES.md`。历史内部表、配色和格式样例仍保留来源台账中的待核实状态，M3不替后续阶段宣称完成审核。

@@ -1,5 +1,5 @@
-import { IAtom, IBond, IStructure } from '../../core/structure'
-import { IDisposable } from '../../core/utils'
+import { IAtom, IBond, IStructure } from '../../internal/legacy/structure'
+import { IDisposable } from '../../internal/legacy/utils'
 export interface IEditorOptions {
   rendererType: 'ball-and-stick' | 'space-filling' | string
   showLattice: boolean

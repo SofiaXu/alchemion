@@ -1,4 +1,4 @@
-import { IStructure, IWriter } from '../../core'
+import { IStructure, IWriter } from '../../internal/legacy'
 
 export class CifWriter implements IWriter {
   write(structure: IStructure): string {

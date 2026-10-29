@@ -4,7 +4,7 @@ import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { SpaceFillingRenderer } from './renders/index'
 import { IDifferentRenderer, IEditor, IEditorOptions, IRenderer } from './contracts'
-import { IAtom, IBond, IStructure } from '../core/structure'
+import { IAtom, IBond, IStructure } from '../internal/legacy/structure'
 import {
   Color3,
   Color4,
@@ -17,7 +17,7 @@ import {
 import { LatticeRenderer } from './renders/lattice'
 import { ReciprocalLatticeRenderer } from './renders/reciprocal-lattice'
 import { Observable, Subject } from 'rxjs'
-import { elements, elementsMap, IElement } from '../core/elements'
+import { elements, elementsMap, IElement } from '../internal/legacy/elements'
 
 export class AlchemionEditor implements IEditor {
   private _engine: Engine

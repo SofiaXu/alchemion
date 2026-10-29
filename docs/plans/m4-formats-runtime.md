@@ -16,6 +16,7 @@ SDK 消费者能够读取/输出声明范围内的 CIF1/CIF2、MOL V2000/V3000 �
 - 必读 [产品规范](../product.md) 的字段支持矩阵、[领域规范](../domain.md)、[架构规范](../architecture.md)、[质量规范](../quality.md)、[数据来源台账](../data-sources.md) 及根 [执行计划规则](../../PLANS.md)。阶段状态以本计划和 [交接记录](../handoff.md) 为准。
 - 当前旧实现的 CIF 文档 parser 具有部分 CIF2 语法，结构 parser 强制 CIF1；MOL 为 V2000 风格固定列读取，writer 只输出 CIF/POSCAR。相关文件、风险和 fixture 见 [现状审计](../baseline.md)。这些是可评估资产，不是允许保留的兼容接口或正确性基准。
 - 本计划在 M0 创建，下列目标模块和证据文件尚未实施；不能把计划中的命令执行或独立工具验证写成已经通过。
+- M3 交付入口为 `alchemion/core`：`StructureSnapshot`、`ScientificValue`、`Diagnostic`、`createStructureSnapshot/validateStructure`、唯一晶胞转换、setting 解析、派生和测量/BZ。接口见 [架构](../architecture.md#m3-科学接口) 与 [ADR 0003](../decisions/0003-scientific-core.md)。旧格式当前只改为引用 `internal/legacy`，没有通过新版格式验收。M4 映射时自行分配并持久化稳定 ID，不使用标签/数组位置作为身份；源快照工厂不替调用者重编号。
 
 ## 实施步骤
 

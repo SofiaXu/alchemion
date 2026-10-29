@@ -1,5 +1,5 @@
 import { compile } from 'mathjs'
-import { ILattice } from '../../core/structure'
+import { ILattice } from '../../internal/legacy/structure'
 import { IAtomExtend } from './atom-extend'
 
 onmessage = async (
