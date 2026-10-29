@@ -69,6 +69,13 @@ async function comparisonHost() {
     configFile: false,
     root: join(root, 'tests/renderer-selection/host'),
     base: './',
+    define: {
+      'import.meta.env.M2_FUNCTIONAL_SOFTWARE': JSON.stringify(
+        process.env.M2_FUNCTIONAL_SOFTWARE === '1' ||
+          (process.env.CI && process.platform === 'linux') ||
+          false
+      )
+    },
     build: { target: 'es2022', outDir: output, emptyOutDir: true },
     worker: { format: 'es' }
   })
@@ -284,9 +291,14 @@ try {
       break
     case 'bench': {
       if (process.argv.includes('--renderer-selection')) {
-        const output = await comparisonHost()
-        const { measure } = await import('./renderer-selection.mjs')
-        await host(output, measure, 4175)
+        if (process.argv.includes('--resources-only')) {
+          const { auditResources } = await import('./renderer-resources.mjs')
+          await auditResources()
+        } else {
+          const output = await comparisonHost()
+          const { measure } = await import('./renderer-selection.mjs')
+          await host(output, measure, 4175)
+        }
       } else {
         await sdk()
         const { measure } = await import('./bench.mjs')

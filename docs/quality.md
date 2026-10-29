@@ -80,6 +80,8 @@ M1 可以先建立测试与性能 harness，后续场景随阶段补齐；空测
 
 M2 新增显式参数：`pnpm test:browser -- --phase=m2` 构建独立宿主并只匹配 M2 场景；无该参数仍为 M1 冒烟。`pnpm bench -- --renderer-selection` 构建单候选 ESM 消费者、验证其产物，再按 A/B、B/A、A/B 在真实硬件 GPU 上串行采样两种模式各三轮。软件渲染仅可提供功能证据。`--artifacts-only` 只检查体积与 ESM 消费者；`--skip-artifacts` 复用本轮已验证产物；`--resume` 只续跑同一输入/代码的缺失轮次；`--candidate=`、`--mode=`、`--round=` 用于明确限定重跑，不能用子集宣称完整选型。
 
+`--resources-only --source-ref=<commit>` 只从指定 Git 提交恢复比较资产到忽略目录，安装其精确引擎依赖，用 CDP 核对 20 轮全局监听归属，不重跑性能。软件功能验证以 `M2_FUNCTIONAL_SOFTWARE=1` 显式选择，使用同步 GPU 完成和有界任务交付，不提供帧呈现性能证据；硬件 bench 拒绝此路径。M2 Ubuntu 四进程软件验证已实际超时，改为两个进程并保留完整 10k/20k 及几何；证据与复验理由见 M2 报告。
+
 依赖 SDK 产物的独立命令必须显式准备其前置产物；聚合检查可以通过内部任务编排复用一次构建，不能为了避免重复准备而依赖前一会话留下的 dist。SDK 自身的源类型检查不得依赖 demo，从而保持构建依赖有向无环。
 
 ## 浏览器与阶段关卡

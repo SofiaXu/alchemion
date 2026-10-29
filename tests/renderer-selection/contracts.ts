@@ -1,5 +1,5 @@
 // M2 comparison-only contracts. These are not SDK public APIs.
-export type Candidate = 'three' | 'babylon'
+export type Candidate = 'three'
 export type DisplayMode = 'space-filling' | 'ball-and-stick'
 export type Vec3 = readonly [number, number, number]
 

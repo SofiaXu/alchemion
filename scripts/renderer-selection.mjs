@@ -317,6 +317,11 @@ async function sample(url, candidate, mode, round, common) {
       candidate,
       mode
     })
+    if (
+      result.load.environment.synchronization &&
+      result.load.environment.synchronization !== 'fence'
+    )
+      throw new Error('Hardware performance sampling requires the asynchronous fence path.')
     result.webgl = await page.evaluate(() => {
       const gl = document.querySelector('#comparison canvas').getContext('webgl2')
       const extension = gl.getExtension('WEBGL_debug_renderer_info')

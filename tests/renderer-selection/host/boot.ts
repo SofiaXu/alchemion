@@ -95,7 +95,10 @@ export async function boot(factories: Factories) {
   }
   function auxiliary(candidate: Candidate, mode: DisplayMode) {
     const element = document.createElement('div')
-    element.style.cssText = `position:absolute;left:-10000px;top:0;width:${WIDTH}px;height:${HEIGHT}px`
+    const slot = document.querySelectorAll('[data-m2-auxiliary]').length
+    element.dataset.m2Auxiliary = ''
+    // Keep both canvases visible, with unchanged drawing-buffer/picking coordinates.
+    element.style.cssText = `position:fixed;left:${(slot * WIDTH) / 2}px;top:0;width:${WIDTH}px;height:${HEIGHT}px;transform:scale(.5);transform-origin:top left`
     document.body.append(element)
     const instance = new ComparisonViewer(factoryFor(candidate), candidate, mode, element)
     return {
@@ -373,6 +376,16 @@ export async function boot(factories: Factories) {
           (error: Error) => error.name
         )
       const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms))
+      const waitForStale = async (expected: number) => {
+        const started = performance.now()
+        while (a.runtime.staleReplies < expected) {
+          if (performance.now() - started > 10000)
+            throw new Error(
+              `M2 stale reply observation timed out: expected ${expected}, got ${a.runtime.staleReplies}`
+            )
+          await pause(10)
+        }
+      }
       try {
         await a.setSnapshot(structuredClone(fixture.snapshot))
         const expected = a.adapter.stats()
@@ -405,7 +418,7 @@ export async function boot(factories: Factories) {
           (await oldRevision) === 'AbortError',
           'superseded revision did not end with AbortError'
         )
-        await pause(90)
+        await waitForStale(1)
         check(a.runtime.committedRevision === 2, 'old revision replaced the current frame')
         const oldDocument = aborted(
           a.runtime.request(fixture.snapshot, {
@@ -420,7 +433,7 @@ export async function boot(factories: Factories) {
           (await oldDocument) === 'AbortError',
           'superseded document did not end with AbortError'
         )
-        await pause(90)
+        await waitForStale(2)
         check(
           a.runtime.committedDocumentId === 'B' && Number(a.runtime.committedRevision) === 0,
           'previous document replaced a new document with the same revision'
@@ -435,7 +448,7 @@ export async function boot(factories: Factories) {
         )
         a.clear()
         check((await cleared) === 'AbortError', 'clear left a pending request')
-        await pause(90)
+        await waitForStale(3)
         check(
           a.adapter.stats().atoms === 0 && a.adapter.stats().bonds === 0,
           'late result rebuilt cleared resources'
@@ -454,7 +467,7 @@ export async function boot(factories: Factories) {
           })
         )
         check(timeout === 'Error', 'Worker timeout did not reject its Promise')
-        await pause(90)
+        await waitForStale(4)
         check(a.adapter.stats().atoms === 0, 'timed-out Worker result was committed')
         await b.setSnapshot(structuredClone(fixture.snapshot))
         const bStats = b.adapter.stats()

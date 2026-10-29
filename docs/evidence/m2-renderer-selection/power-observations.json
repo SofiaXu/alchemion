@@ -1,0 +1,922 @@
+[
+  {
+    "observedAt": "2026-10-29T14:38:10.1033613+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:38:30.3135373+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:38:50.3855713+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:39:10.4845048+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:39:30.5383667+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:39:50.5948449+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:40:10.6509936+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 44
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:40:30.7622573+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:40:50.8680990+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:41:10.9262730+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:41:31.0163032+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:41:51.1155392+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:42:11.2043363+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:42:31.4099037+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:42:51.4842128+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 43
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:43:11.5685203+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:43:31.6320619+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:43:51.7116113+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:44:11.7897197+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:44:31.8873221+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:44:51.9954934+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 25
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:45:12.0899065+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:45:32.1729451+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 42
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 28
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:45:52.2633920+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:46:12.4799968+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:46:32.5678003+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:46:52.8217067+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:47:12.9016739+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:47:33.0182076+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 8
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:47:53.1210151+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:48:13.2106583+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 41
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:48:33.3286966+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:48:53.4115212+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:49:13.4986097+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:49:33.5734065+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:49:53.6749808+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:50:13.7923944+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:50:33.8889542+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:50:53.9693918+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 40
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:51:14.0546080+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:51:34.1361678+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:51:54.2141386+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:52:14.2926329+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:52:34.3670243+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:52:54.4834813+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 26
+      }
+    ]
+  },
+  {
+    "observedAt": "2026-10-29T14:53:14.5558282+08:00",
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 39
+      }
+    ],
+    "plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "browserProcessCounts": [
+      {
+        "Name": "chrome",
+        "Count": 9
+      },
+      {
+        "Name": "msedge",
+        "Count": 27
+      }
+    ]
+  }
+]

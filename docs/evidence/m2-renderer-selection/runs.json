@@ -1,0 +1,80 @@
+{
+  "sourceRevision": "07527f8e0350fedb17926c8a5ff16a8c4cdc4084",
+  "sourceHash": "23a1bbe234975d9d4df3f71eefcadf7f19368e4159205562b806c62b4efcbbfa",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26300",
+  "cpu": "Intel(R) Core(TM) Ultra X7 358H",
+  "logicalProcessors": 16,
+  "totalMemory": 33840197632,
+  "hardware": {
+    "gpu": [
+      {
+        "Name": "GameViewer Virtual Display Adapter",
+        "DriverVersion": "15.6.5.199"
+      },
+      {
+        "Name": "Intel(R) Arc(TM) B390 GPU",
+        "DriverVersion": "32.0.101.8356"
+      }
+    ],
+    "battery": [
+      {
+        "BatteryStatus": 1,
+        "EstimatedChargeRemaining": 45
+      }
+    ],
+    "power": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)"
+  },
+  "parallelism": 1,
+  "purpose": "T-PERF-01 M2 same-device comparison; correctness is separately verified in three browsers",
+  "runs": [
+    {
+      "id": "three-space-filling-r1",
+      "status": "measured"
+    },
+    {
+      "id": "babylon-space-filling-r1",
+      "status": "measured"
+    },
+    {
+      "id": "three-ball-and-stick-r1",
+      "status": "measured"
+    },
+    {
+      "id": "babylon-ball-and-stick-r1",
+      "status": "measured"
+    },
+    {
+      "id": "babylon-space-filling-r2",
+      "status": "measured"
+    },
+    {
+      "id": "three-space-filling-r2",
+      "status": "measured"
+    },
+    {
+      "id": "babylon-ball-and-stick-r2",
+      "status": "measured"
+    },
+    {
+      "id": "three-ball-and-stick-r2",
+      "status": "measured"
+    },
+    {
+      "id": "three-space-filling-r3",
+      "status": "measured"
+    },
+    {
+      "id": "babylon-space-filling-r3",
+      "status": "measured"
+    },
+    {
+      "id": "three-ball-and-stick-r3",
+      "status": "measured"
+    },
+    {
+      "id": "babylon-ball-and-stick-r3",
+      "status": "measured"
+    }
+  ]
+}

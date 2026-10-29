@@ -8,9 +8,6 @@ importers:
 
   .:
     devDependencies:
-      '@babylonjs/core':
-        specifier: 9.32.1
-        version: 9.32.1
       '@eslint/js':
         specifier: 9.39.1
         version: 9.39.1
@@ -101,9 +98,6 @@ packages:
 
   '@babylonjs/core@7.23.0':
     resolution: {integrity: sha512-QJrRfwmpMmQlSgcsfDOZKkE6X5Va54O6NfcyZf+uemynAgPxy72nWRoJT9xBfxdS+1hxig7M9D5XIQOK7pwhKQ==}
-
-  '@babylonjs/core@9.32.1':
-    resolution: {integrity: sha512-8rI/j+yDAKG0P7ynwuXxQAiBpWMExcIzm4qKdCTHUARWTLjxuC4Mv65zZuSGdloss8ELsUeEZSqTWcuvT3esrA==}
 
   '@babylonjs/gui@7.23.0':
     resolution: {integrity: sha512-X8bpa6yNX+W62tw1w2GS4OCJoaJTAHDVADgchGjt7kez3FGizcH91bMYoDbmTM9UHNdxalyU25ZOfXKo6Vp8WQ==}
@@ -1242,8 +1236,6 @@ snapshots:
       regenerator-runtime: 0.14.1
 
   '@babylonjs/core@7.23.0': {}
-
-  '@babylonjs/core@9.32.1': {}
 
   '@babylonjs/gui@7.23.0(@babylonjs/core@7.23.0)':
     dependencies:

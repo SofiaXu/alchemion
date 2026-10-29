@@ -51,7 +51,8 @@ export class SnapshotRuntime {
 
   constructor(
     private readonly ledger: ResourceLedger,
-    private readonly apply: (snapshot: RenderSnapshot) => Promise<void>
+    private readonly apply: (snapshot: RenderSnapshot) => Promise<void>,
+    private readonly timeoutMs = 30000
   ) {
     ledger.adjust('workers', 1)
     for (const [event, handler] of this.listeners) {
@@ -134,7 +135,7 @@ export class SnapshotRuntime {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
         () => this.finish(requestId, new Error('M2 Worker request timed out.')),
-        options.timeoutMs ?? 30000
+        options.timeoutMs ?? this.timeoutMs
       )
       this.pending.set(requestId, { resolve, reject, timer })
       try {
@@ -222,7 +223,11 @@ export class ComparisonViewer {
       this.canvas.remove()
       throw error
     }
-    this.runtime = new SnapshotRuntime(this.ledger, (snapshot) => this.setSnapshot(snapshot))
+    this.runtime = new SnapshotRuntime(
+      this.ledger,
+      (snapshot) => this.setSnapshot(snapshot),
+      import.meta.env.M2_FUNCTIONAL_SOFTWARE ? 120000 : 30000
+    )
     this.canvas.addEventListener('pointerup', this.onPointer)
     this.observer = new ResizeObserver((entries) => {
       if (!this.disposed) {
@@ -290,6 +295,19 @@ export class ComparisonViewer {
   private nextFrame(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.disposed) return reject(abortError())
+      if (import.meta.env.M2_FUNCTIONAL_SOFTWARE) {
+        // Software CI proves GPU contents, not compositor presentation latency.
+        const cancel = () => {
+          clearTimeout(timer)
+          reject(abortError())
+        }
+        const timer = setTimeout(() => {
+          this.cancelMotion.delete(cancel)
+          resolve()
+        }, 0)
+        this.cancelMotion.add(cancel)
+        return
+      }
       const cancel = () => reject(abortError())
       this.cancelMotion.add(cancel)
       this.frame(() => {
@@ -364,6 +382,10 @@ export class ComparisonViewer {
     const debug = this.gl.getExtension('WEBGL_debug_renderer_info')
     return {
       webgl2: true,
+      synchronization: import.meta.env.M2_FUNCTIONAL_SOFTWARE
+        ? 'finish (software functional checks)'
+        : 'fence',
+      visibilityState: document.visibilityState,
       renderer: debug
         ? (this.gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) as string)
         : (this.gl.getParameter(this.gl.RENDERER) as string),

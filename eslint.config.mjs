@@ -46,6 +46,8 @@ export default ts.config(
             '**/viewer/**',
             '**/viewer',
             '@babylonjs/*',
+            'three',
+            'three/*',
             '*?worker*',
             'node:*',
             'vite',

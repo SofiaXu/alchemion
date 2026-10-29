@@ -10,7 +10,9 @@ jobs:
     timeout-minutes: 20
     env:
       LIBGL_ALWAYS_SOFTWARE: '1'
-      TEST_WORKERS: '4'
+      # Four concurrent 10k-instance software viewers exhausted the first run;
+      # keep the full fixture and reduce CPU contention on this runner.
+      TEST_WORKERS: '2'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,7 +23,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - run: pnpm build
       - run: pnpm exec tsc -p tsconfig.json
-      - run: pnpm exec eslint scripts/tasks.mjs scripts/renderer-selection.mjs playwright.m2.config.ts tests/renderer-selection
+      - run: pnpm exec eslint scripts/tasks.mjs scripts/renderer-selection.mjs scripts/renderer-resources.mjs playwright.m2.config.ts eslint.config.mjs tests/renderer-selection
       - run: pnpm docs:check
       - run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m2
       - run: xvfb-run --auto-servernum pnpm test:package -- --prepared

@@ -124,6 +124,13 @@ export class ResourceLedger {
 
 export async function gpuComplete(gl: WebGL2RenderingContext): Promise<void> {
   if (gl.isContextLost()) throw new Error('M2 WebGL context was lost before frame completion.')
+  // CI software drivers can stall asynchronous fences without compositor frames.
+  // This blocking path is only for functional checks, never hardware sampling.
+  if (import.meta.env.M2_FUNCTIONAL_SOFTWARE) {
+    gl.finish()
+    if (gl.getError() !== gl.NO_ERROR) throw new Error('M2 software frame completion failed.')
+    return
+  }
   const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
   if (!fence) throw new Error('M2 could not allocate a GPU completion fence.')
   gl.flush()
