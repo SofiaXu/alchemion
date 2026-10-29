@@ -1,6 +1,6 @@
 # M2 渲染选型证据
 
-状态：硬件实测完成，按规则选择 Three.js 0.186.1；Ubuntu 功能 harness 修复验证中。日期：2026-10-29，Asia/Hong_Kong。工作目录：`D:\source\alchemion`。
+状态：已完成，选择 Three.js 0.186.1；硬件、功能、资源和分发证据齐备。日期：2026-10-29，Asia/Hong_Kong。工作目录：`D:\source\alchemion`。
 
 ## 范围与固定环境
 
@@ -31,7 +31,7 @@
 | `pnpm test:package -- --prepared`                | 0      | 真实 tarball 消费者声明、生产构建、三浏览器嵌套 Worker/拾取/销毁 3/3，10.4 秒；目录为 `C:\Users\aoba\AppData\Local\Temp\alchemion-m1-consumer-u7STM0`。只运行一次并复用已构建 SDK。 |
 | shader 诊断回调后的定向类型检查                  | 1→0    | Three 类型包将回调参数误标为其内部 wrapper，实际 r186 传原生 WebGLProgram；核对精确源码后只在诊断调用处修正类型断言，重跑类型检查通过。类型断言被擦除，不重复浏览器矩阵。           |
 
-## 待完成证据
+## 实测与选择结果
 
 [功能原始记录](m2-renderer-selection/correctness.json) 保存 12 个组合的浏览器版本、GPU、身份、Worker 和资源结果。已人工核对 [Three 空间填充](m2-renderer-selection/functional-three-space-filling.png)、[Babylon 空间填充](m2-renderer-selection/functional-babylon-space-filling.png)、[Three 球棍](m2-renderer-selection/functional-three-ball-and-stick.png)、[Babylon 球棍](m2-renderer-selection/functional-babylon-ball-and-stick.png)：可见形状、布局及配色一致。截图仅作辅助，数值/身份/更新由断言验证。
 
@@ -66,6 +66,12 @@
 
 四个并发软件 viewer 已出现等待超时，Ubuntu 软件功能进程数降为 2；硬件功能默认仍为 4。新增资源审计、软件诊断和修复后复验均针对已观察到的具体缺口；没有默认运行完整科学/格式套件。
 
-修复后的本地软件 Chromium 两模式 2/2 通过（49.2s、58.7s，整体 1 分钟）；[原始记录](m2-renderer-selection/software-functional.json) 明确标记 finish 功能路径。这是针对已复现软件失败的定向复验，不是性能采样。Ubuntu 修复结果尚待核对，未标记通过。
+修复后的本地软件 Chromium 两模式 2/2 通过（49.2s、58.7s，整体 1 分钟）；[原始记录](m2-renderer-selection/software-functional.json) 明确标记 finish 功能路径。这是针对已复现软件失败的定向复验，不是性能采样。
+
+[修复后的 Ubuntu CI](https://github.com/SofiaXu/alchemion/actions/runs/40836102937) 在源码 08529de、attempt1 全部通过：[步骤与日志摘要](m2-renderer-selection/ci-validation.json)。冻结安装、SDK/demo 构建、类型/lint/文档、M2 6/6（2 进程，5.0 分钟）、真实 tarball 3/3（20.4 秒）。浏览器安装版本为 Chromium 153.0.8010.12、Firefox 155.0、WebKit 26.6；软件结果不验收 T-PERF-01，不等同真实 Safari。
+
+收束及 harness 修复后的 [Windows 最终功能记录](m2-renderer-selection/selected-correctness.json) 为 6/6、4 进程、14.4 秒，全部走硬件 fence 路径。复验理由是候选依赖删除、双实例可见布局和迟到观察逻辑发生变化。该变更不进入原性能采样的渲染/时钟路径，因此不重复 60 秒采样。
+
+最终 [Three ESM 产物](m2-renderer-selection/selected-artifacts.json) 及 [实际加载记录](m2-renderer-selection/selected-consumer.json) 已通过 `--artifacts-only` 复验。raw/minified/gzip 为 1,132,816/875,812/186,790 bytes；新增可观测性使 gzip 比原比较增加 213 bytes。选型始终使用 07527f8 的成对数据，未把最终单边体积混入比较。SDK 公开 API 和历史实现未改变，不重复无关科学/格式测试。
 
 当前源码只保留获选原型和开发依赖；历史 SDK Babylon 7.23.0 未改。完整双候选复跑须在独立 checkout 检出 `07527f8`，按 README 配置固定工具并冻结安装，再运行原比较命令；当前树的 bench 只复验 Three。软件功能诊断使用 `M2_FUNCTIONAL_SOFTWARE=1`，不是性能验收。`--resume` 只自动核对源码，操作者仍须确认同机/浏览器/供电状态，不能跨环境拼接结果。

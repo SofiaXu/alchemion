@@ -4,27 +4,26 @@
 
 ## 当前入口
 
-- **M2 渲染对照进行中**，当前分支 `codex/m2-renderer-selection`。M1 已完成并推送 master（3c54711）；M0 前置文档提交为 9742727，历史业务基准为 06784cf。
-- 唯一 SDK 与独立 demo 已迁移；三个 ESM 子路径、声明和两层模块 Worker 均经真实消费者验证。真实命令见 [README](../README.md#现有工程入口)。
-- Babylon 7.23.0 仅用于历史迁移；渲染 ADR 仍 [Proposed](decisions/0002-renderer-selection.md)，尚无正式选型结论。
+- **M2 渲染对照已完成**。正式新版后端为 **Three.js 0.186.1**（类型 0.186.0），见 [Accepted ADR 0002](decisions/0002-renderer-selection.md)。
+- 比较实现提交为 07527f8，软件验证修复及候选收束提交为 08529de；最终文档与主分支归档提交以 Git HEAD 为准。唯一 SDK 的公开 API 未改变。
+- 当前 SDK/demo 仍使用历史 Babylon 7.23.0，按用户确认留至 M5/M6 迁移；新 Babylon 9.32.1 开发依赖及原型已移除。M2 比较类型不是 M3/M4 的正式科学模型或协议。
 
-## 已有证据
+## 完成证据
 
-- [M2 证据](evidence/m2-renderer-selection.md)：新候选 Three 0.186.1/Babylon 9.32.1；三浏览器×两模式×两候选 12/12，4 进程无重试；实际 tarball 3/3，SDK/demo 构建和定向静态检查通过。尚未执行完整性能采样，不能接受 ADR。
-- 完整 Chromium 153.0.8010.12 的 D3D11 路径已探测到真实 Intel Arc B390；默认 headless shell 仍为 SwiftShader。便携 pnpm wrapper 已固定子进程 Node24，系统 Node26/shim 不用于正式检查。
-
-- [M1 证据](evidence/m1-foundation.md)：原始冻结安装/lint/build 通过；旧 CIF 失败、必要修复、Worker 分发与初始化问题均有记录。
-- Windows 干净 checkout：冻结安装、无 dist 的 dev、check:m1 通过；两个 CIF 文件 20/20，workspace 三浏览器 3/3，真实 tarball 三浏览器 3/3；生产环境下消费者工具隔离另行定向复验通过。
-- [Ubuntu CI](https://github.com/SofiaXu/alchemion/actions/runs/40824931331)：提交 163da34、attempt 1、success；同范围检查全部通过。
-- [M1 计划](plans/m1-foundation.md) 保存完成进展；[bench 原始样本](evidence/m1-bench-smoke.json) 是 128 原子/120 帧的软件渲染采集冒烟，不是 T-PERF-01 达标证据。
-- [M0 报告](evidence/m0-validation.md) 仅保存历史接管阶段事实。所有复测/扩展理由见 M1 证据；本轮没有默认运行完整业务套件。
+- [M2 报告](evidence/m2-renderer-selection.md) 与同名资源目录保存完整命令、版本、输入哈希、截图、逐次延迟、资源、失败修复和选择公式；[执行计划](plans/m2-renderer-selection.md) 保存进展与决策。
+- Arc B390/D3D11、Chromium153、1920×1080/DPR1：两候选×两模式×三轮 12/12 达标。最差决策延迟均为52.5ms，gzip186,577/449,787 bytes，Three 小58.52%而获选。规定矩阵只运行一次，无候选性能修复或重跑。
+- 原始240轮自有资源计数归零；为覆盖账本未包含的全局监听，另用CDP核对80轮逐轮恢复基线。Three 的7个引擎基础GPU句柄随自有context loss释放，正式viewer必须保留此销毁边界。
+- Windows 比较功能12/12、最终获选功能6/6（4进程）、真实SDK tarball3/3；最终单候选ESM产物加载/Worker/拾取/销毁通过。公开SDK仍未声称完成M3–M5。
+- [Ubuntu CI](https://github.com/SofiaXu/alchemion/actions/runs/40836102937)：08529de、attempt1、success；构建/类型/lint/链接、M2软件功能6/6、tarball3/3。初次失败及修复理由保留在报告，软件数据不验收性能。
+- 四个并发软件viewer曾实际超时，因此Ubuntu软件功能降为2进程并关闭额外tracing，保留完整10k/20k和几何；硬件功能默认4，正式性能独占串行。未运行完整科学/格式套件。
+- [M1证据](evidence/m1-foundation.md) 保留Windows/Linux工程基线；M0和旧业务基准分别为9742727、06784cf。
 
 ## 尚待处理
 
-- M2：按相同硬件、画质与固定场景对照 Three.js/Babylon.js，记录性能与资源证据，再接受引擎 ADR。
-- M3–M5：稳定身份、权威晶胞数学、科学核心、完整格式/诊断、异步修订/取消、编辑历史及最终 viewer。旧问题见 [基线](baseline.md)，M1 并未宣称解决。
-- 科学表与历史样例仍待 [来源核验](data-sources.md)；M1 保留署名且没有将搬迁数据改记为已审核。
+- M3–M5：稳定身份、权威晶胞数学、科学核心、完整格式/诊断、正式异步修订/取消、编辑历史和viewer。M2的测试Worker没有完成M4。
+- 科学表和历史样例仍待[来源核验](data-sources.md)；本阶段只新增项目自编的确定性图形夹具。
+- 性能结论限于报告中的设备、浏览器、供电和画质；M5/M6须在正式SDK集成后复验，不能直接把原型结果标为最终产品通过。
 
-## 下一项任务
+## 下一项可执行任务
 
-按 [M2 计划](plans/m2-renderer-selection.md) 冻结比较源码提交后，运行 `pnpm bench -- --renderer-selection`，取得单候选 ESM 产物和两模式各三轮正式数据；原始输出在 `.tmp/bench/m2/`。必须独占 GPU 串行采样，软件渲染不验收。定案按 ADR 收束新候选；用户确认历史 viewer/demo 留至 M5/M6，不在 M2 重写完整 viewer。完成后按授权提交、合并并推送 master。
+接管[M3科学核心](plans/m3-scientific-core.md)：先检查Git工作区，读取领域/产品/架构/来源规范；检查现有core的structure、utils和elements入口，从稳定ID、周期/非周期最小模型及唯一晶胞数学开始，先建立独立解析参考再替换旧计算。M3尚未开始，不把M2准备好的笛卡尔坐标或mock源映射当科学真值。继续使用pnpm和最小充分验证；下一阶段的路线图不代表已授权自动实施。

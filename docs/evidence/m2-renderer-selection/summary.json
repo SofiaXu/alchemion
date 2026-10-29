@@ -258,5 +258,12 @@
         "browserErrors": true
       }
     }
-  ]
+  ],
+  "globalListenerAudit": {
+    "file": "global-resources.json",
+    "sourceRevision": "07527f8e0350fedb17926c8a5ff16a8c4cdc4084",
+    "passed": true,
+    "rounds": 80,
+    "method": "CDP observation of window/document/navigator before/during/after each load/dispose; supplemental resource-only run"
+  }
 }

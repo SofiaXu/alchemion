@@ -6,7 +6,7 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 M1 工程基线已完成，Windows 本地与 Ubuntu CI 关卡均已通过：已建立 pnpm workspace、ESM 子路径、声明、两层模块 Worker、独立 demo 与定向检查。保留的 Babylon.js 与科学/格式实现仅用于历史场景迁移；渲染引擎由 M2 实测定案。稳定身份、统一科学模型、完整格式、编辑历史和异步协议尚待 M3–M5，不因搬迁而视为完成。
 
-M2 对照正在实施；候选尚未定案。实际进展见 [交接](docs/handoff.md)、[M2 计划](docs/plans/m2-renderer-selection.md) 和 [M2 证据](docs/evidence/m2-renderer-selection.md)。历史代码基准为 06784cf。
+M2 已完成并选定 Three.js 0.186.1，Windows 与 Ubuntu 定向验证通过；现有 SDK viewer 仍为历史 Babylon 路径，M5/M6 迁移。实际进展见 [交接](docs/handoff.md)、[M2 计划](docs/plans/m2-renderer-selection.md) 和 [M2 证据](docs/evidence/m2-renderer-selection.md)。历史代码基准为 06784cf。
 
 ## 现有工程入口
 
@@ -36,10 +36,12 @@ Linux 安装浏览器时使用 Playwright 的 --with-deps 选项。不要跳过�
 | pnpm check:m1                      | 复用一次 SDK 构建，执行历史 M1 工程检查、两个 CIF 文件、浏览器与 tarball 验收；不作为 M2 默认验证。 |
 | pnpm check                         | 显式全量检查入口；新增阶段后可能扩大，不作为默认任务验证。                                          |
 | pnpm bench -- --smoke              | 128 原子、120 帧的真实采集冒烟，输出 .tmp/bench/m1-smoke.json；不验收 T-PERF-01。                   |
-| pnpm bench -- --renderer-selection | 同条件硬件 GPU 对照；两模式各三轮，原始数据在 .tmp/bench/m2。                                       |
+| pnpm bench -- --renderer-selection | 获选 Three 的两模式各三轮硬件复验；完整双候选对照检出 07527f8，原始输出在 .tmp/bench/m2。           |
 | pnpm docs:check                    | 检查本地 Markdown 链接。                                                                            |
 
 测试默认 4 个进程，可用 TEST_WORKERS 覆盖浏览器并行数。资源允许时使用 4–8；资源不足时记录降并行的原因。只运行与变更直接相关的检查，重复或扩大验证须记录技术理由。
+
+M2 Ubuntu 软件功能场景因实际资源超时降为 2 进程，保留完整数量与画质，采用显式软件同步配置；硬件采样独占串行，软件数据不用于性能验收。失败及复验理由见 M2 证据。
 
 ## SDK 与 demo 边界
 
@@ -65,6 +67,6 @@ window.addEventListener('pagehide', () => editor.dispose(), { once: true })
 - [Codex 指令](AGENTS.md)、[执行计划规则](PLANS.md)、[当前交接](docs/handoff.md)
 - [产品](docs/product.md)、[领域](docs/domain.md)、[架构](docs/architecture.md)、[质量](docs/quality.md)
 - [历史审计](docs/baseline.md)、[数据来源](docs/data-sources.md)、[路线图](docs/roadmap.md)
-- [基础决策](docs/decisions/0001-project-foundation.md)、[待实测的渲染决策](docs/decisions/0002-renderer-selection.md)
+- [基础决策](docs/decisions/0001-project-foundation.md)、[已接受的渲染决策](docs/decisions/0002-renderer-selection.md)
 
 仓库代码使用 [MIT License](LICENSE)。科学数据和样例保留来源台账中的待核实状态，M1 搬迁不表示已经完成数据审核。

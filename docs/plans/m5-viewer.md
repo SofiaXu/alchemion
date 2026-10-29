@@ -12,10 +12,14 @@ SDK 消费者通过 `alchemion/viewer` 创建独立 viewer，显示全部目标�
 
 - M2 完成、[ADR 0002](../decisions/0002-renderer-selection.md) 已 Accepted；M3 科学核心及 M4 格式/运行时/编辑控制器完成其验收。读取 [架构](../architecture.md)、[领域规范](../domain.md)、[产品矩阵](../product.md)、[质量规范](../quality.md) 及 [M4](m4-formats-runtime.md)。
 - 当前旧编辑器是集中式 Babylon.js 实现，不能复制其坐标算法、对象身份判断或异步完成方式作为新版契约。
-- **进入阶段前的定案关卡**：由 M2 的实测方案补充本计划的精确引擎版本、实例化/拾取/局部更新调用、资源释放方式、构建与 Worker 产物布局。现在不填写未经选择的引擎细节；M5 不可在本关卡未完成时开始。
+- **渲染定案关卡已满足**：Three.js 0.186.1（类型 0.186.0），依据 [M2 实测](../evidence/m2-renderer-selection.md)。M3/M4 的正式模型、算法和运行时仍是 M5 的必要前置，不能把比较原型当作完整 viewer。
 - M1 已建立工程命令；以下命令不是 M5 已经运行的结果。历史 Babylon 7.23.0 viewer/demo 按用户确认保留至 M5/M6，由本阶段按 M2 选型迁移，M6 清理剩余历史路径。
 
 ## 实施步骤
+
+M2 已固定的后端调用约束：使用 BufferGeometry/InstancedMesh 和 DynamicDrawUsage；matrix/color 的 update range 分别以每实例 16/3 个 float 为单位，更新后设 needsUpdate 并刷新 bounding box/sphere。Raycaster 的 intersection.instanceId 必须查稳定身份映射；相机使用本库数值姿态驱动 PerspectiveCamera，公开 API 不返回引擎对象。clear 释放实例、几何及材质；dispose 另释放 renderer 并丢弃自有 WebGL context，取消 RAF、监听、观察器与 Worker，幂等完成。
+
+正式后端在本阶段迁入唯一 SDK viewer 后，只保留一份正式实现；M2 的夹具与比较协议不得成为第二套领域/编辑运行时。M4 Worker 接入仍用普通 module Worker URL，ESM 与全部 Worker/chunk 随唯一 SDK 构建，复用 M1 的真实 tarball 消费者验证；消费者不理解源码查询语法。M2 原型的测试 Worker 必须替换为 M4 运行时，不能直接宣称其取消/超时覆盖了 M4 的完整调度。
 
 1. **实现浏览器门面与资源边界。** 在目标 SDK viewer 内组织控制器、交互与获选后端，遵守架构的 `Viewer` 契约。创建自有 canvas，观察容器尺寸，使用 WebGL2；提供明确的不支持/上下文丢失诊断。公开 API 使用本库类型，不暴露引擎场景、mesh 或相机。订阅立即提供当前状态，clear/dispose 行为与状态转换由同一控制器管理。
 2. **连接 RenderSnapshot。** 接入 M4 的 requestId/documentId/revision、取消/错误/超时协议；只渲染当前有效文档与修订，分帧过程也可失效。完整提交后才 ready；被取消/销毁的 Promise 以 AbortError 结束。提交前解析/结构校验失败保留原文档/历史；接受有效源后派生或渲染失败则保留新源和 error 状态、Promise reject，不发 ready。快照实例 ID 映射到源原子 ID、对称操作与晶胞偏移；显示键绑定正确实例。多个 viewer 使用各自状态、Worker 和资源，不使用共享可变源结构。

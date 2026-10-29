@@ -20,9 +20,11 @@
 
 M4 的纯命令/历史状态机从 `core` 公开，能够在不创建 viewer 的情况下验证事务和历史；浏览器计算运行时从 `viewer` 子路径以显式工厂公开，只有调用该工厂才创建 Worker，独立使用时不创建 canvas 或 WebGL。正式 viewer 组合这两者，不另建私有的第二套编辑规则。具体函数声明在 M4 实施前根据 M3 的模型补全到本文件和消费者编译用例。
 
-M2 在 Three.js 与 Babylon.js 间实测择一；正式 SDK 只维护一个渲染后端。渲染隔离用于维持领域边界，不建设两个完整后端或通用引擎框架。引擎专属组织方式在 M2 定案后写回本文与 [ADR 0002](decisions/0002-renderer-selection.md)。
+M2 已实测选定 Three.js 0.186.1（类型 0.186.0），依据见 [Accepted ADR 0002](decisions/0002-renderer-selection.md)。新版正式 viewer 只使用该后端，不建设通用双引擎框架。M2 的 `RenderSnapshot`/adapter 仅是比较契约，M3/M4 仍须建立正式领域类型和运行时。
 
 M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29 用户确认，历史 Babylon 7.23.0 viewer/demo 保留至 M5/M6 迁移；定案时收束新候选，不在 M2 为删除历史依赖而提前重写完整 viewer。
+
+获选实现使用共享 BufferGeometry、InstancedMesh、DynamicDrawUsage 与局部 update ranges；拾取以 instanceId 查本库身份映射。清空释放结构几何/材质/实例缓冲，销毁同时释放 renderer、循环、监听、Worker 和自有 WebGL context；M2 实测 Three 的 7 个基础句柄随 context loss 释放，正式实现必须保留这个所有权边界。引擎类型始终留在 viewer 内部。精确调用和 Worker 产物约束见 M5 计划。
 
 ## 数据、状态与编辑
 
