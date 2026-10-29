@@ -10,9 +10,9 @@
 
 ## 候选与证据边界
 
-| 候选 | 可用于原型的官方能力资料 | 本项目尚待证明 |
-|---|---|---|
-| Three.js | [InstancedMesh](https://threejs.org/docs/pages/InstancedMesh.html) 的实例变换/颜色、实例拾取与更新能力。 | 固定场景下的交互、增量更新、清理、Worker 边界与分发成本。 |
+| 候选       | 可用于原型的官方能力资料                                                                                                   | 本项目尚待证明                                               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Three.js   | [InstancedMesh](https://threejs.org/docs/pages/InstancedMesh.html) 的实例变换/颜色、实例拾取与更新能力。                   | 固定场景下的交互、增量更新、清理、Worker 边界与分发成本。    |
 | Babylon.js | [Thin instances](https://doc.babylonjs.com/features/featuresDeepDive/mesh/copies/thinInstances) 的大量实例与缓冲更新能力。 | 同等画质下的拾取 ID、局部更新、清理、Worker 边界与分发成本。 |
 
 官方文档证明 API 能力存在，不是本项目性能证据。M2 开始时核对当前官方文档与实际锁定版本，记录两个候选的精确版本及构建参数，不写“最新版”作为可复现环境。

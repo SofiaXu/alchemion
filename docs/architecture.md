@@ -1,18 +1,18 @@
 # 目标架构与接口边界
 
-状态：2026-10-29 的新版目标，由 [ADR 0001](decisions/0001-project-foundation.md) 批准方向；当前代码尚未按此重构。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
+状态：2026-10-29 的新版目标，由 [ADR 0001](decisions/0001-project-foundation.md) 批准方向。M1 已建立 SDK/demo workspace 与公开子路径，正在最终验收；以下科学模型和最终 API 仍为 M3–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
-采用 pnpm workspace：一个 SDK 包和一个独立 demo。以下是 M1–M5 将建立的**目标目录**，不是当前可用的源码位置。
+采用 pnpm workspace：一个 SDK 包和一个独立 demo。表中目录与三个子路径已由 M1 建立；职责是 M3–M5 的最终目标，当前仍搬迁使用旧模型和算法。
 
-| 目标位置／正式入口 | 职责与允许依赖 |
-|---|---|
-| `packages/alchemion` | 唯一 SDK 包，包名 `alchemion`；发布 ESM 和声明文件。 |
-| `alchemion/core` | 结构模型、通用诊断、晶胞与坐标、对称/扩胞、成键、倒易与第一布里渊区、测量、无界面编辑事务与历史（M4 实现）；只依赖无浏览器副作用的数学实现和经核实数据。 |
-| `alchemion/formats` | CIF1/CIF2、MOL V2000/V3000 的结构读写和周期结构 POSCAR 输出；只依赖 core；接收文本/结构并返回结果与诊断。 |
-| `alchemion/viewer` | 浏览器门面、编辑控制器、显式创建的计算运行时、Worker 入口、所选渲染后端及交互；组合 core，按需要使用 formats。 |
-| `apps/demo` | SDK 的真实消费者，负责文件选择/下载、控件、错误展示和示例；不得导入 SDK 内部源码。 |
+| 目标位置／正式入口   | 职责与允许依赖                                                                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/alchemion` | 唯一 SDK 包，包名 `alchemion`；发布 ESM 和声明文件。                                                                                                     |
+| `alchemion/core`     | 结构模型、通用诊断、晶胞与坐标、对称/扩胞、成键、倒易与第一布里渊区、测量、无界面编辑事务与历史（M4 实现）；只依赖无浏览器副作用的数学实现和经核实数据。 |
+| `alchemion/formats`  | CIF1/CIF2、MOL V2000/V3000 的结构读写和周期结构 POSCAR 输出；只依赖 core；接收文本/结构并返回结果与诊断。                                                |
+| `alchemion/viewer`   | 浏览器门面、编辑控制器、显式创建的计算运行时、Worker 入口、所选渲染后端及交互；组合 core，按需要使用 formats。                                           |
+| `apps/demo`          | SDK 的真实消费者，负责文件选择/下载、控件、错误展示和示例；不得导入 SDK 内部源码。                                                                       |
 
 依赖只沿 `demo → viewer → core` 与 `demo/viewer → formats → core` 方向。core 和 formats 不导入 DOM、渲染引擎、Worker、`?worker` 等构建器语法；浏览器运行时才创建 Worker、canvas 和渲染器。用独立 TypeScript 配置和导入边界检查验证该约束。
 
@@ -53,9 +53,7 @@ export interface Diagnostic {
 
 // alchemion/formats：纯文本边界，不隐式 fetch，也不弹出文件选择框。
 export type BlockSelector = { name: string } | { index: number }
-export type ParseOptions =
-  | { format: 'cif'; block?: BlockSelector }
-  | { format: 'mol' }
+export type ParseOptions = { format: 'cif'; block?: BlockSelector } | { format: 'mol' }
 export type WriteOptions = (
   | { format: 'cif'; version: '1' | '2' }
   | { format: 'mol'; version?: 'V2000' | 'V3000' }
@@ -76,15 +74,16 @@ export interface CifDocumentResult {
 }
 export function parseCifDocument(text: string): CifDocumentResult
 export function parseStructure(text: string, options: ParseOptions): ParseResult
-export function writeStructure(
-  structure: StructureSnapshot,
-  options: WriteOptions
-): WriteResult
+export function writeStructure(structure: StructureSnapshot, options: WriteOptions): WriteResult
 
 // alchemion/viewer：以下签名中的模型/选项/事件类型均须为引擎无关类型。
 export type InteractionMode =
-  | 'none' | 'select' | 'pick-point'
-  | 'measure-distance' | 'measure-angle' | 'measure-torsion'
+  | 'none'
+  | 'select'
+  | 'pick-point'
+  | 'measure-distance'
+  | 'measure-angle'
+  | 'measure-torsion'
 
 export interface Viewer {
   load(structure: StructureSnapshot): Promise<void>
@@ -99,10 +98,7 @@ export interface Viewer {
   dispose(): void
 }
 
-export function createViewer(
-  container: HTMLElement,
-  options?: Partial<ViewerOptions>
-): Viewer
+export function createViewer(container: HTMLElement, options?: Partial<ViewerOptions>): Viewer
 ```
 
 `ParseOptions` 显式指定 `format: 'cif' | 'mol'`；CIF 可带 `block?: BlockSelector`，格式版本按文件识别。`WriteOptions` 显式指定 `format: 'cif' | 'mol' | 'poscar'`；CIF 明确版本 `'1' | '2'`，MOL 版本为 `'V2000' | 'V3000'`、省略时为 V3000；损失接受项为 `allowLoss?: boolean`、默认 false。`SourceLocation` 行/列从 1 开始、offset 从 0 开始，未能定位时省略；CIF block index 从 0 开始。
@@ -127,14 +123,14 @@ M4 建立一个独立计算 Worker／viewer，由运行时拥有；不沿用嵌�
 
 ## 资源所有权与失效规则
 
-| 资源 | 所有者及释放规则 |
-|---|---|
-| 宿主容器 | 调用者拥有；SDK 不删除容器。SDK 创建并拥有 canvas，dispose 时从容器移除。 |
-| 引擎上下文、场景、mesh、几何、材质、拾取映射 | 所选后端拥有；clear 释放结构相关资源，允许有界共享基础几何缓存；dispose 释放该 viewer 的全部资源。 |
-| RAF／渲染循环、分帧队列、指针/键盘监听、尺寸观察器 | viewer 拥有；观察容器尺寸而非只观察 window；clear 取消结构任务，dispose 全部取消并移除监听。 |
-| Worker、消息监听、待决 Promise | 运行时拥有；请求结束后移除对应记录，dispose 终止 Worker 并以取消结束待决调用。 |
-| 事件订阅、选择、测量辅助图形 | 控制器/交互层拥有；clear 重置结构关联状态，dispose 发出一次 disposed 后清理订阅。返回的退订函数可重复调用。 |
-| demo 文件控件、下载对象 URL、页面订阅 | demo 拥有，卸载时自行释放，不依赖全局重载清理。 |
+| 资源                                               | 所有者及释放规则                                                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 宿主容器                                           | 调用者拥有；SDK 不删除容器。SDK 创建并拥有 canvas，dispose 时从容器移除。                                   |
+| 引擎上下文、场景、mesh、几何、材质、拾取映射       | 所选后端拥有；clear 释放结构相关资源，允许有界共享基础几何缓存；dispose 释放该 viewer 的全部资源。          |
+| RAF／渲染循环、分帧队列、指针/键盘监听、尺寸观察器 | viewer 拥有；观察容器尺寸而非只观察 window；clear 取消结构任务，dispose 全部取消并移除监听。                |
+| Worker、消息监听、待决 Promise                     | 运行时拥有；请求结束后移除对应记录，dispose 终止 Worker 并以取消结束待决调用。                              |
+| 事件订阅、选择、测量辅助图形                       | 控制器/交互层拥有；clear 重置结构关联状态，dispose 发出一次 disposed 后清理订阅。返回的退订函数可重复调用。 |
+| demo 文件控件、下载对象 URL、页面订阅              | demo 拥有，卸载时自行释放，不依赖全局重载清理。                                                             |
 
 `dispose` 幂等；销毁后的状态读取/退订安全，新的修改操作返回明确 disposed 错误。多个 viewer 的状态、相机、任务和清理互不影响。WebGL2 不可用或上下文丢失时发出可操作诊断；上下文恢复需要重建资源并重绘当前有效快照，失败时允许宿主销毁并创建新 viewer，禁止悄悄回退到未验收后端。
 

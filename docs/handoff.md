@@ -4,30 +4,22 @@
 
 ## 当前入口
 
-- 当前状态：M0 接管文档已完成；M1 工程基线尚未开始，依赖已满足。详细交付见 [M0 执行计划](plans/m0-documentation.md)。
-- 历史业务代码基准：`06784cf0a61d09c76906086bebac773459f5b33d`。本轮没有创建提交；后续会话自行核对实际 HEAD 与工作区。
-- 本轮开始前：Git 工作区干净，`node_modules` 不存在；业务构建、lint、测试未运行。以上是开始时的观察，不表示文档编制后的工作区仍为空。
-- 目标架构已获用户确认；渲染引擎仍待 M2 实测，见 [ADR 0002](decisions/0002-renderer-selection.md)。
+- M0 文档已提交为 9742727；M1 实现已建立，正在集成和干净 checkout 验收。分支 codex/m1-foundation。
+- 历史业务代码基准 06784cf。原始冻结安装/lint/build 实际通过；CIF 19 通过、1 失败。详见 [M1 证据](evidence/m1-foundation.md)。
+- 当前唯一 SDK 与独立 demo 已迁移；Babylon 仅作为历史实现，渲染 ADR 仍 [Proposed](decisions/0002-renderer-selection.md)。
 
 ## 已有证据
 
-- [历史现状审计](baseline.md) 保存代码结构、风险和测试资产的静态证据。
-- [M0 验证报告](evidence/m0-validation.md)：22 份 Markdown、24 项需求定义、20 类测试场景定义、7 份阶段计划通过文档检查；本地链接、指令大小及原有跟踪文件零改动已核对。报告包含可重复执行的只读校验器。
-- 当前没有新版功能、性能或分发通过的运行证据。
+- [M0 报告](evidence/m0-validation.md) 保存接管文档阶段的历史证据。
+- [M1 报告](evidence/m1-foundation.md) 保存原始/迁移后命令、依赖选择、Worker 分发失败及修复理由。
+- [M1 执行计划](plans/m1-foundation.md) 保存实时进展和最小充分验证边界。
 
 ## 尚待处理
 
-- M1：核实 manifest/lockfile 依赖归类，建立可重复安装与 workspace 工程基线。
-- M2：执行同条件渲染对照，定案引擎与版本；当前没有性能实测结果。
-- M3/M6：核实科学数据来源及适用性，保留样例的原有署名信息。
-- M3–M6：完成新版实现与行为验证。具体依赖见 [路线图](roadmap.md)。
+- 完成 M1 最终三浏览器、隔离 tarball、干净冻结安装、dev 和 bench 冒烟；随后按用户授权提交、合并并推送 master。
+- M2：同条件比较两个引擎；尚无正式性能或选型结论。
+- M3–M5：稳定身份、科学模型、完整格式/异步/编辑历史和 viewer；旧问题继续见 [基线](baseline.md)。科学表和历史样例仍待核实来源，M1 未将其标为已审核数据。
 
 ## 下一项任务
 
-下一项为 [M1 工程基线](plans/m1-foundation.md)。该阶段需要先读根 [AGENTS.md](../AGENTS.md)、[PLANS.md](../PLANS.md)、[架构规范](architecture.md) 和 [质量规范](quality.md)，再核对工作区。先取证原始冻结安装，再修复依赖与工程边界；检查必须先准备 SDK 产物，不能依赖残留 dist 或源码 alias。
-
-可用于后续 Codex 会话的任务入口：
-
-> 按仓库 AGENTS.md 和 docs/handoff.md 接管项目，执行 M1 工程基线计划。保留现有文档和其他工作区改动，记录实际验证证据，并更新阶段计划和交接。
-
-后续会话应以文件中的实时状态为准；如果 M1 已经开始或完成，读取其进展后续接，不重新从头实施。
+先按 [M1 计划](plans/m1-foundation.md) 续接剩余验收，检查 Git 差异和已有证据，只复测受影响场景。M1 全部必要工程关卡通过后交给 [M2 计划](plans/m2-renderer-selection.md)，不得直接开始后续业务阶段。
