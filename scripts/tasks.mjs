@@ -83,6 +83,7 @@ async function packaged() {
   await run(
     [
       'install',
+      '--prod=false',
       '--ignore-workspace',
       '--prefer-offline',
       '--fetch-timeout=30000',
@@ -98,10 +99,20 @@ async function packaged() {
   if (files.some((file) => /\.cjs$|__tests__|test-data/.test(file))) {
     throw new Error('Development or CJS files leaked into the tarball.')
   }
+  for (const [name, version] of [
+    ['typescript', '5.9.3'],
+    ['vite', '7.3.5']
+  ]) {
+    const installed = JSON.parse(
+      await readFile(join(consumer, 'node_modules', name, 'package.json'))
+    )
+    if (installed.version !== version) throw new Error(`Unexpected consumer tool: ${name}`)
+  }
   await run(
     [
       'exec',
-      'tsc',
+      process.execPath,
+      join(consumer, 'node_modules/typescript/bin/tsc'),
       '--noEmit',
       '--strict',
       '--target',
@@ -116,7 +127,17 @@ async function packaged() {
     ],
     consumer
   )
-  await run(['exec', 'vite', 'build', '--base', './'], consumer)
+  await run(
+    [
+      'exec',
+      process.execPath,
+      join(consumer, 'node_modules/vite/bin/vite.js'),
+      'build',
+      '--base',
+      './'
+    ],
+    consumer
+  )
   const assets = await readdir(join(consumer, 'dist'), { recursive: true })
   if (!assets.some((name) => /atom-worker-.*\.js$/.test(name))) {
     throw new Error('Nested module Worker missing from the consumer production build.')

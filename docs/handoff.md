@@ -4,7 +4,7 @@
 
 ## 当前入口
 
-- M0 文档已提交为 9742727；M1 实现已建立，正在集成和干净 checkout 验收。分支 codex/m1-foundation。
+- M0 文档已提交为 9742727；M1 本地工程验收已通过，正在远端 CI 与交付。分支 codex/m1-foundation。
 - 历史业务代码基准 06784cf。原始冻结安装/lint/build 实际通过；CIF 19 通过、1 失败。详见 [M1 证据](evidence/m1-foundation.md)。
 - 当前唯一 SDK 与独立 demo 已迁移；Babylon 仅作为历史实现，渲染 ADR 仍 [Proposed](decisions/0002-renderer-selection.md)。
 
@@ -16,7 +16,7 @@
 
 ## 尚待处理
 
-- 完成 M1 最终三浏览器、隔离 tarball、干净冻结安装、dev 和 bench 冒烟；随后按用户授权提交、合并并推送 master。
+- M1 本地关卡已通过：20 个 CIF、三浏览器 workspace/真实 tarball、干净冻结安装/dev/check:m1、短 bench。下一步按用户授权合并并推送 master，核对 Linux CI 实际结果。
 - M2：同条件比较两个引擎；尚无正式性能或选型结论。
 - M3–M5：稳定身份、科学模型、完整格式/异步/编辑历史和 viewer；旧问题继续见 [基线](baseline.md)。科学表和历史样例仍待核实来源，M1 未将其标为已审核数据。
 

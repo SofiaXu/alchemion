@@ -44,3 +44,20 @@
 ### Bench 采集冒烟
 
 `pnpm bench -- --smoke` 退出 0。128 原子、0 键，实际采集 120 个 RAF 间隔；加载 840.5 ms，帧间隔 p95 为 166.7 ms。Node 24.22.1，Chromium 153.0.8010.12，Windows 10.0.26300，Intel Core Ultra X7 358H，内存 33,840,197,632 bytes。WebGL2 renderer 为 ANGLE/Vulkan/SwiftShader（软件渲染）。[原始样本](m1-bench-smoke.json) 已保存；该结果只证明采集入口可用，不是桌面 GPU 或一万实例性能通过结论。只运行此一次短采集，不重复做 M2 基准。
+
+### 干净环境工程关卡
+
+候选提交 `061c62f`；两个仓库外 clone 均通过显式检查确认开始时没有 node_modules、SDK dist 或 demo dist。使用便携 Node 24.22.1 和 pnpm 9.7.0。
+
+| 工作目录 / 命令                                                                                 | 退出码 | 结果                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `C:\Users\aoba\AppData\Local\Temp\alchemion-m1-clean-rpfQlV` / `pnpm install --frozen-lockfile` | 0      | 191 packages，55.7 秒；实际执行安装，未跳过脚本。                                                                                                                          |
+| 同上 / `pnpm dev -- --smoke`                                                                    | 0      | 无 dist 启动；SDK、声明、build watch 和独立 demo 工作；Chromium 观察到真实样例 Worker load completed，随后关闭开发服务器和监听。demo 是同一脚本别名，不重复启动。          |
+| `C:\Users\aoba\AppData\Local\Temp\alchemion-m1-check-51Ehxq` / `pnpm install --frozen-lockfile` | 0      | 191 packages，7.8 秒；第二个 clone 为独立验证无 dist 的 check，不删除已有 dev 验证现场。                                                                                   |
+| 同上 / `pnpm check:m1`                                                                          | 0      | 格式、lint、SDK/demo 构建、声明、纯模块/宿主/测试/配置类型、23 份 Markdown 链接通过；两个 CIF 文件共 20/20；workspace 三浏览器 3/3；tarball 三浏览器 3/3。SDK 仅构建一次。 |
+
+浏览器并行上限 4，三项目实际同时运行 3 个进程；没有为凑进程数拆分测试，没有自动重试。浏览器为 Chromium 153.0.8010.12、Firefox 155.0、WebKit 26.6。Playwright WebKit 不代表真实 Safari。构建保留 Bootstrap/Sass 弃用诊断与历史大 chunk 提示，未将其隐藏或作为性能通过证据。
+
+复核发现：Vite 的进程环境把 NODE_ENV 设为 production，首次聚合消费者安装因而跳过开发依赖，命令从父任务 PATH 找到工具。SDK 运行依赖已独立安装，但这不能作为消费者工具隔离完成证据。修复为显式 `--prod=false`、核对消费者本地 TypeScript/Vite 精确版本，并执行其绝对二进制路径；在显式 NODE_ENV=production 的条件下只重跑 package 场景：消费者实际安装 TypeScript 5.9.3/Vite 7.3.5，声明检查与生产构建通过；三浏览器 3/3，退出 0。消费者目录为 C:\Users\aoba\AppData\Local\Temp\alchemion-m1-consumer-JXRP5x。其 SDK 与 061c62f 的 SDK 源码相同，未重复运行无关单元或 workspace 浏览器测试。
+
+CI 在 Ubuntu 24.04 的 Xvfb/Mesa 上执行同范围功能检查，明确软件渲染用途；纯文档提交通过 paths-ignore 避免重复运行相同业务测试。Linux 远端结果尚未运行，不能从 Windows 结果推断。

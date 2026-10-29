@@ -1,5 +1,9 @@
 name: M1 foundation
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore: ['**/*.md', 'docs/**']
+  pull_request:
+    paths-ignore: ['**/*.md', 'docs/**']
 jobs:
   foundation:
     runs-on: ubuntu-24.04

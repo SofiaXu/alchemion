@@ -4,7 +4,7 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 ## 当前状态
 
-M1 工程基线正在最终验收：已建立 pnpm workspace、ESM 子路径、声明、两层模块 Worker、独立 demo 与定向检查。保留的 Babylon.js 与科学/格式实现仅用于历史场景迁移；渲染引擎由 M2 实测定案。稳定身份、统一科学模型、完整格式、编辑历史和异步协议尚待 M3–M5，不因搬迁而视为完成。
+M1 本地工程关卡已通过，等待远端 CI 和交付：已建立 pnpm workspace、ESM 子路径、声明、两层模块 Worker、独立 demo 与定向检查。保留的 Babylon.js 与科学/格式实现仅用于历史场景迁移；渲染引擎由 M2 实测定案。稳定身份、统一科学模型、完整格式、编辑历史和异步协议尚待 M3–M5，不因搬迁而视为完成。
 
 实际进展见 [交接](docs/handoff.md)、[M1 计划](docs/plans/m1-foundation.md) 和 [运行证据](docs/evidence/m1-foundation.md)。历史代码基准为 06784cf。
 

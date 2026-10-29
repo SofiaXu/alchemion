@@ -1,6 +1,6 @@
 # M1：可重复的工程基线与 SDK / demo 边界
 
-状态：进行中，等待最终干净 checkout 验收。
+状态：进行中；本地工程验收已通过，等待远端 CI 与交付。
 需求：R-001、R-023、R-024。
 测试：T-PKG-01、T-DOC-01；仅建立后续业务测试的工程入口。
 
@@ -47,8 +47,8 @@
 - [x] 固定工具与依赖归属，建立 workspace、公开子路径、声明和模块边界。
 - [x] 建立两层模块 Worker，发现并修复二次构建资源遗漏。
 - [x] 建立目标脚本、定向浏览器/消费者/bench harness 和 CI 配置。
-- [ ] 最终三浏览器和真实消费者通过。
-- [ ] 干净 checkout 冻结安装、无 dist 的 dev、check:m1 和 bench 冒烟。
+- [x] 最终三浏览器和真实消费者通过。
+- [x] 干净 checkout 冻结安装、无 dist 的 dev、check:m1 和 bench 冒烟。
 - [ ] 完成证据/交接、合并并推送 origin/master。
 
 ## 发现（Surprises & Discoveries）
@@ -64,4 +64,4 @@
 
 ## 结果与回顾（Outcomes & Retrospective）
 
-工程实现已建立，最终验收进行中。全部通过后更新本段与 [handoff](../handoff.md)，下一关卡为 [M2](m2-renderer-selection.md)。
+本地工程关卡均已通过；生产环境下消费者工具隔离也已修复并定向复验通过。远端 CI 与交付进行中。全部通过后更新本段与 [handoff](../handoff.md)，下一关卡为 [M2](m2-renderer-selection.md)。
