@@ -1,7 +1,7 @@
-import { Engine } from '@babylonjs/internal/legacy/Engines/engine'
-import { Scene } from '@babylonjs/internal/legacy/scene'
-import { ArcRotateCamera } from '@babylonjs/internal/legacy/Cameras/arcRotateCamera'
-import { Vector3 } from '@babylonjs/internal/legacy/Maths/math.vector'
+import { Engine } from '@babylonjs/core/Engines/engine'
+import { Scene } from '@babylonjs/core/scene'
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera'
+import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { SpaceFillingRenderer } from './renders/index'
 import { IDifferentRenderer, IEditor, IEditorOptions, IRenderer } from './contracts'
 import { IAtom, IBond, IStructure } from '../internal/legacy/structure'
@@ -13,7 +13,7 @@ import {
   MeshBuilder,
   Tools,
   TransformNode
-} from '@babylonjs/internal/legacy'
+} from '@babylonjs/core'
 import { LatticeRenderer } from './renders/lattice'
 import { ReciprocalLatticeRenderer } from './renders/reciprocal-lattice'
 import { Observable, Subject } from 'rxjs'

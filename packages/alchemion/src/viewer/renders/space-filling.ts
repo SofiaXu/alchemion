@@ -8,7 +8,7 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3
-} from '@babylonjs/internal/legacy'
+} from '@babylonjs/core'
 
 export class SpaceFillingRenderer implements IDifferentRenderer {
   private _scene: Scene

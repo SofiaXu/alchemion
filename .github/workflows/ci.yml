@@ -1,9 +1,22 @@
 name: M2 engineering
 on:
   push:
-    paths-ignore: ['**/*.md', 'docs/**']
+    paths:
+      - 'tests/renderer-selection/**'
+      - 'scripts/renderer-selection.mjs'
+      - 'scripts/renderer-resources.mjs'
+      - 'playwright.m2.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   pull_request:
-    paths-ignore: ['**/*.md', 'docs/**']
+    paths:
+      - 'tests/renderer-selection/**'
+      - 'scripts/renderer-selection.mjs'
+      - 'scripts/renderer-resources.mjs'
+      - 'playwright.m2.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
 jobs:
   renderer-harness:
     runs-on: ubuntu-24.04

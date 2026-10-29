@@ -4,26 +4,24 @@
 
 ## 当前入口
 
-- **M2 渲染对照已完成**。正式新版后端为 **Three.js 0.186.1**（类型 0.186.0），见 [Accepted ADR 0002](decisions/0002-renderer-selection.md)。
-- 比较实现提交为 07527f8，软件验证修复及候选收束提交为 08529de；最终文档与主分支归档提交以 Git HEAD 为准。唯一 SDK 的公开 API 未改变。
-- 当前 SDK/demo 仍使用历史 Babylon 7.23.0，按用户确认留至 M5/M6 迁移；新 Babylon 9.32.1 开发依赖及原型已移除。M2 比较类型不是 M3/M4 的正式科学模型或协议。
+- **M3 科学核心本地已完成，待定向 Ubuntu CI 和远端合并收尾。** 分支 `codex/m3-scientific-core`，基准 `3ab8d6f`；共享契约/历史隔离提交 `80216d6`。
+- 正式 `alchemion/core` 一次切换到稳定 ID、周期/非周期快照、晶胞/对称/成键/测量/倒易/BZ。接口与边界见 [ADR0003](decisions/0003-scientific-core.md)、[架构](architecture.md#m3-科学接口)、[M3计划](plans/m3-scientific-core.md)。
+- 旧 formats/viewer 只改为引用 `internal/legacy`，历史 Babylon7.23.0/demo 仍留至 M4/M5 迁移；不提供 core 旧 API 兼容层。正式渲染后端仍是 M2 已选定的 Three0.186.1。
 
 ## 完成证据
 
-- [M2 报告](evidence/m2-renderer-selection.md) 与同名资源目录保存完整命令、版本、输入哈希、截图、逐次延迟、资源、失败修复和选择公式；[执行计划](plans/m2-renderer-selection.md) 保存进展与决策。
-- Arc B390/D3D11、Chromium153、1920×1080/DPR1：两候选×两模式×三轮 12/12 达标。最差决策延迟均为52.5ms，gzip186,577/449,787 bytes，Three 小58.52%而获选。规定矩阵只运行一次，无候选性能修复或重跑。
-- 原始240轮自有资源计数归零；为覆盖账本未包含的全局监听，另用CDP核对80轮逐轮恢复基线。Three 的7个引擎基础GPU句柄随自有context loss释放，正式viewer必须保留此销毁边界。
-- Windows 比较功能12/12、最终获选功能6/6（4进程）、真实SDK tarball3/3；最终单候选ESM产物加载/Worker/拾取/销毁通过。公开SDK仍未声称完成M3–M5。
-- [Ubuntu CI](https://github.com/SofiaXu/alchemion/actions/runs/40836102937)：08529de、attempt1、success；构建/类型/lint/链接、M2软件功能6/6、tarball3/3。初次失败及修复理由保留在报告，软件数据不验收性能。
-- 四个并发软件viewer曾实际超时，因此Ubuntu软件功能降为2进程并关闭额外tracing，保留完整10k/20k和几何；硬件功能默认4，正式性能独占串行。未运行完整科学/格式套件。
-- [M1证据](evidence/m1-foundation.md) 保留Windows/Linux工程基线；M0和旧业务基准分别为9742727、06784cf。
+- [科学核心证据](evidence/m3-scientific-core.md)、[独立参考](evidence/m3-scientific-reference.md) 保存命令、环境、残差标准、输入/散列及失败修复理由。NumPy/SciPy参考只生成一次，不调用生产算法。
+- Windows core 首跑7文件/57项、4进程通过；审查补1个来源反例后只复验成键文件13项通过。共58项独立场景已在对应范围运行；万原子规则网格得到解析28600键。
+- 固定数据：118元素/96半径、530 Hall/230 IT/7388操作；全部setting的独立整数群闭合/逆元通过。原始散列和许可随SDK打包；未使用的旧键价表已删除。
+- SDK/demo构建、源码无DOM边界、消费者类型、改动lint已通过。Chromium真实tarball场景1/1通过：声明、无DOM core声明、生产构建、嵌套Worker、拾取及销毁。来源回归后只重建受影响SDK，最终版本由Ubuntu消费者核对。
+- [M2证据](evidence/m2-renderer-selection.md) 和 [ADR0002](decisions/0002-renderer-selection.md) 继续有效；本次未重复渲染对照/硬件性能或完整旧格式测试。
 
 ## 尚待处理
 
-- M3–M5：稳定身份、权威晶胞数学、科学核心、完整格式/诊断、正式异步修订/取消、编辑历史和viewer。M2的测试Worker没有完成M4。
-- 科学表和历史样例仍待[来源核验](data-sources.md)；本阶段只新增项目自编的确定性图形夹具。
-- 性能结论限于报告中的设备、浏览器、供电和画质；M5/M6须在正式SDK集成后复验，不能直接把原型结果标为最终产品通过。
+- 本次收尾：改动格式/文档链接检查、提交推送PR、定向Ubuntu CI和合并master，并将实际CI链接/提交补入证据。
+- M4：新版CIF/MOL/POSCAR、编辑事务/历史、独立计算Worker及修订/取消协议；M5：Three正式viewer与交互；M6：完整demo和分发。科学算法尚未接入历史显示，不把新core通过写成viewer验收。
+- 历史内部表、配色和格式样例仍保留[来源台账](data-sources.md)的未核实状态，按M4/M5替换并在M6复核，不能以新数据来源替旧表追认。
 
 ## 下一项可执行任务
 
-接管[M3科学核心](plans/m3-scientific-core.md)：先检查Git工作区，读取领域/产品/架构/来源规范；检查现有core的structure、utils和elements入口，从稳定ID、周期/非周期最小模型及唯一晶胞数学开始，先建立独立解析参考再替换旧计算。M3尚未开始，不把M2准备好的笛卡尔坐标或mock源映射当科学真值。继续使用pnpm和最小充分验证；下一阶段的路线图不代表已授权自动实施。
+先完成上述M3提交/CI/合并收尾；取得全部必要证据后标记阶段完成。随后接管 [M4计划](plans/m4-formats-runtime.md)：读取正式core声明、结构校验和诊断，先建立编解码结果边界，替换历史格式模型；事务/Worker必须复用core算法。后续阶段仍须单独授权，不自动开始M4。

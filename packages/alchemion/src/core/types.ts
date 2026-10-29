@@ -4,14 +4,24 @@ export type Matrix3 = readonly [Vec3, Vec3, Vec3]
 export type AtomId = string
 export type BondId = string
 export type SymmetryOperationId = string
-export type JsonValue = null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue }
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly JsonValue[]
+  | { readonly [key: string]: JsonValue }
 export type DiagnosticContext = Readonly<Record<string, JsonValue | undefined>>
 export interface Diagnostic {
   readonly severity: 'error' | 'warning' | 'info'
   readonly code: string
   readonly message: string
   readonly context?: DiagnosticContext
-  readonly sourceLocation?: { readonly line: number; readonly column: number; readonly offset?: number }
+  readonly sourceLocation?: {
+    readonly line: number
+    readonly column: number
+    readonly offset?: number
+  }
 }
 export type ScientificResult<T> =
   | { readonly ok: true; readonly value: T; readonly diagnostics: readonly Diagnostic[] }
@@ -22,7 +32,13 @@ export interface Provenance {
   readonly reference?: string
 }
 export type ScientificValue =
-  | { readonly kind: 'known'; readonly value: number; readonly standardUncertainty?: number; readonly literal?: string; readonly provenance?: Provenance }
+  | {
+      readonly kind: 'known'
+      readonly value: number
+      readonly standardUncertainty?: number
+      readonly literal?: string
+      readonly provenance?: Provenance
+    }
   | { readonly kind: 'unknown' | 'not-applicable' }
 export interface CellParameters {
   readonly a: number
@@ -34,7 +50,14 @@ export interface CellParameters {
 }
 export interface Cell {
   readonly basis: Matrix3
-  readonly parameterUncertainties?: Readonly<Partial<Record<keyof CellParameters, { readonly standardUncertainty: number; readonly literal?: string }>>>
+  readonly parameterUncertainties?: Readonly<
+    Partial<
+      Record<
+        keyof CellParameters,
+        { readonly standardUncertainty: number; readonly literal?: string }
+      >
+    >
+  >
 }
 export interface Rational {
   readonly numerator: number
@@ -68,12 +91,20 @@ export interface AtomProperties {
   readonly radical?: 'singlet' | 'doublet' | 'triplet'
   readonly atomMap?: number
   readonly displacementU?: ScientificValue
-  readonly coordinateUncertainties?: { readonly frame: 'fractional' | 'cartesian'; readonly standardUncertainties: Vec3; readonly literals?: readonly [string, string, string] }
+  readonly coordinateUncertainties?: {
+    readonly frame: 'fractional' | 'cartesian'
+    readonly standardUncertainties: Vec3
+    readonly literals?: readonly [string, string, string]
+  }
   readonly provenance?: Provenance
   readonly metadata?: Readonly<Record<string, JsonValue>>
 }
-export interface PeriodicAtom extends AtomProperties { readonly fractional: Vec3 }
-export interface MolecularAtom extends AtomProperties { readonly cartesian: Vec3 }
+export interface PeriodicAtom extends AtomProperties {
+  readonly fractional: Vec3
+}
+export interface MolecularAtom extends AtomProperties {
+  readonly cartesian: Vec3
+}
 export interface BondEndpoint {
   readonly sourceAtomId: AtomId
   readonly symmetryOperationId: SymmetryOperationId

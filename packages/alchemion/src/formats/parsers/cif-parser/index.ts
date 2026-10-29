@@ -1,5 +1,10 @@
 import { elementsMap } from '../../../internal/legacy/elements'
-import { CrystalSystem, IAtom, IStructure, spaceGroupSettings } from '../../../internal/legacy/structure'
+import {
+  CrystalSystem,
+  IAtom,
+  IStructure,
+  spaceGroupSettings
+} from '../../../internal/legacy/structure'
 import { IParser } from '../../../internal/legacy/utils'
 import { TokenStream } from '../common/token-stream'
 import { CifDataValue, CifDocumentParser } from './cif-document-parser'

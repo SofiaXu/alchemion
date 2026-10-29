@@ -1,6 +1,6 @@
 # 目标架构与接口边界
 
-状态：2026-10-29 的新版目标，由 [ADR 0001](decisions/0001-project-foundation.md) 批准方向。M1 已建立 SDK/demo workspace 与公开子路径，并通过工程验收；以下科学模型和最终 API 仍为 M3–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
+状态：2026-10-29。M1 已建立 SDK/demo workspace 与公开子路径；M3 正在以 [ADR 0003](decisions/0003-scientific-core.md) 落实正式科学模型，运行验证以阶段证据为准。格式、事务/运行时和最终 viewer API 仍为 M4–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
@@ -24,6 +24,16 @@ M2 已实测选定 Three.js 0.186.1（类型 0.186.0），依据见 [Accepted AD
 
 M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29 用户确认，历史 Babylon 7.23.0 viewer/demo 保留至 M5/M6 迁移；定案时收束新候选，不在 M2 为删除历史依赖而提前重写完整 viewer。
 
+M3 正式 `core` 不再导出历史 `IAtom/IStructure/ILattice`、事件工具或旧数据表。历史消费者的必要依赖移至 `internal/legacy`，只修改内部导入，不创建新旧模型转换层；formats 迁移前暂消费这一内部模型。新 core 禁止导入该历史目录。无消费者的旧键价数据已删除。
+
+## M3 科学接口
+
+`StructureSnapshot` 是 `kind: 'periodic' | 'molecular'` 的判别联合；原子分别含 `fractional` 或 `cartesian`，晶胞仅保存列向量 `basis`。科学未知值为 `unknown/not-applicable`，已知值保存 `value`、可选标准不确定度/字面值/来源。ID 是非空稳定字符串，由创建者提供，校验不重编号。缺失占位在快照工厂中默认 1 并附来源和 info；显式未知保持未知。
+
+`ScientificResult<T>` 为 `{ok:true,value,diagnostics}` 或 `{ok:false,diagnostics}`。`createStructureSnapshot` 复制并冻结输入，`validateStructure` 返回诊断。晶胞工厂/参数/体积/坐标转换及报告体积交叉检查从 core 公开。可用独立科学函数包括 `parseSymmetryOperation/resolveSymmetry`、`deriveInstances/sourcePositionFromInstance`、`inferBonds/deriveStructure`、`measureDistance/measureAngle/measureTorsion`、`reciprocalLattice/reciprocalPoint/computeBrillouinZone`。
+
+实例携带 `id`、源 AtomId、操作 ID、整数平移、实际笛卡尔位置、周期时的分数位置及 `equivalentSources`。显示键引用实例 ID，同时保留规范周期端点和显式/推断来源。BZ 返回科学顶点、外向面、三角化、体积和完备性证书；三维引擎只消费结果。公开完整声明以 [core 入口](../packages/alchemion/src/core/index.ts) 为准。
+
 获选实现使用共享 BufferGeometry、InstancedMesh、DynamicDrawUsage 与局部 update ranges；拾取以 instanceId 查本库身份映射。清空释放结构几何/材质/实例缓冲，销毁同时释放 renderer、循环、监听、Worker 和自有 WebGL context；M2 实测 Three 的 7 个基础句柄随 context loss 释放，正式实现必须保留这个所有权边界。引擎类型始终留在 viewer 内部。精确调用和 Worker 产物约束见 M5 计划。
 
 ## 数据、状态与编辑
@@ -31,13 +41,13 @@ M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29
 - **输入与源模型**：`load` 取得独立快照；周期结构保存显式分数坐标，非周期结构保存 Å 制笛卡尔坐标。解析或结构校验在提交前失败时，保留原文档、历史和显示；源快照通过校验后才接受新 documentId 并清历史/选择。调用者后续修改输入不影响 viewer；读取快照也不能修改内部权威状态。
 - **身份与派生显示**：原子和键使用稳定 ID。计算输出的每个显示实例包含实例 ID、源原子 ID、对称操作/晶胞偏移及笛卡尔位置；显示键引用显示实例。选择和编辑通过映射回到源对象，不能通过 mesh 名称、坐标相等或对象引用猜测身份。
 - **周期键端点**：源结构的每个键端点都包含 `sourceAtomId`、`symmetryOperationId`、`integerCellOffset`；非周期端点使用恒等操作和零偏移。两个端点都能表达非恒等对称影像，不能仅保存 AtomId 或单一相对 shift。键去重按规范端点及物理实例映射处理，科学规范决定操作规范化方式。
-- **计算与渲染**：core 产生与引擎无关的 `RenderSnapshot`；后端只将它变成图形并返回实例拾取 ID。坐标转换、成键、倒易和布里渊区不在 renderer 内再实现一份。
+- **计算与渲染**：M3 core 产生与引擎无关的 `DerivedStructure` 和科学几何；M4/M5 组合显示选项形成正式渲染快照，后端只将其变成图形并返回实例拾取 ID。坐标转换、成键、倒易和布里渊区不在 renderer 内再实现一份。
 - **编辑与历史**：M4 的控制器拥有源快照和撤销/重做历史。原子增删、元素/坐标修改、晶胞修改均作为事务命令；一次批量命令只产生一条历史，失败不部分提交，失败/空操作不入历史。晶胞编辑保留分数坐标。新编辑清空 redo；`load`、`clear` 清空历史与选择，load 更换 `documentId`。历史默认保留 100 个事务，可配置；undo/redo 恢复稳定 ID，但修订递增。显示选项、相机和测量不进入结构编辑历史。
 - **派生实例编辑**：编辑其源原子，随后重新推导所有关联实例。派生实例不成为第二份可独立编辑的权威结构。测量可以使用显示实例的笛卡尔位置；导出使用源快照，除非产品规范明确另提供扩胞结构操作。
 
 ## 公共 API 职责草案
 
-下面是 M1–M5 的**目标 TypeScript 契约草案**；相关类型尚未建立，不能在当前仓库导入或执行。领域模型和格式结果的详细字段由领域/产品规范约束；M4 建立具体声明与编译用例，M5 实现浏览器门面。
+下面保留 M4/M5 格式与 viewer 的**目标 TypeScript 契约草案**；core 的身份、诊断和科学模型已经建立，其余门面尚不能在当前仓库导入或执行。领域模型和格式结果的详细字段由领域/产品规范约束；M4 建立具体声明与编译用例，M5 实现浏览器门面。
 
 ```ts
 // alchemion/core：周期键最小身份契约，其他科学属性由领域规范补全。

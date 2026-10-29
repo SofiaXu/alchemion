@@ -1,4 +1,4 @@
-import { Color3, MeshBuilder, Scene, TransformNode, Vector3 } from '@babylonjs/internal/legacy'
+import { Color3, MeshBuilder, Scene, TransformNode, Vector3 } from '@babylonjs/core'
 import { IRenderer } from '../contracts'
 import { IStructure } from '../../internal/legacy/structure'
 

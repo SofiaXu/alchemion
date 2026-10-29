@@ -1,0 +1,85 @@
+name: M3 scientific core
+on:
+  pull_request:
+    paths:
+      - 'packages/alchemion/**'
+      - 'apps/demo/**'
+      - 'tests/host/**'
+      - 'tests/m1.spec.ts'
+      - 'scripts/tasks.mjs'
+      - 'scripts/scientific-data/**'
+      - 'scripts/scientific-reference.py'
+      - '*config*'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/m3.yml'
+  workflow_dispatch:
+jobs:
+  scientific-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      TEST_WORKERS: '4'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Select changes for this delivery
+        id: scope
+        shell: bash
+        env:
+          PREVIOUS_HEAD: ${{ github.event.before }}
+          BASE_HEAD: ${{ github.event.pull_request.base.sha }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          base="$BASE_HEAD"
+          if [ "$EVENT_ACTION" = synchronize ]; then base="${PREVIOUS_HEAD:-HEAD^}"; fi
+          if [ -z "$base" ]; then base=HEAD^; fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          code=false
+          while IFS= read -r file; do
+            case "$file" in *.md|docs/*) ;; *) code=true;; esac
+          done < <(git diff --name-only "$base" HEAD)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec vitest run packages/alchemion/src/core --maxWorkers=4
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm build
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec tsc -p packages/alchemion/tsconfig.core.json
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec tsc -p tsconfig.json
+      - name: Check affected lint and formatting
+        shell: bash
+        env:
+          SCOPE_BASE: ${{ steps.scope.outputs.base }}
+        run: |
+          git diff --name-only --diff-filter=ACMR -z "$SCOPE_BASE" HEAD > .tmp-m3-changed
+          mapfile -d '' changed < .tmp-m3-changed
+          code=()
+          formatted=()
+          for file in "${changed[@]}"; do
+            case "$file" in *.ts|*.mjs) code+=("$file");; esac
+            case "$file" in *.ts|*.mjs|*.json|*.yaml|*.yml|*.md) formatted+=("$file");; esac
+          done
+          if [ ${#code[@]} -gt 0 ]; then pnpm exec eslint "${code[@]}"; fi
+          if [ ${#formatted[@]} -gt 0 ]; then pnpm exec prettier --check "${formatted[@]}"; fi
+      - run: pnpm docs:check
+      - if: steps.scope.outputs.code == 'true'
+        run: xvfb-run --auto-servernum pnpm test:package -- --prepared --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: m3-diagnostics
+          path: |
+            playwright-report
+            test-results

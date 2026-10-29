@@ -7,7 +7,7 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3
-} from '@babylonjs/internal/legacy'
+} from '@babylonjs/core'
 import { IStructure } from '../../internal/legacy'
 import { IRenderer } from '../contracts'
 
