@@ -22,6 +22,7 @@ jobs:
       TEST_WORKERS: '4'
       LIBGL_ALWAYS_SOFTWARE: '1'
       M5_BASE: ${{ github.event.action == 'synchronize' && github.event.before || github.event.pull_request.base.sha || 'HEAD^' }}
+      M5_PR_BASE: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,10 +35,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Select this delivery's actual changes
         id: scope
-        run: pnpm exec node scripts/m5-ci.mjs --scope
+        run: pnpm ci:m5 --scope
       - name: Targeted unit cases
         if: steps.scope.outputs.code == 'true'
-        run: pnpm exec node scripts/m5-ci.mjs --unit
+        run: pnpm ci:m5 --unit
       - if: steps.scope.outputs.code == 'true'
         run: pnpm build
       - if: steps.scope.outputs.code == 'true'
@@ -45,7 +46,7 @@ jobs:
       - if: steps.scope.outputs.code == 'true'
         run: pnpm exec tsc -p tsconfig.json
       - name: Changed lint, formatting and document links
-        run: pnpm exec node scripts/m5-ci.mjs --checks
+        run: pnpm ci:m5 --checks
       - if: steps.scope.outputs.code == 'true'
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - name: Linux software-driver viewer functionality

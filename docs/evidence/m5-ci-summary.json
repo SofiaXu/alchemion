@@ -1,0 +1,90 @@
+{
+  "timezone": "Asia/Hong_Kong",
+  "repository": "SofiaXu/alchemion",
+  "pullRequest": "https://github.com/SofiaXu/alchemion/pull/8",
+  "state": "first_run_failed_before_validation",
+  "runs": [
+    {
+      "runId": 40907714527,
+      "jobId": 123566927406,
+      "url": "https://github.com/SofiaXu/alchemion/actions/runs/40907714527",
+      "jobUrl": "https://github.com/SofiaXu/alchemion/actions/runs/40907714527/job/123566927406",
+      "headRevision": "12870185eb309ae1f5f533c7cf98f9d3ee5ad7ae",
+      "baseRevision": "c361469beddb8e82d4b8cb6160386b4e17d7f526",
+      "status": "completed",
+      "conclusion": "failure",
+      "observedLogIntervalUtc": {
+        "firstLine": "2026-10-29T16:03:12.8851656Z",
+        "cleanup": "2026-10-29T16:03:20.3907531Z"
+      },
+      "environment": {
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerVersion": "2.338.0",
+        "runnerImage": "ubuntu-24.04 20261025.353.1",
+        "node": "24.22.1",
+        "pnpm": "9.7.0",
+        "testWorkers": 4,
+        "retries": 0,
+        "softwareRendering": true
+      },
+      "completedPreparation": [
+        "checkout of the exact candidate head revision",
+        "setup-node 24.22.1",
+        "corepack enable",
+        "pnpm install --frozen-lockfile, 182 packages, exit 0"
+      ],
+      "failure": {
+        "step": "Select this delivery's actual changes",
+        "command": "pnpm exec node scripts/m5-ci.mjs --scope",
+        "path": "scripts/m5-ci.mjs",
+        "line": 6,
+        "exitCode": 1,
+        "error": "Error: Invoke through pnpm",
+        "cause": "pnpm exec does not supply npm_execpath in this runner; the helper checks it before selecting changes. No scientific, rendering or browser test executed.",
+        "proposedCorrection": "Run the helper as a declared pnpm package script, which supplies npm_execpath, rather than relying on pnpm exec environment propagation."
+      },
+      "checks": {
+        "unit": "skipped",
+        "sdkAndDemoBuild": "skipped",
+        "pureCoreFormatsTypes": "skipped",
+        "consumerTypes": "skipped",
+        "lintFormattingDocs": "skipped",
+        "browserInstallation": "skipped",
+        "viewerBrowser": "skipped",
+        "tarballConsumer": "skipped"
+      },
+      "executedTestCount": 0,
+      "artifacts": "Upload step completed successfully but reported no matching files; no test artifact was produced.",
+      "nonFailureAnnotation": "GitHub warned that checkout/setup-node/upload-artifact v4 target deprecated Node 20 and are forced onto Node 24; this warning did not cause the failure.",
+      "evidence": [
+        "GitHub check run 123566927406, completed/failure, exact headRevision pinned",
+        "GitHub Actions job log, returned without truncation",
+        "GitHub Actions job step summaries, all validation steps explicitly skipped"
+      ]
+    }
+  ],
+  "expectedTargetedUnitFilesFromCandidateDiff": [
+    "packages/alchemion/src/core/__tests__/bonds.test.ts",
+    "packages/alchemion/src/core/__tests__/derivation.test.ts",
+    "packages/alchemion/src/core/__tests__/vdw.test.ts",
+    "packages/alchemion/src/viewer/__tests__/presentation.test.ts",
+    "packages/alchemion/src/viewer/runtime/__tests__/controller.test.ts"
+  ],
+  "scopeNote": "The expected five-file route was inspected against the candidate diff. The failed first run did not reach its selection output or execute the expected 35 Windows-validated cases. Unchanged M3 data group closure and M4 format/runtime suites were not run.",
+  "pendingCorrection": {
+    "implementation": "Root package script ci:m5 invokes the helper; workflow uses pnpm ci:m5 for scope/unit/checks. A CI harness change selects the complete candidate PR diff through M5_PR_BASE, because the initial platform gate executed no validation. Ordinary source/document increments retain M5_BASE filtering.",
+    "scopeReason": "CI harness changed; first/affected platform gate must cover the candidate delivery",
+    "localReadOnlyProbe": {
+      "command": "M5_BASE=c361469beddb8e82d4b8cb6160386b4e17d7f526 M5_PR_BASE=c361469beddb8e82d4b8cb6160386b4e17d7f526 pnpm ci:m5 --scope",
+      "exitCode": 0,
+      "base": "c361469beddb8e82d4b8cb6160386b4e17d7f526",
+      "code": true,
+      "changedFiles": 76,
+      "testsExecuted": 0
+    },
+    "linuxResult": "not yet run"
+  },
+  "localTestsRunDuringCiDiagnosis": false,
+  "ciRerunRequestedByDiagnostician": false,
+  "performanceNote": "Hosted software rendering cannot establish the separate Windows hardware GPU performance gates."
+}

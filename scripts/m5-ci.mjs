@@ -4,13 +4,24 @@ import { join, resolve } from 'node:path'
 
 const pnpm = process.env.npm_execpath
 if (!pnpm) throw new Error('Invoke through pnpm')
-const base = process.env.M5_BASE || 'HEAD^'
-const changed = execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMR', base, 'HEAD'], {
-  encoding: 'utf8'
-})
-  .trim()
-  .split('\n')
-  .filter(Boolean)
+const incrementalBase = process.env.M5_BASE || 'HEAD^'
+const deliveryBase = process.env.M5_PR_BASE || incrementalBase
+const changesSince = (base) =>
+  execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMR', base, 'HEAD'], {
+    encoding: 'utf8'
+  })
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+const incrementalChanged = changesSince(incrementalBase)
+const harnessChanged = incrementalChanged.some((file) =>
+  ['scripts/m5-ci.mjs', '.github/workflows/ci.yml', 'package.json'].includes(file)
+)
+const base = harnessChanged ? deliveryBase : incrementalBase
+const changed = harnessChanged ? changesSince(base) : incrementalChanged
+const reason = harnessChanged
+  ? 'CI harness changed; first/affected platform gate must cover the candidate delivery'
+  : 'Only tests selected from the actual incremental subsystem changes; unrelated stage suites excluded'
 const run = (args) => {
   const result = spawnSync(process.execPath, [pnpm, ...args], { stdio: 'inherit' })
   if (result.status !== 0)
@@ -28,7 +39,7 @@ if (process.argv.includes('--scope')) {
   const code = changed.some((file) => !file.endsWith('.md') && !file.startsWith('docs/'))
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `code=${code}\nbase=${base}\n`)
-  console.log(JSON.stringify({ base, code, changed }))
+  console.log(JSON.stringify({ base, incrementalBase, deliveryBase, reason, code, changed }))
 } else if (process.argv.includes('--unit')) {
   const tests = new Set(changed.filter((file) => file.endsWith('.test.ts')))
   for (const file of changed) {
@@ -68,8 +79,7 @@ if (process.argv.includes('--scope')) {
   const selected = [...tests].filter((file) => existsSync(file)).sort()
   console.log(
     JSON.stringify({
-      reason:
-        'Changed scientific data/derivation and viewer/controller behavior only; unchanged M3/M4 suites excluded',
+      reason,
       tests: selected
     })
   )
