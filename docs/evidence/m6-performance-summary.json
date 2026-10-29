@@ -1,0 +1,652 @@
+{
+  "status": "passed",
+  "requiredRuns": 6,
+  "measuredRuns": 6,
+  "exitCode": 0,
+  "command": "pnpm bench -- --phase=m6 --prepared",
+  "sourceRevision": "5b5a7fa11bef348e1d85001c84caee5bc5dba360",
+  "inputSourceHash": "627e729fa3af281e40c827e18143798427bef787f3047c32e787cffb236f8ca9",
+  "finalSourceHashVerified": true,
+  "tarballSha256": "f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26300",
+  "browser": "153.0.8010.12",
+  "cpu": "Intel(R) Core(TM) Ultra X7 358H",
+  "hardware": {
+    "gpu": [
+      {
+        "Name": "GameViewer Virtual Display Adapter",
+        "DriverVersion": "15.6.5.199"
+      },
+      {
+        "Name": "Intel(R) Arc(TM) B390 GPU",
+        "DriverVersion": "32.0.101.8356"
+      }
+    ],
+    "battery": [
+      {
+        "BatteryStatus": 2,
+        "EstimatedChargeRemaining": 100
+      }
+    ],
+    "power": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)"
+  },
+  "gpu": {
+    "renderer": "ANGLE (Intel, Intel(R) Arc(TM) B390 GPU (0x0000B080) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (Intel)",
+    "attributes": {
+      "alpha": false,
+      "antialias": true,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "error": 0
+  },
+  "parallelism": 1,
+  "fixture": {
+    "sourceCount": 10000,
+    "displayCount": 10000,
+    "bonds": 20000,
+    "expansion": "identity only; legal molecular source preserves M2 positions and topology without its synthetic 500-source mapping"
+  },
+  "quality": {
+    "canvas": {
+      "width": 1920,
+      "height": 1080,
+      "dpr": 1
+    },
+    "sphere": {
+      "longitude": 24,
+      "latitude": 16
+    },
+    "cylinder": {
+      "segments": 16,
+      "capped": true
+    },
+    "camera": {
+      "position": [36, 28.5, 188.5],
+      "target": [36, 28.5, 28.5],
+      "up": [0, 1, 0],
+      "fovYDegrees": 45,
+      "near": 0.1,
+      "far": 1000
+    },
+    "options": {
+      "inferBonds": false,
+      "showSymmetryMates": false,
+      "showLattice": false,
+      "showReciprocalLattice": false,
+      "showBrillouinZone": false,
+      "showPerformance": false,
+      "interactionMode": "select",
+      "ballRadius": 0.45,
+      "bondRadius": 0.12,
+      "atomScale": 1,
+      "elementStyles": {
+        "C": {
+          "color": "#7c7c7c",
+          "spaceFillingRadius": 1,
+          "ballRadius": 0.45
+        },
+        "O": {
+          "color": "#ed6161",
+          "spaceFillingRadius": 1,
+          "ballRadius": 0.45
+        },
+        "N": {
+          "color": "#6189ed",
+          "spaceFillingRadius": 1,
+          "ballRadius": 0.45
+        },
+        "S": {
+          "color": "#edda61",
+          "spaceFillingRadius": 1,
+          "ballRadius": 0.45
+        }
+      }
+    }
+  },
+  "worst": {
+    "firstFrameMs": 93.59999996423721,
+    "medianFps": 59.880239520968516,
+    "frameP95Ms": 16.900000000001455,
+    "pickP95Ms": 7.979900000151247,
+    "updateP95Ms": 26.30000001192093,
+    "loadEndToEndMs": 3999.900000035763,
+    "updateEndToEndP95Ms": 1734.8999999761581
+  },
+  "runs": [
+    {
+      "id": "space-filling-r1",
+      "startedAt": "2026-10-29T17:17:47.817Z",
+      "completedAt": "2026-10-29T17:23:27.976Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 40.40000003576279,
+      "loadEndToEndMs": 3809,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.361600000003818,
+      "updateP95Ms": 18.599999964237213,
+      "updateEndToEndP95Ms": 1640.699999988079,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "ball-and-stick-r1",
+      "startedAt": "2026-10-29T17:23:28.357Z",
+      "completedAt": "2026-10-29T17:29:12.240Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 93.59999996423721,
+      "loadEndToEndMs": 3999.900000035763,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.536400000040885,
+      "updateP95Ms": 26.30000001192093,
+      "updateEndToEndP95Ms": 1677.6000000238419,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "space-filling-r2",
+      "startedAt": "2026-10-29T17:29:12.632Z",
+      "completedAt": "2026-10-29T17:34:52.219Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 41,
+      "loadEndToEndMs": 3331.2000000476837,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.230700000072829,
+      "updateP95Ms": 18.100000023841858,
+      "updateEndToEndP95Ms": 1658.5,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "ball-and-stick-r2",
+      "startedAt": "2026-10-29T17:34:52.584Z",
+      "completedAt": "2026-10-29T17:40:33.726Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 91.39999997615814,
+      "loadEndToEndMs": 3393,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.7378999998327345,
+      "updateP95Ms": 25.799999952316284,
+      "updateEndToEndP95Ms": 1734.800000011921,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "space-filling-r3",
+      "startedAt": "2026-10-29T17:40:34.104Z",
+      "completedAt": "2026-10-29T17:46:12.151Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 34.19999998807907,
+      "loadEndToEndMs": 3342.800000011921,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.063500000163913,
+      "updateP95Ms": 18.200000047683716,
+      "updateEndToEndP95Ms": 1667.1000000238419,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "ball-and-stick-r3",
+      "startedAt": "2026-10-29T17:46:12.531Z",
+      "completedAt": "2026-10-29T17:51:55.043Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 91.40000003576279,
+      "loadEndToEndMs": 3360.599999964237,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.979900000151247,
+      "updateP95Ms": 25.600000023841858,
+      "updateEndToEndP95Ms": 1734.8999999761581,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    }
+  ],
+  "resourceCycles": 120,
+  "allOwnedResourcesReleased": true,
+  "artifacts": {
+    "sdk": {
+      "assets": [
+        {
+          "file": "dist/assets/computation-worker-D0MYlblr.js",
+          "bytes": 547478,
+          "gzipBytes": 38547
+        },
+        {
+          "file": "dist/core.js",
+          "bytes": 32508,
+          "gzipBytes": 9900
+        },
+        {
+          "file": "dist/formats.js",
+          "bytes": 103196,
+          "gzipBytes": 32881
+        },
+        {
+          "file": "dist/FORMAT_DATA_MANIFEST.json",
+          "bytes": 1398,
+          "gzipBytes": 774
+        },
+        {
+          "file": "dist/structure-eCcM1exk.js",
+          "bytes": 530945,
+          "gzipBytes": 34712
+        },
+        {
+          "file": "dist/types/core/bonds.d.ts",
+          "bytes": 1168,
+          "gzipBytes": 527
+        },
+        {
+          "file": "dist/types/core/brillouin-zone.d.ts",
+          "bytes": 1033,
+          "gzipBytes": 412
+        },
+        {
+          "file": "dist/types/core/cell.d.ts",
+          "bytes": 787,
+          "gzipBytes": 307
+        },
+        {
+          "file": "dist/types/core/data/elements.d.ts",
+          "bytes": 106,
+          "gzipBytes": 104
+        },
+        {
+          "file": "dist/types/core/data/index.d.ts",
+          "bytes": 436,
+          "gzipBytes": 214
+        },
+        {
+          "file": "dist/types/core/data/space-groups.d.ts",
+          "bytes": 123,
+          "gzipBytes": 112
+        },
+        {
+          "file": "dist/types/core/data/types.d.ts",
+          "bytes": 1218,
+          "gzipBytes": 434
+        },
+        {
+          "file": "dist/types/core/data/vdw-radii.d.ts",
+          "bytes": 73,
+          "gzipBytes": 92
+        },
+        {
+          "file": "dist/types/core/derivation.d.ts",
+          "bytes": 1072,
+          "gzipBytes": 498
+        },
+        {
+          "file": "dist/types/core/editing/index.d.ts",
+          "bytes": 1870,
+          "gzipBytes": 601
+        },
+        {
+          "file": "dist/types/core/index.d.ts",
+          "bytes": 1407,
+          "gzipBytes": 503
+        },
+        {
+          "file": "dist/types/core/math.d.ts",
+          "bytes": 973,
+          "gzipBytes": 320
+        },
+        {
+          "file": "dist/types/core/measurements.d.ts",
+          "bytes": 614,
+          "gzipBytes": 331
+        },
+        {
+          "file": "dist/types/core/reciprocal.d.ts",
+          "bytes": 406,
+          "gzipBytes": 261
+        },
+        {
+          "file": "dist/types/core/result.d.ts",
+          "bytes": 400,
+          "gzipBytes": 198
+        },
+        {
+          "file": "dist/types/core/structure.d.ts",
+          "bytes": 274,
+          "gzipBytes": 169
+        },
+        {
+          "file": "dist/types/core/symmetry.d.ts",
+          "bytes": 2199,
+          "gzipBytes": 745
+        },
+        {
+          "file": "dist/types/core/types.d.ts",
+          "bytes": 5582,
+          "gzipBytes": 1472
+        },
+        {
+          "file": "dist/types/formats/cif/document.d.ts",
+          "bytes": 566,
+          "gzipBytes": 323
+        },
+        {
+          "file": "dist/types/formats/cif/index.d.ts",
+          "bytes": 163,
+          "gzipBytes": 107
+        },
+        {
+          "file": "dist/types/formats/cif/structure.d.ts",
+          "bytes": 660,
+          "gzipBytes": 330
+        },
+        {
+          "file": "dist/types/formats/cif/types.d.ts",
+          "bytes": 1610,
+          "gzipBytes": 499
+        },
+        {
+          "file": "dist/types/formats/contracts.d.ts",
+          "bytes": 1658,
+          "gzipBytes": 506
+        },
+        {
+          "file": "dist/types/formats/index.d.ts",
+          "bytes": 468,
+          "gzipBytes": 215
+        },
+        {
+          "file": "dist/types/formats/loss.d.ts",
+          "bytes": 658,
+          "gzipBytes": 359
+        },
+        {
+          "file": "dist/types/formats/mol/common.d.ts",
+          "bytes": 1174,
+          "gzipBytes": 531
+        },
+        {
+          "file": "dist/types/formats/mol/finite.d.ts",
+          "bytes": 791,
+          "gzipBytes": 341
+        },
+        {
+          "file": "dist/types/formats/mol/index.d.ts",
+          "bytes": 92,
+          "gzipBytes": 79
+        },
+        {
+          "file": "dist/types/formats/mol/reader.d.ts",
+          "bytes": 163,
+          "gzipBytes": 140
+        },
+        {
+          "file": "dist/types/formats/mol/writer.d.ts",
+          "bytes": 236,
+          "gzipBytes": 157
+        },
+        {
+          "file": "dist/types/formats/poscar/index.d.ts",
+          "bytes": 245,
+          "gzipBytes": 158
+        },
+        {
+          "file": "dist/types/viewer/backend/geometry.d.ts",
+          "bytes": 520,
+          "gzipBytes": 310
+        },
+        {
+          "file": "dist/types/viewer/backend/three.d.ts",
+          "bytes": 215,
+          "gzipBytes": 162
+        },
+        {
+          "file": "dist/types/viewer/frame.d.ts",
+          "bytes": 580,
+          "gzipBytes": 278
+        },
+        {
+          "file": "dist/types/viewer/index.d.ts",
+          "bytes": 583,
+          "gzipBytes": 249
+        },
+        {
+          "file": "dist/types/viewer/interaction/pointer.d.ts",
+          "bytes": 484,
+          "gzipBytes": 272
+        },
+        {
+          "file": "dist/types/viewer/internal-contracts.d.ts",
+          "bytes": 2429,
+          "gzipBytes": 838
+        },
+        {
+          "file": "dist/types/viewer/options.d.ts",
+          "bytes": 649,
+          "gzipBytes": 278
+        },
+        {
+          "file": "dist/types/viewer/runtime/computation-worker.d.ts",
+          "bytes": 11,
+          "gzipBytes": 31
+        },
+        {
+          "file": "dist/types/viewer/runtime/controller.d.ts",
+          "bytes": 618,
+          "gzipBytes": 280
+        },
+        {
+          "file": "dist/types/viewer/runtime/index.d.ts",
+          "bytes": 384,
+          "gzipBytes": 171
+        },
+        {
+          "file": "dist/types/viewer/runtime/protocol.d.ts",
+          "bytes": 942,
+          "gzipBytes": 362
+        },
+        {
+          "file": "dist/types/viewer/runtime/runtime.d.ts",
+          "bytes": 552,
+          "gzipBytes": 266
+        },
+        {
+          "file": "dist/types/viewer/runtime/task.d.ts",
+          "bytes": 305,
+          "gzipBytes": 199
+        },
+        {
+          "file": "dist/types/viewer/runtime/types.d.ts",
+          "bytes": 3158,
+          "gzipBytes": 886
+        },
+        {
+          "file": "dist/types/viewer/types.d.ts",
+          "bytes": 4305,
+          "gzipBytes": 1275
+        },
+        {
+          "file": "dist/types/viewer/viewer.d.ts",
+          "bytes": 250,
+          "gzipBytes": 194
+        },
+        {
+          "file": "dist/viewer.js",
+          "bytes": 69808,
+          "gzipBytes": 19693
+        }
+      ],
+      "bytes": 1329543,
+      "gzipBytes": 153603
+    },
+    "note": "SDK assets report actual installed package contents. Consumer variants include the acceptance host; the separate Three chunk and module Worker assets show runtime dependency cost.",
+    "raw": {
+      "assets": [
+        {
+          "file": "assets/computation-worker-D0MYlblr-DFzDkOrF.js",
+          "bytes": 551614,
+          "gzipBytes": 38737
+        },
+        {
+          "file": "assets/index-B8_G9FI6.js",
+          "bytes": 664515,
+          "gzipBytes": 69730
+        },
+        {
+          "file": "assets/three-BPo8l-ps.js",
+          "bytes": 1095731,
+          "gzipBytes": 198112
+        },
+        {
+          "file": "index.html",
+          "bytes": 572,
+          "gzipBytes": 315
+        }
+      ],
+      "bytes": 2312432,
+      "gzipBytes": 306894,
+      "engine": [
+        {
+          "file": "assets/three-BPo8l-ps.js",
+          "bytes": 1095731,
+          "gzipBytes": 198112
+        }
+      ],
+      "workers": [
+        {
+          "file": "assets/computation-worker-D0MYlblr-DFzDkOrF.js",
+          "bytes": 551614,
+          "gzipBytes": 38737
+        }
+      ],
+      "modules": [
+        "D:/source/alchemion/\u0000vite/modulepreload-polyfill.js",
+        "fixtures.ts",
+        "index.html",
+        "index.html?html-proxy&inline-css&index=0.css",
+        "main.ts",
+        "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/core.js",
+        "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/structure-eCcM1exk.js",
+        "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/viewer.js",
+        "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.core.js",
+        "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.module.js",
+        "resources.ts"
+      ]
+    },
+    "minified": {
+      "assets": [
+        {
+          "file": "assets/computation-worker-D0MYlblr-E0aevOvy.js",
+          "bytes": 411628,
+          "gzipBytes": 35813
+        },
+        {
+          "file": "assets/index-Dv4A6iEa.js",
+          "bytes": 491439,
+          "gzipBytes": 61634
+        },
+        {
+          "file": "assets/three-CG1ilbFp.js",
+          "bytes": 522254,
+          "gzipBytes": 129501
+        },
+        {
+          "file": "index.html",
+          "bytes": 572,
+          "gzipBytes": 313
+        }
+      ],
+      "bytes": 1425893,
+      "gzipBytes": 227261,
+      "engine": [
+        {
+          "file": "assets/three-CG1ilbFp.js",
+          "bytes": 522254,
+          "gzipBytes": 129501
+        }
+      ],
+      "workers": [
+        {
+          "file": "assets/computation-worker-D0MYlblr-E0aevOvy.js",
+          "bytes": 411628,
+          "gzipBytes": 35813
+        }
+      ],
+      "modules": [
+        "D:/source/alchemion/\u0000vite/modulepreload-polyfill.js",
+        "fixtures.ts",
+        "index.html",
+        "index.html?html-proxy&inline-css&index=0.css",
+        "main.ts",
+        "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/core.js",
+        "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/structure-eCcM1exk.js",
+        "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/viewer.js",
+        "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.core.js",
+        "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.module.js",
+        "resources.ts"
+      ]
+    }
+  }
+}

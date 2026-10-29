@@ -1,0 +1,44 @@
+{
+  "sourceRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+  "note": "Actual production demo from the successful final three-browser export-preflight validation; SDK and source unchanged after that build. Includes offline notices and data manifests.",
+  "files": [
+    {
+      "file": "assets/computation-worker-D0MYlblr-C-YbpJ9K.js",
+      "bytes": 411594,
+      "gzipBytes": 35791,
+      "sha256": "be6f2d64ebab6c3fbe9f38988119c0a0cdad44e848708f3ded3f8b4cdf73039d"
+    },
+    {
+      "file": "assets/index-C0lnZPQL.js",
+      "bytes": 1108279,
+      "gzipBytes": 229295,
+      "sha256": "81645469c967afada893434c3b75b53d3b2c5f930376472619463263a77138c6"
+    },
+    {
+      "file": "assets/index-K3yWtKYC.css",
+      "bytes": 5039,
+      "gzipBytes": 1823,
+      "sha256": "a0131c059009e39150a7ad76b2249eadb136c892da087c8ab8a778427de14b8f"
+    },
+    {
+      "file": "generated/data-manifests.json",
+      "bytes": 7394,
+      "gzipBytes": 2928,
+      "sha256": "ac06d7346cf04e292f4a5fc78a713b9528512cfa6bee0244fa23596eae71a77a"
+    },
+    {
+      "file": "generated/notices.txt",
+      "bytes": 11940,
+      "gzipBytes": 3841,
+      "sha256": "5fb9f24a477ef32746e052f8cf3dd0eab990e2125d3b374efa136b46ace65026"
+    },
+    {
+      "file": "index.html",
+      "bytes": 466,
+      "gzipBytes": 305,
+      "sha256": "74bb2c194cc1120699d89ef5f90aa1d053351ffdbbab87a9e8fcc6b267723376"
+    }
+  ],
+  "bytes": 1544712,
+  "gzipBytes": 273983
+}

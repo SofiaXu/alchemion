@@ -169,6 +169,20 @@
       "gzipBytes": 634,
       "sha256": "0206381a2e06e6022be594d7bcff249937572df8cdaee138dddc45b901671a86",
       "gzipSha256": "186d61b33f93dd78bed688f79d6e5e0cdad41f1d95490496250b14d977a36e4d"
+    },
+    {
+      "file": "raw/m6-loss-preflight-retest.json.gz",
+      "bytes": 108943,
+      "gzipBytes": 73915,
+      "sha256": "339a8f292f911af68988439d5c919c3e150fb2fc01cd8926320387585394222a",
+      "gzipSha256": "dc26b6c18e8009806f7876194d49e025928b1d90b7386c4563a8696dbd16661f"
+    },
+    {
+      "file": "raw/m6-loss-preflight-retest.log.gz",
+      "bytes": 2166,
+      "gzipBytes": 929,
+      "sha256": "b4a23eb8eafe25ccca62ec3f407d87180277f6214196d73b342748ee241ee06d",
+      "gzipSha256": "7ef8b94b95f809a5e3d54abc362bda30b24978799acf83dafbe575b76d0768b8"
     }
   ]
 }

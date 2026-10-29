@@ -1,6 +1,8 @@
 # M6：双语工作台与最终分发验收
 
-日期：2026-10-30，Asia/Hong_Kong。状态：进行中；本地功能已验证，最终硬件六轮及Ubuntu尚待完成。源码基线master@5f1262d，分支codex/m6-demo-distribution。M1–M5完整证据继续有效，本轮不默认重跑未修改的算法或格式套件。
+日期：2026-10-30，Asia/Hong_Kong。状态：完成。源码基线master@5f1262d，分支codex/m6-demo-distribution。M1–M5完整证据继续有效，本轮不默认重跑未修改的算法或格式套件。
+
+SDK实现提交`5b5a7fa11bef348e1d85001c84caee5bc5dba360`、demo收尾提交`af1072c29d779ff62e604fa17ea37c14b6c3da4d`，见[PR#9](https://github.com/SofiaXu/alchemion/pull/9)。最终包SHA256为`f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc`，三浏览器与硬件采样输入一致。demo实际[资产字节与散列](m6-demo-artifacts.json)来自最终成功场景构建，包含离线许可和manifest。
 
 ## 实际交付
 
@@ -23,8 +25,8 @@
 | 真实tarball        | 首轮业务2/3；外部RAF轮询归属核实并改变就绪等待方式后，仅Firefox1/1通过。三个浏览器均验证22个Worker和20轮自有资源归零。    |
 | 开发模式           | Chromium1/1首次通过，真实Worker、表单编辑与MOL导出。                                                                      |
 | 工程               | 冻结安装、SDK/demo构建、根tsc、改动lint/只读格式均退出0；最终集成32份Markdown链接通过。                                   |
-| 最终硬件六轮       | 未运行。                                                                                                                  |
-| Ubuntu             | 未运行。                                                                                                                  |
+| 最终硬件六轮       | 6/6通过，退出0；120轮大结构自有资源归零，源/包散列最终复核一致。                                                          |
+| Ubuntu             | 精确5b5a7fa首轮定向全部成功，见下方CI摘要。                                                                               |
 
 首次失败与定向处理：
 
@@ -32,8 +34,32 @@
 2. package首次辅助编译在浏览器前失败：pnpm将嵌套fixture cwd归到消费者根，改为绝对tsc输入和Vite根。实际首次浏览器只有Firefox导入前rafs=1；逐条栈证明来自Playwright waitForFunction默认帧轮询，SDK未创建Worker/canvas。改为50ms轮询，严格原断言保持，没有常数扣减。诊断栈只在显式测试模式采集，不进入性能时钟。
 3. 视觉审查发现只有POSCAR硬错误时仍显示可接受损失，UI收紧为全部阻断诊断都是科学loss才允许接受；该纯DOM分支仅复验现有分子Chromium场景，1/1通过，不新建套件或重复其他浏览器。
 4. 格式化命令误带.gitignore而退出1；其余文件已格式化，最终只读检查排除此无解析器文件。新增测试首次tsc缺注入函数this类型，补类型后通过。这两项不记为业务测试通过。
+5. 收尾静态审查发现MOL有限快照的首个loss早退会隐藏后续原子标签等损失。af1072c只修改demo预检与现有晶体断言；诊断dry-run的允许损失文本立即丢弃，仅合并完整诊断。下载文本仍须由用户为当前修订/选项一次明确接受后重新生成；新暴露硬错误禁覆盖。SDK/格式和基准包字节未变。Windows仅晶体场景三浏览器3/3定向通过；af1072c的Ubuntu应用12/12、开发1/1通过，SDK/M5/消费者按diff复用已有证据，见专项CI摘要。
+
+## 正式包硬件六轮
+
+[结构化性能摘要](m6-performance-summary.json)、[完整原始JSON无损gzip清单](m6-performance/manifest.json)保留六轮全部字段、原始与压缩SHA256。命令退出0，输入源散列在采样结束后重新计算一致（范围为SDK源码、M5性能宿主、采集器及锁文件；demo收尾未改变这些输入）；SDK tarball与三个浏览器消费者均为同一f221e5fa…f6a87bbc。采样约35分钟，未重复任何轮次。
+
+环境：Intel(R) Core(TM) Ultra X7 358H、Windows win32 10.0.26300、Chromium 153.0.8010.12、Arc B390驱动32.0.101.8356，实际ANGLE/D3D11硬件renderer；1920×1080、DPR1，GPU独占串行。初始电源记录为平衡/100%电量，完整原始值在摘要。固定10k合法分子源/10k显示实例与20k源键，identity-only；保留M2位置和拓扑，不描述为500源的真实扩胞。实际周期/对称展开由功能场景验证。
+
+| 模式/轮次         | 首帧ms | median FPS | 拾取p95 ms | renderer更新p95 ms | 编辑端到端p95 ms |
+| ----------------- | ------ | ---------- | ---------- | ------------------ | ---------------- |
+| space-filling-r1  | 40.40  | 59.88      | 7.36       | 18.60              | 1640.70          |
+| ball-and-stick-r1 | 93.60  | 59.88      | 7.54       | 26.30              | 1677.60          |
+| space-filling-r2  | 41.00  | 59.88      | 7.23       | 18.10              | 1658.50          |
+| ball-and-stick-r2 | 91.40  | 59.88      | 7.74       | 25.80              | 1734.80          |
+| space-filling-r3  | 34.20  | 59.88      | 7.06       | 18.20              | 1667.10          |
+| ball-and-stick-r3 | 91.40  | 59.88      | 7.98       | 25.60              | 1734.90          |
+
+最差完整源快照构造/载入/计算/显示为3999.90ms；不含文件或网络I/O。编辑端到端p95最差1734.90ms，未以renderer预算替代。六轮各200次正确ID拾取、100次100原子更新、GPU像素更新探针和20轮大结构释放均通过；JS heap只记录趋势，不宣称精确归零。
+
+体积均为实际文件逐项统计（bytes/逐文件gzip合计）：SDK dist含声明1329543/153603；独立验收消费者raw 2312432/306894、minified 1425893/227261。minified Three分项522254/129501，Worker 411628/35813。消费者包含测试宿主，不能混称SDK自身大小。最终demo六文件1544712/273983；[实际静态清单](m6-demo-artifacts.json)与[本地交付包散列](m6-delivery-artifacts.json)分别记录，产物位于忽略目录.tmp/m6-delivery。
 
 ## 最终需求对照
+
+最终应用修复af1072c在[专项Ubuntu run40925089027](https://github.com/SofiaXu/alchemion/actions/runs/40925089027)通过demo12/12和dev1/1；[专项步骤与日志](m6-ci-export-preflight.json)证明未重跑Controller/M5/消费者。Windows只追加现有晶体三浏览器3/3。SDK、Worker与科学实现不变，其原始验收如下。
+
+Ubuntu在SDK实现提交`5b5a7fa11bef348e1d85001c84caee5bc5dba360`、demo收尾提交`af1072c29d779ff62e604fa17ea37c14b6c3da4d`首轮全部success，见[run40919970124](https://github.com/SofiaXu/alchemion/actions/runs/40919970124)和[步骤/实际日志摘要](m6-ci-summary.json)：controller12/12、取消三浏览器3/3、生产demo12/12、开发Chromium1/1、真实tarball三浏览器3/3；冻结安装、SDK/demo、无DOM与根类型、改动检查和32文档链接通过。默认4进程、无重试。软件GPU仅用于功能，不充当硬件性能。原始CI附件ID/ZIP散列与保留期写入摘要；摘要保留相关原日志行，省略无关runner安装输出。
 
 | 需求         | 场景                   | 实现与证据                                                                            |
 | ------------ | ---------------------- | ------------------------------------------------------------------------------------- |
@@ -50,11 +76,11 @@
 | R-017、R-018 | T-EDIT-01              | M4事务与历史/M5实例回源；本轮批量表单一次事务、增删/晶胞/undo/redo。                  |
 | R-019        | T-RUN-01、T-VIEW-02/03 | M4协议/M5生命周期；本轮主动取消、重算与tarball20轮严格释放。                          |
 | R-020        | T-DEMO-01              | 本轮完整双语工作台、离线/错误/无WebGL2路径。                                          |
-| R-021        | T-PERF-01              | M5正式六轮有效；本轮最终包硬件关卡仍未运行，不用旧成绩替代。                          |
+| R-021        | T-PERF-01              | 本轮最终正式包六轮全部通过，见性能摘要与无损原始清单；不以M5旧成绩代替。              |
 | R-022        | T-DATA-01              | [来源台账](../data-sources.md)D-001–016；本轮全部manifest/许可与demo离线资产复核。    |
 | R-023        | T-PKG-01               | 本轮真实tarball白名单、声明、公开入口、静态嵌套Worker。                               |
-| R-024        | T-DOC-01               | 本轮计划、README、规范/ADR、来源及交接更新；最终链接检查待记录。                      |
+| R-024        | T-DOC-01               | 本轮计划、README、规范/ADR、来源及交接更新；最终32份Markdown链接及格式检查均退出0。   |
 
 ## 限制与后续
 
-硬件性能、Ubuntu和最终归档尚未全部完成，M6不能标为完成。Playwright WebKit不等于真实Safari；软件功能结果不代表硬件性能。M5发现的大源端到端编辑耗时未在本轮擅自优化，仍须与renderer时段分别报告。没有发布npm或外部站点。
+M6全部必要关卡已取得证据。Playwright WebKit不等于真实Safari；软件功能结果不代表硬件性能。M5发现的大源端到端编辑耗时未在本轮擅自优化，仍须与renderer时段分别报告。没有发布npm或外部站点。

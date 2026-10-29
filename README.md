@@ -4,7 +4,7 @@ Alchemion 是面向晶体和分子结构的浏览器 TypeScript SDK，交付唯�
 
 ## 当前状态
 
-M1–M5 已完成，正式 SDK 使用 Three.js 0.186.1。M6 正在完成双语工作台、取消恢复、最终真实消费者和分发验收，见[当前计划](docs/plans/m6-demo-distribution.md)与[交接](docs/handoff.md)。阶段完成以真实证据为准。
+M1–M6 已完成，正式 SDK 使用 Three.js 0.186.1。双语工作台、取消恢复、最终真实消费者及硬件六轮均有验收证据，见[M6报告](docs/evidence/m6-demo-distribution.md)、[执行计划](docs/plans/m6-demo-distribution.md)与[交接](docs/handoff.md)。
 
 三个公开入口是 `alchemion/core`、`alchemion/formats`、`alchemion/viewer`。core/formats 无 DOM 依赖，viewer 组合唯一科学实现、编辑历史与模块 Worker；公开 API 不暴露引擎对象，无旧根入口、CJS、深层导入或兼容实现。
 
@@ -42,7 +42,7 @@ Linux 安装浏览器需使用 Playwright `--with-deps`。不要跳过安装脚�
 
 资源允许时普通测试使用4–8进程，默认4，无自动重试。浏览器可用 `TEST_WORKERS` 配置；单个场景不人为复制。`--grep=<正则>`只选择受影响场景，`--prepared`仅复用同轮构建，不依赖前一会话 dist。GPU基准独占串行，软件渲染只证明功能。失败、未运行、通过分别记录，新增/扩大/重复验证须有具体理由。
 
-M4/M5 的显式 browser/package/bench 入口按实际用途保留；M2 临时原型已经清理，完整双候选比较请检出 `07527f8`，历史修复及证据见[M2报告](docs/evidence/m2-renderer-selection.md)。
+M4/M5 的显式 browser/package 及 M5 bench 入口保留；M2 临时原型已经清理，完整双候选比较请检出 `07527f8`，历史修复及证据见[M2报告](docs/evidence/m2-renderer-selection.md)。
 
 ## 双语工作台
 
@@ -62,9 +62,27 @@ SDK 位于 `packages/alchemion`，独立应用位于 `apps/demo`；demo 和消�
 import { parseStructure, writeStructure } from 'alchemion/formats'
 import { createViewer } from 'alchemion/viewer'
 
+const cifText = `data_example
+_cell_length_a 4
+_cell_length_b 4
+_cell_length_c 4
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+C1 C 0.25 0.25 0.25
+`
 const parsed = parseStructure(cifText, { format: 'cif', block: { index: 0 } })
 if (!parsed.structure) throw new Error(JSON.stringify(parsed.diagnostics))
-const viewer = createViewer(document.querySelector<HTMLElement>('#viewer')!, {
+const container = document.createElement('div')
+container.style.height = '480px'
+document.body.append(container)
+const viewer = createViewer(container, {
   renderMode: 'ball-and-stick',
   interactionMode: 'select',
   showLattice: true

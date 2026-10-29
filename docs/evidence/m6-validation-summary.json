@@ -355,6 +355,43 @@
       "count": 32
     }
   },
-  "hardware": "not-run",
-  "ubuntu": "not-run"
+  "hardware": {
+    "status": "passed",
+    "runs": 6,
+    "summary": "m6-performance-summary.json"
+  },
+  "ubuntu": {
+    "status": "passed",
+    "headRevision": "5b5a7fa11bef348e1d85001c84caee5bc5dba360",
+    "runId": 40919970124,
+    "unit": 12,
+    "viewerRuntime": 3,
+    "demo": 12,
+    "dev": 1,
+    "package": 3
+  },
+  "applicationRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+  "lossPreflightRetest": {
+    "exitCode": 0,
+    "command": "pnpm test:browser -- --phase=m6 --prepared --grep='CIF block'",
+    "stats": {
+      "startTime": "2026-10-29T17:53:08.640Z",
+      "duration": 12561.569,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "workers": 4,
+    "retries": 0,
+    "reason": "The MOL early-loss gate hid later scientific losses before acceptance; only the affected existing crystal scenario was rerun."
+  },
+  "finalApplicationCI": {
+    "sourceRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+    "runId": 40925089027,
+    "conclusion": "success",
+    "demo": 12,
+    "dev": 1,
+    "sdkViewerPackageReused": true
+  }
 }

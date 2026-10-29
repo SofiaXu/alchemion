@@ -1,0 +1,20 @@
+{
+  "applicationRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+  "sdkRevision": "5b5a7fa11bef348e1d85001c84caee5bc5dba360",
+  "sdkInputSourceHash": "627e729fa3af281e40c827e18143798427bef787f3047c32e787cffb236f8ca9",
+  "note": "Local reviewable build artifacts, no npm or site publication. Demo ZIP hashes refer to this build; individual static content hashes are in m6-demo-artifacts.json.",
+  "artifacts": [
+    {
+      "file": "alchemion-0.1.0.tgz",
+      "workspacePath": ".tmp/m6-delivery/alchemion-0.1.0.tgz",
+      "bytes": 160863,
+      "sha256": "f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc"
+    },
+    {
+      "file": "demo-static.zip",
+      "workspacePath": ".tmp/m6-delivery/demo-static.zip",
+      "bytes": 283273,
+      "sha256": "7b08a600523a3c10aec5a1785b5092f17dd2599319b3acbc04b81a9f564b8a40"
+    }
+  ]
+}

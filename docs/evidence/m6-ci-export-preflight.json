@@ -1,0 +1,153 @@
+{
+  "sourceRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+  "runId": 40925089027,
+  "jobId": 123628331341,
+  "url": "https://github.com/SofiaXu/alchemion/actions/runs/40925089027",
+  "conclusion": "success",
+  "purpose": "Only the application export-preflight fix; SDK/Worker/science/package bytes unchanged.",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Run corepack enable",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Run pnpm install --frozen-lockfile",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Select this delivery's actual changes",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Targeted unit cases",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7
+    },
+    {
+      "name": "Run pnpm --filter alchemion build:source",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8
+    },
+    {
+      "name": "Run pnpm exec tsc -p packages/alchemion/tsconfig.core.json",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Run pnpm exec tsc -p tsconfig.json",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10
+    },
+    {
+      "name": "Changed lint, formatting and document links",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11
+    },
+    {
+      "name": "Run pnpm exec playwright install --with-deps chromium firefox webkit",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12
+    },
+    {
+      "name": "Linux software-driver viewer functionality",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 13
+    },
+    {
+      "name": "Linux built demo user workflows",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14
+    },
+    {
+      "name": "Linux development Worker, edit and export",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15
+    },
+    {
+      "name": "Linux production tarball, nested module Worker and lifecycle",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 16
+    },
+    {
+      "name": "Run actions/upload-artifact@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 17
+    },
+    {
+      "name": "Post Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 33
+    },
+    {
+      "name": "Post Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 34
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 35
+    }
+  ],
+  "selectedOriginalLogLines": [
+    "2026-10-29T17:50:14.6981770Z node: v24.22.1",
+    "2026-10-29T17:50:20.8329664Z {\"base\":\"5b5a7fa11bef348e1d85001c84caee5bc5dba360\",\"incrementalBase\":\"5b5a7fa11bef348e1d85001c84caee5bc5dba360\",\"deliveryBase\":\"5f1262da6a15f257724368f73c1b951ec61f8b77\",\"reason\":\"Tests selected from changed subsystems; historical full-stage suites remain opt-in.\",\"changed\":[\"apps/demo/src/main.ts\",\"tests/m6.spec.ts\"],\"sdk\":true,\"demo\":true,\"package\":false,\"viewer\":false,\"viewer_grep\":\"@workspace\"}",
+    "2026-10-29T17:50:21.5195900Z {\"reason\":\"Tests selected from changed subsystems; historical full-stage suites remain opt-in.\",\"tests\":[]}",
+    "2026-10-29T17:50:45.1514807Z All matched files use Prettier code style!",
+    "2026-10-29T17:50:45.7071119Z Checked local links in 32 Markdown documents.",
+    "2026-10-29T17:51:49.1504119Z Running 12 tests using 4 workers",
+    "2026-10-29T17:52:11.0003183Z   ✓   3 [chromium] › tests/m6.spec.ts:412:1 › @demo offline bundled samples, local notices and understandable WebGL2 unavailability (18.7s)",
+    "2026-10-29T17:52:14.4346482Z   ✓   4 [chromium] › tests/m6.spec.ts:337:1 › @demo invalid imports, committed cancellation, late results and recoverable worker failure (22.3s)",
+    "2026-10-29T17:52:47.6631628Z   ✓   5 [firefox] › tests/m6.spec.ts:88:1 › @demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip (31.2s)",
+    "2026-10-29T17:52:49.6618256Z   ✓   6 [firefox] › tests/m6.spec.ts:217:1 › @demo CIF block, periodic displays, derived edit, cell, finite MOL and all crystal exports (31.0s)",
+    "2026-10-29T17:52:54.3858619Z   ✓   2 [chromium] › tests/m6.spec.ts:217:1 › @demo CIF block, periodic displays, derived edit, cell, finite MOL and all crystal exports (1.0m)",
+    "2026-10-29T17:52:55.5773093Z   ✓   1 [chromium] › tests/m6.spec.ts:88:1 › @demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip (1.1m)",
+    "2026-10-29T17:52:58.3218028Z   ✓   7 [firefox] › tests/m6.spec.ts:337:1 › @demo invalid imports, committed cancellation, late results and recoverable worker failure (10.6s)",
+    "2026-10-29T17:52:59.7161841Z   ✓   8 [firefox] › tests/m6.spec.ts:412:1 › @demo offline bundled samples, local notices and understandable WebGL2 unavailability (10.0s)",
+    "2026-10-29T17:53:14.9849424Z   ✓  11 [webkit] › tests/m6.spec.ts:337:1 › @demo invalid imports, committed cancellation, late results and recoverable worker failure (13.2s)",
+    "2026-10-29T17:53:17.3006387Z   ✓  12 [webkit] › tests/m6.spec.ts:412:1 › @demo offline bundled samples, local notices and understandable WebGL2 unavailability (10.3s)",
+    "2026-10-29T17:53:22.8947914Z   ✓   9 [webkit] › tests/m6.spec.ts:88:1 › @demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip (23.5s)",
+    "2026-10-29T17:53:23.8057088Z   ✓  10 [webkit] › tests/m6.spec.ts:217:1 › @demo CIF block, periodic displays, derived edit, cell, finite MOL and all crystal exports (23.9s)",
+    "2026-10-29T17:53:23.9277433Z   12 passed (1.6m)",
+    "2026-10-29T17:53:39.9432518Z   ✓  1 [chromium] › tests/m6.spec.ts:457:1 › @dev real development Worker, form edit and public MOL export (8.1s)",
+    "2026-10-29T17:53:40.1143270Z   1 passed (10.9s)"
+  ]
+}
