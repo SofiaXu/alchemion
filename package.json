@@ -21,19 +21,17 @@
     "check:m1": "node scripts/tasks.mjs check:m1",
     "bench": "node scripts/tasks.mjs bench",
     "docs:check": "node scripts/docs-check.mjs",
-    "ci:m5": "node scripts/m5-ci.mjs"
+    "ci:changes": "node scripts/ci-changes.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",
     "@playwright/test": "1.63.0",
-    "@types/bootstrap": "5.2.10",
     "@types/node": "24.10.1",
     "@types/three": "0.186.0",
     "alchemion": "workspace:*",
     "eslint": "9.39.1",
     "eslint-config-prettier": "10.1.8",
     "prettier": "3.3.3",
-    "sass": "1.77.8",
     "three": "0.186.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.50.0",

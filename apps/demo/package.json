@@ -4,12 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "node ../../scripts/demo-assets.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "alchemion": "workspace:*",
-    "bootstrap": "5.3.3",
-    "@popperjs/core": "2.11.8"
+    "alchemion": "workspace:*"
   }
 }

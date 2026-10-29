@@ -76,6 +76,7 @@ export function createControllerWithRuntime(
   let lifetime = 0
   let active: AbortController | undefined
   let queue = Promise.resolve()
+  let pendingOperations = 0
   const state = (): EditorState =>
     Object.freeze({ ...store.getState(), status, ...(derived ? { derived } : {}), diagnostics })
   function publish() {
@@ -197,6 +198,7 @@ export function createControllerWithRuntime(
       return Promise.reject(error)
     }
     const acceptedLifetime = lifetime
+    pendingOperations++
     let completion: Promise<void> = Promise.resolve()
     const accepted = queue.then(() => {
       if (acceptedLifetime !== lifetime || status === 'disposed') throw abortError()
@@ -206,7 +208,20 @@ export function createControllerWithRuntime(
     })
     // Only source acceptance is serialized. A slow consumer must not block subsequent source edits.
     queue = accepted.catch(() => {})
-    return accepted.then(() => completion)
+    return accepted
+      .then(() => completion)
+      .then(
+        () => {
+          if (acceptedLifetime !== lifetime) throw abortError()
+        },
+        (error: unknown) => {
+          if (acceptedLifetime !== lifetime) throw abortError()
+          throw error
+        }
+      )
+      .finally(() => {
+        if (acceptedLifetime === lifetime) pendingOperations--
+      })
   }
 
   return {
@@ -241,6 +256,15 @@ export function createControllerWithRuntime(
     },
     undo: () => enqueue(() => store.undo()),
     redo: () => enqueue(() => store.redo()),
+    cancel() {
+      if (status === 'disposed' || pendingOperations === 0) return
+      lifetime++
+      pendingOperations = 0
+      invalidate()
+      diagnostics = Object.freeze([])
+      status = 'cancelled'
+      publish()
+    },
     recompute(next) {
       let isolated: DerivationOptions | undefined
       try {
@@ -287,10 +311,23 @@ export function createControllerWithRuntime(
             'Controller auxiliary tasks cannot bypass derivation commits.'
           )
         )
-      return runtime.compute(
-        { documentId: source.documentId, revision: source.revision, task },
-        requestOptions
-      )
+      const acceptedLifetime = lifetime
+      pendingOperations++
+      return runtime
+        .compute({ documentId: source.documentId, revision: source.revision, task }, requestOptions)
+        .then(
+          (result) => {
+            if (acceptedLifetime !== lifetime) throw abortError()
+            return result
+          },
+          (error: unknown) => {
+            if (acceptedLifetime !== lifetime) throw abortError()
+            throw error
+          }
+        )
+        .finally(() => {
+          if (acceptedLifetime === lifetime) pendingOperations--
+        })
     },
     subscribe(listener) {
       listener(state())
@@ -302,6 +339,7 @@ export function createControllerWithRuntime(
     clear() {
       if (status === 'disposed') return
       lifetime++
+      pendingOperations = 0
       invalidate()
       store.clear()
       diagnostics = Object.freeze([])
@@ -311,6 +349,7 @@ export function createControllerWithRuntime(
     dispose() {
       if (status === 'disposed') return
       lifetime++
+      pendingOperations = 0
       invalidate()
       runtime.dispose()
       store.clear()

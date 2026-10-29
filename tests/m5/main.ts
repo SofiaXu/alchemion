@@ -267,6 +267,150 @@ async function asynchronous() {
     resources: ledger.snapshot()
   }
 }
+async function cancellation() {
+  await open('orthogonal')
+  const instance = current()
+  second = createViewer(document.querySelector<HTMLElement>('#second')!, {
+    inferBonds: false,
+    camera: SMALL_CAMERA
+  })
+  await second.load({ ...molecule(), title: 'cancellation-independent' })
+  const independentDocument = second.getState().documentId
+  const settle = (promise: Promise<void>) =>
+    promise.then(
+      () => 'resolved',
+      (error: Error) => error.name
+    )
+  const identity = () => {
+    const state = instance.getState()
+    return {
+      documentId: state.documentId,
+      revision: state.revision,
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      element: instance.getSnapshot()!.atoms[0].element
+    }
+  }
+  const initial = identity()
+  instance.cancel()
+  const idle = {
+    status: instance.getState().status,
+    unchanged: JSON.stringify(initial) === JSON.stringify(identity())
+  }
+  const queued = [
+    settle(instance.execute({ type: 'set-element', atomId: 'p', element: 'F' })),
+    settle(instance.execute({ type: 'set-element', atomId: 'q', element: 'N' }))
+  ]
+  instance.cancel()
+  instance.cancel()
+  const queue = {
+    results: await Promise.all(queued),
+    status: instance.getState().status,
+    unchanged: JSON.stringify(initial) === JSON.stringify(identity())
+  }
+  await instance.recompute()
+  ledger.delayNextPost(120, 'derive')
+  const deriving = settle(instance.execute({ type: 'set-element', atomId: 'p', element: 'N' }))
+  await until(() => ledger.hasDelayedPost('derive'), 'The cancelled derive request was not sent')
+  const accepted = identity()
+  const waiting = settle(instance.setOptions({ atomScale: 0.8 }))
+  let eventStart = events.length
+  instance.cancel()
+  await pause(160)
+  const derive = {
+    results: await Promise.all([deriving, waiting]),
+    status: instance.getState().status,
+    accepted,
+    retained: identity(),
+    states: events
+      .slice(eventStart)
+      .flatMap((event) => (event.type === 'state' ? [event.state.status] : []))
+  }
+  await instance.recompute()
+  const retry = { status: instance.getState().status, retained: identity() }
+  ledger.delayNextPost(120, 'brillouin-zone')
+  const auxiliaryPending = settle(instance.setOptions({ showBrillouinZone: true }))
+  await until(
+    () => ledger.hasDelayedPost('brillouin-zone'),
+    'The BZ cancellation stage was not reached'
+  )
+  eventStart = events.length
+  instance.cancel()
+  await pause(160)
+  const auxiliary = {
+    result: await auxiliaryPending,
+    status: instance.getState().status,
+    retained: identity(),
+    states: events
+      .slice(eventStart)
+      .flatMap((event) => (event.type === 'state' ? [event.state.status] : [])),
+    insets: container.querySelectorAll('[data-alchemion-inset]').length
+  }
+  await instance.recompute()
+  ledger.holdGpu(true)
+  const completedFrames = performance.getEntriesByName('alchemion:render').length
+  const rendering = settle(instance.setOptions({ atomScale: 0.9 }))
+  await until(() => ledger.hasGpuFence(), 'The cancelled frame did not enter GPU completion')
+  const displayWaiter = settle(instance.setOptions({ bondRadius: 0.13 }))
+  eventStart = events.length
+  instance.cancel()
+  instance.cancel()
+  ledger.holdGpu(false)
+  await pause(20)
+  const gpu = {
+    results: await Promise.all([rendering, displayWaiter]),
+    status: instance.getState().status,
+    retained: identity(),
+    states: events
+      .slice(eventStart)
+      .flatMap((event) => (event.type === 'state' ? [event.state.status] : [])),
+    noCompletedFrame: performance.getEntriesByName('alchemion:render').length === completedFrames
+  }
+  await instance.recompute()
+  ledger.failNextPost()
+  const failing = await settle(instance.recompute())
+  const failed = { result: failing, status: instance.getState().status, retained: identity() }
+  await instance.recompute()
+  const recovered = {
+    status: instance.getState().status,
+    retained: identity(),
+    render: measurement()
+  }
+  const independent = {
+    status: second.getState().status,
+    unchanged: second.getState().documentId === independentDocument,
+    title: second.getSnapshot()!.title
+  }
+  await instance.undo()
+  const undo = instance.getSnapshot()!.atoms[0].element
+  await instance.redo()
+  const redo = instance.getSnapshot()!.atoms[0].element
+  instance.clear()
+  const emptyRecompute = await settle(instance.recompute())
+  instance.cancel()
+  const empty = { result: emptyRecompute, status: instance.getState().status }
+  instance.dispose()
+  instance.cancel()
+  release?.()
+  second.dispose()
+  second.cancel()
+  await pause(20)
+  return {
+    idle,
+    queue,
+    derive,
+    retry,
+    auxiliary,
+    gpu,
+    failed,
+    recovered,
+    independent,
+    undo,
+    redo,
+    empty,
+    resources: ledger.snapshot()
+  }
+}
 async function multiple() {
   await open()
   const a = current()
@@ -573,6 +717,7 @@ window.m5 = {
   moveSelected,
   camera,
   asynchronous,
+  cancellation,
   multiple,
   unavailable,
   contextLoss,
@@ -604,6 +749,7 @@ declare global {
       moveSelected: typeof moveSelected
       camera: typeof camera
       asynchronous: typeof asynchronous
+      cancellation: typeof cancellation
       multiple: typeof multiple
       unavailable: typeof unavailable
       contextLoss: typeof contextLoss

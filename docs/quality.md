@@ -1,6 +1,6 @@
 # 质量、验证与性能契约
 
-状态：M0 定义目标，M1 建立工程入口（2026-10-29）。历史与迁移后实际执行结果见 [M1 证据](evidence/m1-foundation.md)；科学和功能场景仍按负责阶段落实。本文件是测试场景编号与命令契约的权威来源，需求编号来自 [product.md](product.md)。
+状态：测试场景编号与命令契约规范，更新于2026-10-30。实际执行结果及阶段状态统一见[当前交接](handoff.md)与各阶段证据；本文不预先声明场景通过。需求编号来自[product.md](product.md)。
 
 ## 验证原则与证据
 
@@ -82,9 +82,9 @@ M5新增正式viewer及按实际diff路由的当前CI。新范德华数据、对
 
 M1 可以先建立测试与性能 harness，后续场景随阶段补齐；空测试集合、仅打印成功的脚本或永久跳过不构成阶段交付。每份计划须明确当前阶段已经实现哪些场景。
 
-M2 新增显式参数：`pnpm test:browser -- --phase=m2` 构建独立宿主并只匹配 M2 场景；无该参数仍为 M1 冒烟。`pnpm bench -- --renderer-selection` 构建单候选 ESM 消费者、验证其产物，再按 A/B、B/A、A/B 在真实硬件 GPU 上串行采样两种模式各三轮。软件渲染仅可提供功能证据。`--artifacts-only` 只检查体积与 ESM 消费者；`--skip-artifacts` 复用本轮已验证产物；`--resume` 只续跑同一输入/代码的缺失轮次；`--candidate=`、`--mode=`、`--round=` 用于明确限定重跑，不能用子集宣称完整选型。
+M2的比较宿主和专属脚本已在M6清理；历史参数`--phase=m2`、`--renderer-selection`只在对应Git基准中重现，不是当前入口。双候选对照检出07527f8；历史功能修复与结果见M2报告。保留原始性能/资源证据，不以原型替代正式包。
 
-完整双候选比较实现保留于 07527f8；当前树仅含获选 Three，上述常规 bench 在当前树复验其两种模式各三轮，不宣称仍可直接运行落选后端。
+当前树只有正式Three实现。默认browser/package/bench指向M6；M4/M5仍可通过显式phase定向运行，不默认重跑历史阶段。
 
 M4新增`pnpm test:browser -- --phase=m4`，构建独立宿主并只运行`@workspace`的M4场景；`pnpm test:package -- --phase=m4 --project=chromium`安装真实tarball，核对三个入口、core/formats无DOM声明、生产计算Worker、编辑/历史和受影响历史输入的最小回归。`--prepared`只用于复用同轮已构建的SDK。并行上限4，单个tarball场景实际只用1个进程，不人为复制场景。M4无canvas的运行时验证不充当M5三维或性能验收。
 
@@ -92,11 +92,13 @@ M5的`pnpm test:browser -- --phase=m5`准备SDK和正式宿主，运行三个浏
 
 `pnpm bench -- --phase=m5`使用实际安装的tarball测正式viewer，输出`.tmp/bench/m5`。保持M2的10k坐标、20k拓扑与画质，以合法10k源分子替换原型伪500源映射；明确记录identity-only，不冒称实际500源扩胞。真实周期/对称扩展由功能场景证明。每模式各三轮、GPU硬件串行、预热/轨迹/点击/局部更新/20轮释放沿用上节口径，并额外以浏览器readPixels检查真实GPU更新；renderer时段与源编辑端到端分别报告。`--mode=`、`--round=`限定有技术理由的复验，`--resume`仅续跑源散列和tarball SHA相同的缺失轮次，`--skip-artifacts`复用本轮已核对的体积资产。任何子集不代表完整关卡通过。
 
-`--resources-only --source-ref=<commit>` 只从指定 Git 提交恢复比较资产到忽略目录，安装其精确引擎依赖，用 CDP 核对 20 轮全局监听归属，不重跑性能。软件功能验证以 `M2_FUNCTIONAL_SOFTWARE=1` 显式选择，使用同步 GPU 完成和有界任务交付，不提供帧呈现性能证据；硬件 bench 拒绝此路径。M2 Ubuntu 四进程软件验证已实际超时，改为两个进程并保留完整 10k/20k 及几何；证据与复验理由见 M2 报告。
+历史`--resources-only --source-ref=<commit>`及`M2_FUNCTIONAL_SOFTWARE`仅在M2对应源码中使用。M2 Ubuntu四进程软件验证超时后降至两个进程的事实保留在M2报告，不作为当前功能默认降并行的理由。
 
 依赖 SDK 产物的独立命令必须显式准备其前置产物；聚合检查可以通过内部任务编排复用一次构建，不能为了避免重复准备而依赖前一会话留下的 dist。SDK 自身的源类型检查不得依赖 demo，从而保持构建依赖有向无环。
 
 ## 浏览器与阶段关卡
+
+M6新增用户工作台编排、cancel/recompute及最终消费者，使用`pnpm test:browser -- --phase=m6`、`pnpm test:package -- --phase=m6`和`pnpm dev -- --smoke --prepared`。生产demo/消费者三浏览器，开发差异仅Chromium一次；controller只运行改动的定向文件，M5只选择@m6-runtime。`pnpm bench -- --phase=m6`复用唯一正式包采集器完成六轮硬件关卡。普通检查4进程、无重试；GPU独占串行。CI按diff含删除项路由，报告browser/package/dev/bench分名。完整需求对照复用M1–M5未改场景证据，不默认执行pnpm check或全套科学/格式测试。
 
 目标是现代桌面 WebGL2。每轮浏览器证据记录 Chromium、Firefox、WebKit 的具体版本与 WebGL2 可用性；无 WebGL2 时 SDK/demo 应提供明确错误，测试须验证该路径。真实 Safari 验证仅在确有设备和版本记录时才能声称完成。
 

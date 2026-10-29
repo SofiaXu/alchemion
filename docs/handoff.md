@@ -4,6 +4,8 @@
 
 ## 当前入口
 
+- **M6实施中，工作分支codex/m6-demo-distribution。** 接管[M6计划](plans/m6-demo-distribution.md)和[M6报告](evidence/m6-demo-distribution.md)。双语demo、取消/重算、最终tarball和CI入口已实现；本地controller12/12、取消三浏览器3/3、demo12独立场景、消费者三浏览器及开发Chromium均有通过证据。首次失败与最小复验见[摘要](evidence/m6-validation-summary.json)和报告；最终硬件六轮、Ubuntu和主分支合并尚未完成，不能标M6完成。
+
 - **M5正式Three viewer已完成全部验收。** 实现提交1287018、CI启动修复623534a；归档与主分支合并见[PR #8](https://github.com/SofiaXu/alchemion/pull/8)和Git HEAD。接管入口为[M5计划](plans/m5-viewer.md)与[M5报告](evidence/m5-viewer.md)。
 - `createViewer`组合M4唯一源/历史/单模块Worker；两模式、晶格、倒易/BZ独立视窗、真实拾取/点坐标/三种测量、编辑历史、取消和context恢复均已验证。正式契约见[ADR0005](decisions/0005-formal-viewer.md)。
 - SDK仅Three0.186.1，历史Babylon viewer/Worker/旧模型及无来源配色已移除。范德华来源、缺失策略及MIT许可随包记录；demo仅最小迁新API并验证启动，完整流程留M6。
@@ -24,4 +26,4 @@
 
 ## 下一项可执行任务
 
-接管[M6计划](plans/m6-demo-distribution.md)：以createViewer和三个公开入口完成独立demo的文件导入/block选择、诊断、全部显示/测量、基础编辑表单、undo/redo、格式版本/损失反馈、导出与重新导入；再做最终真实消费者、资产来源和分发复核。M5测试宿主及最小demo不等于M6完成。本会话不自动实施M6或发布npm/站点。
+接续M6：审查并提交当前实现，用最终真实包运行两模式各三轮硬件bench；推送并创建PR，取得精确候选head的Ubuntu定向CI；归档原始/摘要、更新完成状态后合并master。用户已授权本轮提交/推送/合并，不含npm/站点发布。源码冻结后不要为归档重复已通过的Windows业务测试。

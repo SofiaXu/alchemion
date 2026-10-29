@@ -1,12 +1,11 @@
-name: M5 viewer delivery
+name: Targeted SDK and demo delivery
 on:
   pull_request:
     paths:
       - 'packages/alchemion/**'
       - 'apps/demo/**'
       - 'tests/**'
-      - 'scripts/tasks.mjs'
-      - 'scripts/m5-*'
+      - 'scripts/**'
       - '*config*'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -15,14 +14,14 @@ on:
       - '.github/workflows/**'
   workflow_dispatch:
 jobs:
-  formal-viewer:
+  delivery:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       TEST_WORKERS: '4'
       LIBGL_ALWAYS_SOFTWARE: '1'
-      M5_BASE: ${{ github.event.action == 'synchronize' && github.event.before || github.event.pull_request.base.sha || 'HEAD^' }}
-      M5_PR_BASE: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
+      CHANGE_BASE: ${{ github.event.action == 'synchronize' && github.event.before || github.event.pull_request.base.sha || 'HEAD^' }}
+      PR_BASE: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,33 +34,43 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Select this delivery's actual changes
         id: scope
-        run: pnpm ci:m5 --scope
+        run: pnpm ci:changes --scope
       - name: Targeted unit cases
-        if: steps.scope.outputs.code == 'true'
-        run: pnpm ci:m5 --unit
-      - if: steps.scope.outputs.code == 'true'
-        run: pnpm build
-      - if: steps.scope.outputs.code == 'true'
+        run: pnpm ci:changes --unit
+      - if: steps.scope.outputs.sdk == 'true'
+        run: pnpm --filter alchemion build:source
+      - if: steps.scope.outputs.sdk == 'true'
         run: pnpm exec tsc -p packages/alchemion/tsconfig.core.json
-      - if: steps.scope.outputs.code == 'true'
+      - if: steps.scope.outputs.sdk == 'true'
         run: pnpm exec tsc -p tsconfig.json
       - name: Changed lint, formatting and document links
-        run: pnpm ci:m5 --checks
-      - if: steps.scope.outputs.code == 'true'
+        run: pnpm ci:changes --checks
+      - if: steps.scope.outputs.sdk == 'true'
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - name: Linux software-driver viewer functionality
-        if: steps.scope.outputs.code == 'true'
+        if: steps.scope.outputs.viewer == 'true'
         # Platform/driver coverage; hardware performance is measured separately.
-        run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m5 --prepared
-      - name: Linux production tarball and module computation Worker
-        if: steps.scope.outputs.code == 'true'
-        run: xvfb-run --auto-servernum pnpm test:package -- --phase=m5 --prepared --project=chromium
+        run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m5 --prepared --grep='${{ steps.scope.outputs.viewer_grep }}'
+      - name: Linux built demo user workflows
+        if: steps.scope.outputs.demo == 'true'
+        run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m6 --prepared
+      - name: Linux development Worker, edit and export
+        if: steps.scope.outputs.demo == 'true'
+        run: xvfb-run --auto-servernum pnpm dev -- --smoke --prepared
+      - name: Linux production tarball, nested module Worker and lifecycle
+        if: steps.scope.outputs.package == 'true'
+        run: xvfb-run --auto-servernum pnpm test:package -- --phase=m6 --prepared
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: m5-viewer-evidence
+          name: delivery-evidence
           if-no-files-found: ignore
           path: |
             .tmp/m5-browser.json
+            .tmp/m6-browser.json
+            .tmp/m6-package.json
+            .tmp/m6-dev.json
+            .tmp/m6-package-inspection.json
+            .tmp/m6-demo-assets.json
             playwright-report
             test-results

@@ -1,23 +1,26 @@
 import { spawn } from 'node:child_process'
-import { mkdtemp, readFile, writeFile, cp, readdir, stat } from 'node:fs/promises'
-import { resolve, dirname, join } from 'node:path'
+import { mkdtemp, readFile, writeFile, cp, readdir, stat, mkdir } from 'node:fs/promises'
+import { createServer as createHttpServer } from 'node:http'
+import { createHash } from 'node:crypto'
+import { resolve, dirname, join, extname, relative, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { createServer, build as viteBuild } from 'vite'
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pnpm = process.env.npm_execpath
-const browserFlags = process.argv.filter((arg) => arg.startsWith('--project='))
-const browserGrep = process.argv.find((arg) => arg.startsWith('--grep='))?.slice('--grep='.length)
-const phaseM2 = process.argv.includes('--phase=m2')
-const phaseM4 = process.argv.includes('--phase=m4')
-const phaseM5 = process.argv.includes('--phase=m5')
-const isPrepared = process.argv.includes('--prepared')
+const args = process.argv.slice(3)
+const phase = args.find((arg) => arg.startsWith('--phase='))?.slice(8) ?? 'm6'
+const browserFlags = args.filter((arg) => arg.startsWith('--project='))
+const browserGrep = args.find((arg) => arg.startsWith('--grep='))?.slice(7)
+const isPrepared = args.includes('--prepared')
 if (!pnpm) throw new Error('Use pnpm to invoke this task.')
+if (!['m1', 'm4', 'm5', 'm6'].includes(phase))
+  throw new Error(`Unsupported phase ${phase}; historical M2 reproduction is available in Git.`)
 
-export function run(args, cwd = root, env = {}) {
+export function run(command, cwd = root, env = {}) {
   return new Promise((done, reject) => {
-    const child = spawn(process.execPath, [pnpm, ...args], {
+    const child = spawn(process.execPath, [pnpm, ...command], {
       cwd,
       env: { ...process.env, ...env },
       stdio: 'inherit'
@@ -25,155 +28,106 @@ export function run(args, cwd = root, env = {}) {
     child.on('error', reject)
     child.on('exit', (code, signal) => {
       if (code === 0) done()
-      else reject(new Error(`pnpm ${args.join(' ')} failed (${code ?? signal})`))
+      else reject(new Error(`pnpm ${command.join(' ')} failed (${code ?? signal})`))
     })
   })
 }
-
 async function sdk() {
   await run(['--filter', 'alchemion', 'build:source'])
 }
-
 async function types() {
   await run(['exec', 'tsc', '-p', 'packages/alchemion/tsconfig.core.json'])
   await run(['exec', 'tsc', '-p', 'tsconfig.json'])
 }
 
-export async function host(directory, action, port = 4174) {
-  const server = await createServer({
-    configFile: false,
-    root: directory,
-    server: { host: '127.0.0.1', port, strictPort: true },
-    logLevel: 'warn'
+/** Built files only, including nested URLs; no development-server source fallback. */
+export async function host(directory, action, port = 4174, mount = '/') {
+  const mime = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.txt': 'text/plain; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.woff2': 'font/woff2'
+  }
+  const server = createHttpServer(async (request, response) => {
+    try {
+      const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
+      if (!path.startsWith(mount)) {
+        response.writeHead(404).end()
+        return
+      }
+      const file = resolve(directory, path.slice(mount.length) || 'index.html')
+      const local = relative(directory, file)
+      if (local.startsWith('..') || isAbsolute(local)) {
+        response.writeHead(403).end()
+        return
+      }
+      const data = await readFile(file)
+      response.writeHead(200, {
+        'Content-Type': mime[extname(file)] ?? 'application/octet-stream',
+        'Cache-Control': 'no-store'
+      })
+      response.end(data)
+    } catch {
+      response.writeHead(404).end()
+    }
   })
-  await server.listen()
+  await new Promise((done, reject) => {
+    server.once('error', reject)
+    server.listen(port, '127.0.0.1', done)
+  })
   try {
-    return await action(`http://127.0.0.1:${port}`)
+    return await action(`http://127.0.0.1:${port}${mount}`)
   } finally {
-    await server.close()
+    server.closeAllConnections()
+    await new Promise((done, reject) => server.close((error) => (error ? reject(error) : done())))
   }
 }
-
-async function browser(directory = join(root, 'tests/host'), grep = '@workspace') {
-  const output = join(root, '.tmp/workspace-host')
-  await viteBuild({
-    configFile: false,
-    root: directory,
-    base: './',
-    build: { outDir: output, emptyOutDir: true }
-  })
-  await host(output, (url) =>
-    run(['exec', 'playwright', 'test', '--grep', browserGrep ?? grep, ...browserFlags], root, {
-      M1_BASE_URL: url
-    })
+const config = (selected) =>
+  selected === 'm1' ? 'playwright.config.ts' : `playwright.${selected}.config.ts`
+async function playwright(url, selected, grep, extraEnv = {}) {
+  await run(
+    [
+      'exec',
+      'playwright',
+      'test',
+      `--config=${config(selected)}`,
+      '--grep',
+      browserGrep ?? grep,
+      ...browserFlags
+    ],
+    root,
+    { [`${selected.toUpperCase()}_BASE_URL`]: url, ...extraEnv }
   )
 }
-
-async function comparisonHost() {
-  const output = join(root, '.tmp/m2-host')
+async function buildHost(selected) {
+  const directory = selected === 'm1' ? 'tests/host' : `tests/${selected}`
+  const output = join(root, `.tmp/${selected}-host`)
   await viteBuild({
     configFile: false,
-    root: join(root, 'tests/renderer-selection/host'),
-    base: './',
-    define: {
-      'import.meta.env.M2_FUNCTIONAL_SOFTWARE': JSON.stringify(
-        process.env.M2_FUNCTIONAL_SOFTWARE === '1' ||
-          (process.env.CI && process.platform === 'linux') ||
-          false
-      )
-    },
-    build: { target: 'es2022', outDir: output, emptyOutDir: true },
-    worker: { format: 'es' }
-  })
-  return output
-}
-
-async function comparisonBrowser() {
-  const output = await comparisonHost()
-  await host(
-    output,
-    (url) =>
-      run(
-        [
-          'exec',
-          'playwright',
-          'test',
-          '--config=playwright.m2.config.ts',
-          ...(browserGrep ? ['--grep', browserGrep] : []),
-          ...browserFlags
-        ],
-        root,
-        {
-          M2_BASE_URL: url
-        }
-      ),
-    4175
-  )
-}
-
-async function runtimeBrowser() {
-  const output = join(root, '.tmp/m4-host')
-  await viteBuild({
-    configFile: false,
-    root: join(root, 'tests/m4'),
-    base: './',
-    build: { target: 'es2022', outDir: output, emptyOutDir: true },
-    worker: { format: 'es' }
-  })
-  await host(
-    output,
-    (url) =>
-      run(
-        [
-          'exec',
-          'playwright',
-          'test',
-          '--config=playwright.m4.config.ts',
-          '--grep',
-          browserGrep ?? '@workspace',
-          ...browserFlags
-        ],
-        root,
-        { M4_BASE_URL: url }
-      ),
-    4176
-  )
-}
-
-async function viewerHost() {
-  const output = join(root, '.tmp/m5-host')
-  await viteBuild({
-    configFile: false,
-    root: join(root, 'tests/m5'),
+    root: join(root, directory),
     base: './',
     build: { target: 'es2022', outDir: output, emptyOutDir: true },
     worker: { format: 'es' }
   })
   return output
 }
-
-async function viewerBrowser() {
-  const output = await viewerHost()
+async function browser(selected = phase, preparedDemo = false) {
+  if (selected === 'm6') {
+    if (!preparedDemo) await run(['--filter', '@alchemion/demo', 'build'])
+    await host(join(root, 'apps/demo/dist'), (url) => playwright(url, selected, '@demo'), 4178)
+    return
+  }
+  const output = await buildHost(selected)
   await host(
     output,
-    (url) =>
-      run(
-        [
-          'exec',
-          'playwright',
-          'test',
-          '--config=playwright.m5.config.ts',
-          '--grep',
-          browserGrep ?? '@workspace',
-          ...browserFlags
-        ],
-        root,
-        { M5_BASE_URL: url }
-      ),
-    4177
+    (url) => playwright(url, selected, '@workspace'),
+    selected === 'm5' ? 4177 : selected === 'm4' ? 4176 : 4174
   )
 }
-
 async function verifyPublicTypes(directory) {
   const seen = new Set()
   const visit = async (path) => {
@@ -183,31 +137,72 @@ async function verifyPublicTypes(directory) {
     if (/(?:from\s*|import\s*\()['"](?:three(?:\/|['"])|@babylonjs\/)/.test(source))
       throw new Error(`Engine type leaked through a public declaration: ${path}`)
     for (const match of source.matchAll(/(?:from\s*|import\s*\()['"]([^'"]+)['"]/g)) {
-      if (match[1].startsWith('.')) {
-        const base = resolve(dirname(path), match[1])
-        const next = await stat(`${base}.d.ts`).then(
-          () => `${base}.d.ts`,
-          () => join(base, 'index.d.ts')
-        )
-        await visit(next)
-      }
+      if (!match[1].startsWith('.')) continue
+      const base = resolve(dirname(path), match[1])
+      const next = await stat(`${base}.d.ts`).then(
+        () => `${base}.d.ts`,
+        () => join(base, 'index.d.ts')
+      )
+      const local = relative(join(directory, 'dist/types'), next)
+      if (local.startsWith('..') || isAbsolute(local))
+        throw new Error('Public declaration escaped its package.')
+      await visit(next)
     }
   }
   for (const entry of ['core', 'formats', 'viewer'])
     await visit(join(directory, 'dist/types', entry, 'index.d.ts'))
 }
-
-async function packaged(benchmarkOnly = false) {
-  const consumer = await mkdtemp(
-    join(
-      tmpdir(),
-      phaseM5
-        ? 'alchemion-m5-consumer-'
-        : phaseM4
-          ? 'alchemion-m4-consumer-'
-          : 'alchemion-m1-consumer-'
-    )
+const digest = (data) => createHash('sha256').update(data).digest('hex')
+async function inspectPackage(directory, selected) {
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+  const expected = Object.fromEntries(
+    ['core', 'formats', 'viewer'].map((entry) => [
+      `./${entry}`,
+      { types: `./dist/types/${entry}/index.d.ts`, import: `./dist/${entry}.js` }
+    ])
   )
+  if (JSON.stringify(manifest.exports) !== JSON.stringify(expected) || manifest.type !== 'module')
+    throw new Error('Unexpected SDK exports or module type.')
+  if (
+    manifest.dependencies?.three !== '0.186.1' ||
+    Object.keys(manifest.dependencies ?? {}).some((name) => name.startsWith('@babylonjs/'))
+  )
+    throw new Error('The SDK must declare the selected Three backend.')
+  await verifyPublicTypes(directory)
+  const files = await readdir(join(directory, 'dist'), { recursive: true })
+  if (files.some((file) => /\.cjs$|__tests__|test-data|renderer-selection/.test(file)))
+    throw new Error('Development or CJS files leaked into the tarball.')
+  const hashes = {}
+  for (const name of [
+    'LICENSE',
+    'THIRD_PARTY_NOTICES.md',
+    'SCIENTIFIC_DATA_MANIFEST.json',
+    'VDW_DATA_MANIFEST.json',
+    'dist/FORMAT_DATA_MANIFEST.json'
+  ]) {
+    const installed = await readFile(join(directory, name))
+    if (!installed.equals(await readFile(join(root, 'packages/alchemion', name))))
+      throw new Error(`Packaged notice or manifest differs: ${name}`)
+    hashes[name] = digest(installed)
+    if (name.endsWith('.json')) JSON.parse(installed.toString('utf8'))
+  }
+  if (selected === 'm6') {
+    const actual = (await readdir(directory)).sort()
+    const allowed = [
+      'LICENSE',
+      'THIRD_PARTY_NOTICES.md',
+      'SCIENTIFIC_DATA_MANIFEST.json',
+      'VDW_DATA_MANIFEST.json',
+      'dist',
+      'package.json'
+    ].sort()
+    if (JSON.stringify(actual) !== JSON.stringify(allowed))
+      throw new Error(`Unexpected package root: ${actual.join(', ')}`)
+  }
+  return { exports: manifest.exports, version: manifest.version, hashes, distFiles: files.sort() }
+}
+async function packaged(benchmarkOnly = false, selected = phase) {
+  const consumer = await mkdtemp(join(tmpdir(), `alchemion-${selected}-consumer-`))
   await run(['pack', '--pack-destination', consumer], join(root, 'packages/alchemion'))
   const archive = (await readdir(consumer)).find((name) => name.endsWith('.tgz'))
   if (!archive) throw new Error('pnpm pack did not produce a tarball.')
@@ -221,25 +216,26 @@ async function packaged(benchmarkOnly = false) {
       devDependencies: { typescript: '5.9.3', vite: '7.3.5' }
     })
   )
-  // Ignore the parent workspace, its source paths and its node_modules layout.
   await writeFile(join(consumer, '.npmrc'), 'link-workspace-packages=false\n')
-  await cp(
-    join(
-      root,
-      phaseM5
-        ? benchmarkOnly
-          ? 'tests/m5'
-          : 'tests/consumer-m5'
-        : phaseM4
-          ? 'tests/consumer-m4'
-          : 'tests/host'
-    ),
-    consumer,
-    { recursive: true }
-  )
-  if (benchmarkOnly)
-    for (const file of ['core-only.ts', 'tsconfig.core-only.json'])
-      await cp(join(root, 'tests/consumer-m5', file), join(consumer, file))
+  let fixture = consumer
+  if (selected === 'm6' && !benchmarkOnly) {
+    fixture = join(consumer, 'host/consumer-m6')
+    await cp(join(root, 'tests/consumer-m6'), fixture, { recursive: true })
+    await mkdir(join(consumer, 'host/m5'), { recursive: true })
+    await cp(join(root, 'tests/m5/resources.ts'), join(consumer, 'host/m5/resources.ts'))
+  } else {
+    await cp(
+      join(
+        root,
+        benchmarkOnly ? 'tests/m5' : selected === 'm1' ? 'tests/host' : `tests/consumer-${selected}`
+      ),
+      consumer,
+      { recursive: true }
+    )
+    if (benchmarkOnly)
+      for (const file of ['core-only.ts', 'tsconfig.core-only.json'])
+        await cp(join(root, 'tests/consumer-m5', file), join(consumer, file))
+  }
   await run(
     [
       'install',
@@ -251,27 +247,7 @@ async function packaged(benchmarkOnly = false) {
     ],
     consumer
   )
-  const manifest = JSON.parse(await readFile(join(consumer, 'node_modules/alchemion/package.json')))
-  if (Object.keys(manifest.exports).join(',') !== './core,./formats,./viewer') {
-    throw new Error('Unexpected SDK exports.')
-  }
-  if (phaseM5) {
-    if (
-      manifest.dependencies?.three !== '0.186.1' ||
-      Object.keys(manifest.dependencies ?? {}).some((name) => name.startsWith('@babylonjs/'))
-    )
-      throw new Error('The formal SDK must declare exactly the selected Three backend.')
-    await verifyPublicTypes(join(consumer, 'node_modules/alchemion'))
-  }
-  const files = await readdir(join(consumer, 'node_modules/alchemion/dist'), { recursive: true })
-  if (files.some((file) => /\.cjs$|__tests__|test-data/.test(file))) {
-    throw new Error('Development or CJS files leaked into the tarball.')
-  }
-  for (const notice of ['THIRD_PARTY_NOTICES.md', 'SCIENTIFIC_DATA_MANIFEST.json']) {
-    await readFile(join(consumer, 'node_modules/alchemion', notice), 'utf8')
-  }
-  if (phaseM4 || phaseM5)
-    await readFile(join(consumer, 'node_modules/alchemion/dist/FORMAT_DATA_MANIFEST.json'), 'utf8')
+  const inspection = await inspectPackage(join(consumer, 'node_modules/alchemion'), selected)
   for (const [name, version] of [
     ['typescript', '5.9.3'],
     ['vite', '7.3.5']
@@ -296,9 +272,9 @@ async function packaged(benchmarkOnly = false) {
       'Bundler',
       '--lib',
       'ES2022,DOM',
-      'main.ts'
+      join(fixture, 'main.ts')
     ],
-    consumer
+    fixture
   )
   await run(
     [
@@ -306,9 +282,9 @@ async function packaged(benchmarkOnly = false) {
       process.execPath,
       join(consumer, 'node_modules/typescript/bin/tsc'),
       '-p',
-      'tsconfig.core-only.json'
+      join(fixture, 'tsconfig.core-only.json')
     ],
-    consumer
+    fixture
   )
   await run(
     [
@@ -316,45 +292,43 @@ async function packaged(benchmarkOnly = false) {
       process.execPath,
       join(consumer, 'node_modules/vite/bin/vite.js'),
       'build',
+      fixture,
       '--base',
-      './'
+      './',
+      '--outDir',
+      join(consumer, 'dist')
     ],
-    consumer
+    fixture
   )
   const assets = await readdir(join(consumer, 'dist'), { recursive: true })
-  const expectedWorker = /computation-worker-.*\.js$/
-  if (!assets.some((name) => expectedWorker.test(name))) {
+  if (!assets.some((name) => /computation-worker-.*\.js$/.test(name)))
     throw new Error('Required module Worker missing from the consumer production build.')
+  const evidence = {
+    consumer,
+    archive: join(consumer, archive),
+    tarballSha256: digest(await readFile(join(consumer, archive))),
+    ...inspection
   }
-  if (benchmarkOnly)
-    return { consumer, output: join(consumer, 'dist'), archive: join(consumer, archive) }
-  // Serve only the consumer build. No workspace aliases or development server fallback.
-  await host(join(consumer, 'dist'), (url) =>
-    run(
-      [
-        'exec',
-        'playwright',
-        'test',
-        ...(phaseM5
-          ? ['--config=playwright.m5.config.ts']
-          : phaseM4
-            ? ['--config=playwright.m4.config.ts']
-            : []),
-        '--grep',
-        browserGrep ?? '@package',
-        ...browserFlags
-      ],
-      root,
-      {
-        [phaseM5 ? 'M5_BASE_URL' : phaseM4 ? 'M4_BASE_URL' : 'M1_BASE_URL']: url
-      }
-    )
+  await mkdir(join(root, '.tmp'), { recursive: true })
+  await writeFile(
+    join(root, `.tmp/${selected}-package-inspection${benchmarkOnly ? '-bench' : ''}.json`),
+    `${JSON.stringify(evidence, null, 2)}\n`
+  )
+  if (benchmarkOnly) return { ...evidence, output: join(consumer, 'dist') }
+  await host(
+    join(consumer, 'dist'),
+    (url) =>
+      playwright(url, selected, '@package', {
+        M6_REPORT_KIND: process.env.M6_REPORT_KIND ?? 'package'
+      }),
+    4179,
+    selected === 'm6' ? '/installed/nested/' : '/'
   )
   console.log(`Isolated tarball consumer: ${consumer}`)
 }
-
 async function dev() {
-  await sdk()
+  if (!isPrepared) await sdk()
+  await run(['exec', process.execPath, join(root, 'scripts/demo-assets.mjs')])
   const watcher = await viteBuild({
     root: join(root, 'packages/alchemion'),
     build: { watch: {}, emptyOutDir: false }
@@ -371,7 +345,7 @@ async function dev() {
   )
   const server = await createServer({
     root: join(root, 'apps/demo'),
-    server: { host: '127.0.0.1' }
+    server: { host: '127.0.0.1', port: 4180, strictPort: true }
   })
   await server.listen()
   server.printUrls()
@@ -382,26 +356,26 @@ async function dev() {
   }
   process.once('SIGINT', stop)
   process.once('SIGTERM', stop)
-  if (process.argv.includes('--smoke')) {
-    const { chromium } = await import('@playwright/test')
-    const browser = await chromium.launch()
+  if (args.includes('--smoke')) {
     try {
-      const page = await browser.newPage()
-      const errors = []
-      page.on('pageerror', (error) => errors.push(error.message))
-      await page.goto(server.resolvedUrls.local[0])
-      await page.waitForFunction(
-        () => document.querySelector('#demo-status')?.textContent === 'ready'
+      await run(
+        [
+          'exec',
+          'playwright',
+          'test',
+          '--config=playwright.m6.config.ts',
+          '--grep',
+          '@dev',
+          '--project=chromium'
+        ],
+        root,
+        { M6_BASE_URL: server.resolvedUrls.local[0], M6_REPORT_KIND: 'dev' }
       )
-      if (errors.length) throw new Error(errors.join('\n'))
-      console.log('Clean dev entry: demo completed a real SDK Worker load.')
     } finally {
-      await browser.close()
       await stop()
     }
   }
 }
-
 async function check(m1) {
   await run(['format:check'])
   await run(['lint'])
@@ -415,13 +389,11 @@ async function check(m1) {
     'run',
     ...(m1 ? ['packages/alchemion/src/formats/cif/__tests__'] : [])
   ])
-  await browser()
-  await packaged()
+  await browser(m1 ? 'm1' : 'm6', !m1)
+  await packaged(false, m1 ? 'm1' : 'm6')
 }
-
-const task = process.argv[2]
 try {
-  switch (task) {
+  switch (process.argv[2]) {
     case 'dev':
       await dev()
       break
@@ -434,13 +406,8 @@ try {
       await types()
       break
     case 'browser':
-      if (phaseM2) await comparisonBrowser()
-      else {
-        if (!isPrepared) await sdk()
-        if (phaseM5) await viewerBrowser()
-        else if (phaseM4) await runtimeBrowser()
-        else await browser()
-      }
+      if (!isPrepared) await sdk()
+      await browser()
       break
     case 'package':
       if (!isPrepared) await sdk()
@@ -453,29 +420,21 @@ try {
       await check(true)
       break
     case 'bench': {
-      if (phaseM5) {
-        if (!isPrepared) await sdk()
-        const packagedViewer = await packaged(true)
-        const { measure } = await import('./m5-bench.mjs')
-        await host(packagedViewer.output, (url) => measure(url, packagedViewer), 4177)
-      } else if (process.argv.includes('--renderer-selection')) {
-        if (process.argv.includes('--resources-only')) {
-          const { auditResources } = await import('./renderer-resources.mjs')
-          await auditResources()
-        } else {
-          const output = await comparisonHost()
-          const { measure } = await import('./renderer-selection.mjs')
-          await host(output, measure, 4175)
-        }
-      } else {
-        await sdk()
+      if (!isPrepared) await sdk()
+      if (args.includes('--smoke')) {
         const { measure } = await import('./bench.mjs')
-        await host(join(root, 'tests/host'), measure)
+        await host(await buildHost('m1'), measure)
+      } else {
+        if (!['m5', 'm6'].includes(phase))
+          throw new Error('Formal benchmark phase must be m5 or m6.')
+        const consumer = await packaged(true)
+        const { measure } = await import('./m5-bench.mjs')
+        await host(consumer.output, (url) => measure(url, consumer), 4177)
       }
       break
     }
     default:
-      throw new Error(`Unknown task: ${task}`)
+      throw new Error(`Unknown task: ${process.argv[2]}`)
   }
 } catch (error) {
   console.error(error)

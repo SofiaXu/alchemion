@@ -15,6 +15,7 @@ dist-ssr
 test-results/
 playwright-report/
 *.local
+apps/demo/public/generated/
 
 # Editor directories and files
 .vscode/*
