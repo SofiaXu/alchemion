@@ -156,6 +156,137 @@ describe('headless editor state machine', () => {
     await expect(controller.load(molecule())).rejects.toMatchObject({ code: 'CONTROLLER_DISPOSED' })
   })
 
+  it('@m6-runtime cancels unaccepted commands and leaves idle or disposed controllers unchanged', async () => {
+    const controller = createEditorController({ mode: 'sync' })
+    const observations: EditorState['status'][] = []
+    controller.subscribe((state) => observations.push(state.status))
+    controller.cancel()
+    expect(observations).toEqual(['empty'])
+    const loading = controller.load(molecule()).catch((error: Error) => error.name)
+    const editing = controller
+      .execute({ type: 'set-element', atomId: 'a', element: 'O' })
+      .catch((error: Error) => error.name)
+    controller.cancel()
+    controller.cancel()
+    expect(await loading).toBe('AbortError')
+    expect(await editing).toBe('AbortError')
+    expect(controller.getState()).toMatchObject({
+      status: 'cancelled',
+      canUndo: false,
+      canRedo: false
+    })
+    expect(controller.getState().snapshot).toBeUndefined()
+    await expect(controller.recompute()).rejects.toMatchObject({ code: 'EDIT_DOCUMENT_EMPTY' })
+    // A new attempt can be cancelled even before it leaves the cancelled state.
+    const reloading = controller.load(molecule()).catch((error: Error) => error.name)
+    controller.cancel()
+    expect(await reloading).toBe('AbortError')
+    await controller.load(molecule())
+    const ready = controller.getState()
+    controller.cancel()
+    expect(controller.getState()).toEqual(ready)
+    controller.dispose()
+    const count = observations.length
+    controller.cancel()
+    expect(observations).toHaveLength(count)
+    expect(controller.getState().status).toBe('disposed')
+  })
+
+  it('@m6-runtime preserves source and both history directions while cancelling commit, queue and auxiliary work', async () => {
+    let block = false
+    let finishCommit: (() => void) | undefined
+    const controller = createEditorController({
+      mode: 'sync',
+      commit: () => {
+        if (block) return new Promise<void>((resolve) => (finishCommit = resolve))
+      }
+    })
+    await controller.load(molecule())
+    await controller.execute({ type: 'set-element', atomId: 'a', element: 'O' })
+    await controller.execute({ type: 'set-element', atomId: 'a', element: 'N' })
+    await controller.undo()
+    const before = controller.getState()
+    expect(before).toMatchObject({ canUndo: true, canRedo: true })
+    block = true
+    const rendering = controller.recompute().catch((error: Error) => error.name)
+    await vi.waitFor(() => expect(finishCommit).toBeTypeOf('function'))
+    const auxiliary = controller
+      .compute({
+        kind: 'reciprocal',
+        cell: {
+          basis: [
+            [4, 0, 0],
+            [0, 4, 0],
+            [0, 0, 4]
+          ]
+        }
+      })
+      .catch((error: Error) => error.name)
+    const queued = controller
+      .execute({ type: 'set-element', atomId: 'a', element: 'F' })
+      .catch((error: Error) => error.name)
+    controller.cancel()
+    expect(await rendering).toBe('AbortError')
+    expect(await auxiliary).toBe('AbortError')
+    expect(await queued).toBe('AbortError')
+    const cancelled = controller.getState()
+    expect(cancelled).toMatchObject({
+      status: 'cancelled',
+      documentId: before.documentId,
+      revision: before.revision,
+      snapshot: before.snapshot,
+      canUndo: true,
+      canRedo: true
+    })
+    expect(cancelled.derived).toBeUndefined()
+    finishCommit!()
+    await Promise.resolve()
+    expect(controller.getState()).toEqual(cancelled)
+    block = false
+    await controller.recompute()
+    expect(controller.getState()).toMatchObject({
+      status: 'ready',
+      documentId: before.documentId,
+      revision: before.revision,
+      snapshot: before.snapshot,
+      canUndo: true,
+      canRedo: true
+    })
+    await controller.redo()
+    expect(controller.getState().snapshot!.atoms[0].element).toBe('N')
+    controller.dispose()
+  })
+
+  it('@m6-runtime ignores delayed cancelled derivations while retrying the same accepted revision', async () => {
+    const transport = new ControlledTransport()
+    const runtime = createRuntimeWithTransport({}, () => transport)
+    const controller = createControllerWithRuntime({}, runtime)
+    const loading = controller.load(molecule()).catch((error: Error) => error.name)
+    await vi.waitFor(() => expect(transport.messages).toHaveLength(1))
+    const old = transport.messages[0]
+    const accepted = controller.getState()
+    controller.cancel()
+    expect(await loading).toBe('AbortError')
+    expect(controller.getState().status).toBe('cancelled')
+    const retrying = controller.recompute()
+    await vi.waitFor(() =>
+      expect(transport.messages.filter((message) => message.kind === 'compute')).toHaveLength(2)
+    )
+    transport.reply(old)
+    expect(controller.getState().status).toBe('computing')
+    transport.reply(transport.messages.at(-1)!)
+    await retrying
+    expect(controller.getState()).toMatchObject({
+      status: 'ready',
+      documentId: accepted.documentId,
+      revision: accepted.revision,
+      snapshot: accepted.snapshot,
+      canUndo: false,
+      canRedo: false
+    })
+    controller.dispose()
+  })
+
   it('invalidates old document replies and finishes both promises during rapid loads', async () => {
     const transport = new ControlledTransport()
     const runtime = createRuntimeWithTransport({}, () => transport)

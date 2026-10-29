@@ -22,5 +22,7 @@ M4 用新版快照和校验替换历史格式模型、实现事务与 Worker；M
 
 ## 参考
 
+2026-10-30落实说明：上述internal/legacy是M3当时的迁移策略。M4/M5已删除失去消费者的旧formats/viewer/Worker、旧数据及兼容入口；M6进一步清理临时M2比较运行路径，历史源码可从固定Git提交重现，不在当前树保留第二套正式实现。
+
 - [领域规范](../domain.md)、[架构](../architecture.md)、[M3 计划](../plans/m3-scientific-core.md)。
 - [periodictable 固定半径表](https://github.com/pkienzle/periodictable/blob/v2.0.2/periodictable/covalent_radius.py)、[spglib 2.6.0](https://github.com/spglib/spglib/tree/v2.6.0)。

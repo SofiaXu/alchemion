@@ -28,4 +28,6 @@ demo和历史工程宿主只迁移到新公开API以保持可运行；完整demo
 
 ## 验证影响
 
+2026-10-30 M6补充：正式Viewer新增cancel/recompute，独立controller新增cancel，状态增加cancelled。主动取消包括未接受队列、Worker/辅助任务、完整帧与显示等待者；所有未完成调用以AbortError终结，保留已经接受的源/历史/documentId/revision，清除失效画面和交互。空闲、重复、销毁后取消幂等；重算不产生事务或修订，完整帧后ready，空文档沿用EDIT_DOCUMENT_EMPTY。取消后context恢复不自动重算。变更仅需controller定向文件与新增@m6-runtime三浏览器集成，科学算法和格式未改变。
+
 新增半径、对称显示开关、门面及真实三维集成需要定向测试；未改变的格式、测量数学和底层Worker协议沿用先前证据。普通测试4进程、无重试；硬件基准独占串行。CI按实际变化选择集合，已通过项不因文档归档重复运行。

@@ -336,6 +336,54 @@ test('@workspace M5 real-worker races, pre/post-commit failures and GPU-stage di
   expect(result.status).toBe('disposed')
   released(result.resources)
 })
+
+test('@workspace @m6-runtime cancellation retains accepted history through queue, Worker, BZ and GPU stages', async ({
+  page
+}, info) => {
+  const result = await page.evaluate(() => window.m5.cancellation())
+  expect(result.idle).toEqual({ status: 'ready', unchanged: true })
+  expect(result.queue).toEqual({
+    results: ['AbortError', 'AbortError'],
+    status: 'cancelled',
+    unchanged: true
+  })
+  expect(result.derive.results).toEqual(['AbortError', 'AbortError'])
+  expect(result.derive.accepted).toMatchObject({
+    revision: 1,
+    canUndo: true,
+    canRedo: false,
+    element: 'N'
+  })
+  for (const stage of [result.derive, result.auxiliary, result.gpu]) {
+    expect(stage.status).toBe('cancelled')
+    expect(stage.retained).toEqual(result.derive.accepted)
+    expect(stage.states).not.toContain('ready')
+  }
+  expect(result.retry).toEqual({ status: 'ready', retained: result.derive.accepted })
+  expect(result.auxiliary).toMatchObject({ result: 'AbortError', insets: 0 })
+  expect(result.gpu).toMatchObject({
+    results: ['AbortError', 'AbortError'],
+    noCompletedFrame: true
+  })
+  expect(result.failed.status).toBe('error')
+  expect(result.failed.result).not.toBe('resolved')
+  expect(result.failed.retained).toEqual(result.derive.accepted)
+  expect(result.recovered).toMatchObject({ status: 'ready', retained: result.derive.accepted })
+  expect(result.recovered.render?.detail).toMatchObject({ atoms: 2, bonds: 1 })
+  expect(result.independent).toEqual({
+    status: 'ready',
+    unchanged: true,
+    title: 'cancellation-independent'
+  })
+  expect(result.undo).toBe('C')
+  expect(result.redo).toBe('N')
+  expect(result.empty).toEqual({ result: 'ComputationError', status: 'empty' })
+  released(result.resources)
+  await info.attach('m6-runtime-cancellation', {
+    body: JSON.stringify(result),
+    contentType: 'application/json'
+  })
+})
 test('@workspace M5 two viewers isolate source, camera, resize and disposal', async ({ page }) => {
   const result = await page.evaluate(() => window.m5.multiple())
   expect(result).toMatchObject({

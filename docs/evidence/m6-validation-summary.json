@@ -1,0 +1,397 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Hong_Kong",
+  "workdir": "D:/source/alchemion",
+  "node": "v24.22.1",
+  "pnpm": "9.7.0",
+  "unit": {
+    "command": "pnpm exec vitest run packages/alchemion/src/viewer/runtime/__tests__/controller.test.ts --maxWorkers=4",
+    "exitCode": 0,
+    "files": 1,
+    "passed": 12
+  },
+  "runtime": {
+    "file": "m6-runtime-browser.json",
+    "stats": {
+      "startTime": "2026-10-29T16:58:39.823Z",
+      "duration": 5643.858,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@workspace @m6-runtime cancellation retains accepted history through queue, Worker, BZ and GPU stages",
+        "project": "chromium",
+        "status": "passed"
+      },
+      {
+        "title": "@workspace @m6-runtime cancellation retains accepted history through queue, Worker, BZ and GPU stages",
+        "project": "firefox",
+        "status": "passed"
+      },
+      {
+        "title": "@workspace @m6-runtime cancellation retains accepted history through queue, Worker, BZ and GPU stages",
+        "project": "webkit",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "demoFirst": {
+    "file": "m6-browser-first.json",
+    "stats": {
+      "startTime": "2026-10-29T17:04:06.564Z",
+      "duration": 26515.02,
+      "expected": 9,
+      "skipped": 0,
+      "unexpected": 3,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "chromium",
+        "status": "failed"
+      },
+      {
+        "title": "@demo CIF block, periodic displays, derived edit, cell, finite MOL and all crystal exports",
+        "project": "chromium",
+        "status": "passed"
+      },
+      {
+        "title": "@demo invalid imports, committed cancellation, late results and recoverable worker failure",
+        "project": "chromium",
+        "status": "passed"
+      },
+      {
+        "title": "@demo offline bundled samples, local notices and understandable WebGL2 unavailability",
+        "project": "chromium",
+        "status": "passed"
+      },
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "firefox",
+        "status": "failed"
+      },
+      {
+        "title": "@demo CIF block, periodic displays, derived edit, cell, finite MOL and all crystal exports",
+        "project": "firefox",
+        "status": "passed"
+      },
+      {
+        "title": "@demo invalid imports, committed cancellation, late results and recoverable worker failure",
+        "project": "firefox",
+        "status": "passed"
+      },
+      {
+        "title": "@demo offline bundled samples, local notices and understandable WebGL2 unavailability",
+        "project": "firefox",
+        "status": "passed"
+      },
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "webkit",
+        "status": "failed"
+      },
+      {
+        "title": "@demo CIF block, periodic displays, derived edit, cell, finite MOL and all crystal exports",
+        "project": "webkit",
+        "status": "passed"
+      },
+      {
+        "title": "@demo invalid imports, committed cancellation, late results and recoverable worker failure",
+        "project": "webkit",
+        "status": "passed"
+      },
+      {
+        "title": "@demo offline bundled samples, local notices and understandable WebGL2 unavailability",
+        "project": "webkit",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "demoMolecularRetest": {
+    "file": "m6-molecular-retest.json",
+    "stats": {
+      "startTime": "2026-10-29T17:09:39.161Z",
+      "duration": 11278.452,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "chromium",
+        "status": "passed"
+      },
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "firefox",
+        "status": "passed"
+      },
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "webkit",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "hardLimitRetest": {
+    "file": "m6-hard-limit-retest.json",
+    "stats": {
+      "startTime": "2026-10-29T17:13:57.099Z",
+      "duration": 5476.452,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip",
+        "project": "chromium",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "packageFirst": {
+    "file": "m6-package-first.json",
+    "stats": {
+      "startTime": "2026-10-29T17:06:24.854Z",
+      "duration": 5958.5650000000005,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@package M6 isolated public entries, nested Worker, two viewers and twenty lifecycles",
+        "project": "chromium",
+        "status": "passed"
+      },
+      {
+        "title": "@package M6 isolated public entries, nested Worker, two viewers and twenty lifecycles",
+        "project": "firefox",
+        "status": "failed"
+      },
+      {
+        "title": "@package M6 isolated public entries, nested Worker, two viewers and twenty lifecycles",
+        "project": "webkit",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "packageFirefoxRetest": {
+    "file": "m6-package-firefox-retest.json",
+    "stats": {
+      "startTime": "2026-10-29T17:12:35.816Z",
+      "duration": 5796.264,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@package M6 isolated public entries, nested Worker, two viewers and twenty lifecycles",
+        "project": "firefox",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "dev": {
+    "file": "m6-dev.json",
+    "stats": {
+      "startTime": "2026-10-29T17:07:17.168Z",
+      "duration": 2592.093,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "@dev real development Worker, form edit and public MOL export",
+        "project": "chromium",
+        "status": "passed"
+      }
+    ],
+    "workers": 4,
+    "retries": [
+      {
+        "name": "chromium",
+        "retries": 0
+      },
+      {
+        "name": "firefox",
+        "retries": 0
+      },
+      {
+        "name": "webkit",
+        "retries": 0
+      }
+    ]
+  },
+  "archiveComparison": {
+    "archives": [
+      {
+        "path": "C:/Users/aoba/AppData/Local/Temp/alchemion-m6-consumer-bj1irj/alchemion-0.1.0.tgz",
+        "sha256": "f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc"
+      },
+      {
+        "path": "C:/Users/aoba/AppData/Local/Temp/alchemion-m6-consumer-iTC1WL/alchemion-0.1.0.tgz",
+        "sha256": "f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc"
+      },
+      {
+        "path": "C:/Users/aoba/AppData/Local/Temp/alchemion-m6-consumer-KuN9Qh/alchemion-0.1.0.tgz",
+        "sha256": "f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc"
+      }
+    ],
+    "identical": true
+  },
+  "verification": {
+    "installFrozen": 0,
+    "sdkBuild": 0,
+    "demoBuild": 0,
+    "rootTypes": 0,
+    "changedLint": 0,
+    "changedFormatCheck": 0,
+    "docsCheck": {
+      "exitCode": 0,
+      "count": 32
+    }
+  },
+  "hardware": {
+    "status": "passed",
+    "runs": 6,
+    "summary": "m6-performance-summary.json"
+  },
+  "ubuntu": {
+    "status": "passed",
+    "headRevision": "5b5a7fa11bef348e1d85001c84caee5bc5dba360",
+    "runId": 40919970124,
+    "unit": 12,
+    "viewerRuntime": 3,
+    "demo": 12,
+    "dev": 1,
+    "package": 3
+  },
+  "applicationRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+  "lossPreflightRetest": {
+    "exitCode": 0,
+    "command": "pnpm test:browser -- --phase=m6 --prepared --grep='CIF block'",
+    "stats": {
+      "startTime": "2026-10-29T17:53:08.640Z",
+      "duration": 12561.569,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "workers": 4,
+    "retries": 0,
+    "reason": "The MOL early-loss gate hid later scientific losses before acceptance; only the affected existing crystal scenario was rerun."
+  },
+  "finalApplicationCI": {
+    "sourceRevision": "af1072c29d779ff62e604fa17ea37c14b6c3da4d",
+    "runId": 40925089027,
+    "conclusion": "success",
+    "demo": 12,
+    "dev": 1,
+    "sdkViewerPackageReused": true
+  }
+}

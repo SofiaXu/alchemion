@@ -48,7 +48,7 @@ export interface ComputationRuntime {
   dispose(): void
 }
 export interface EditorState extends DocumentState {
-  readonly status: 'empty' | 'computing' | 'ready' | 'error' | 'disposed'
+  readonly status: 'empty' | 'computing' | 'ready' | 'cancelled' | 'error' | 'disposed'
   readonly derived?: DerivedStructure
   readonly diagnostics: readonly Diagnostic[]
 }
@@ -67,6 +67,7 @@ export interface EditorController {
   execute(command: EditCommand | readonly EditCommand[]): Promise<void>
   undo(): Promise<void>
   redo(): Promise<void>
+  cancel(): void
   recompute(options?: DerivationOptions): Promise<void>
   compute(
     task: Exclude<ComputationTask, { readonly kind: 'derive' }>,

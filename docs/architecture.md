@@ -1,6 +1,6 @@
 # 目标架构与接口边界
 
-状态：2026-10-29。M1建立SDK/demo workspace，M3科学模型和M4格式/事务/独立运行时已通过Windows及Ubuntu定向验证；证据见当前交接。正式Three Viewer由M5集成；实际验收状态见当前交接。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
+状态：架构与公开接口规范，更新于2026-10-30。实际阶段进展及Windows/Ubuntu验收统一见[当前交接](handoff.md)。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
@@ -59,11 +59,13 @@ M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29
 
 M5提供`createViewer(container:HTMLElement, options?:ViewerCreateOptions):Viewer`。完整声明以[viewer/types.ts](../packages/alchemion/src/viewer/types.ts)为准，决策见[ADR0005](decisions/0005-formal-viewer.md)。保留M4独立controller/runtime，不再导出历史AlchemionEditor或引擎对象。
 
-`Viewer`提供异步`load/setOptions/execute/undo/redo`，同步`getSnapshot/getState/getCamera/setCamera/rotate/zoom/center/subscribe/clear/dispose`。execute接受单命令或数组，一批对应一个源事务。相机姿态为本库有限数值（位置、target、up、度制FOV、near/far）；zoom正因子乘相机距离。首次load默认适配结构，有显式相机时保留其姿态，编辑保留相机。
+`Viewer`提供异步`load/setOptions/execute/undo/redo/recompute`，同步`getSnapshot/getState/getCamera/setCamera/rotate/zoom/center/subscribe/cancel/clear/dispose`。execute接受单命令或数组，一批对应一个源事务。相机姿态为本库有限数值（位置、target、up、度制FOV、near/far）；zoom正因子乘相机距离。首次load默认适配结构，有显式相机时保留其姿态，编辑保留相机。
 
 `ViewerOptions`覆盖renderMode、元素样式、atomScale、球/键/缺失显示半径、晶格/倒易/BZ开关、showSymmetryMates、neighborCells、cutoff、inferBonds、interactionMode及showPerformance。默认空间填充、展开对称、仅中心晶胞、无cutoff、推断成键、交互none；辅助和性能显示关闭。元素样式输入#RRGGBB及Å半径。historyLimit/mode/timeoutMs只在创建时配置。
 
-`ViewerState`包含empty/computing/ready/error/disposed、documentId/revision、canUndo/canRedo、options、diagnostics及可选selection/measurement；快照及状态均不可变。subscribe立即返回当前state事件，返回幂等退订函数。
+`ViewerState`包含empty/computing/ready/error/cancelled/disposed、documentId/revision、canUndo/canRedo、options、diagnostics及可选selection/measurement；快照及状态均不可变。subscribe立即返回当前state事件，返回幂等退订函数。
+
+M6的`cancel()`失效未接受的命令、计算/辅助任务、显示提交和等待者，以AbortError结束所有未完成调用，保留已经接受的源、documentId/revision与历史。失效画面及交互清空，状态为cancelled；空闲、重复和销毁后取消幂等。`recompute()`按当前源与选项恢复完整帧，不创建事务或新修订；空文档拒绝EDIT_DOCUMENT_EMPTY。取消不是撤销已接受事务，context恢复也不越过显式取消状态。独立EditorController具有同一cancel契约。
 
 事件区分state、selection、point、measurement、history和error。除state自身携带状态外，其余事件明确携带当前documentId/revision。原子selection包含完整AtomInstance；键selection包含DerivedBond及两端实例，能区分显式/推断来源。point返回Å Cartesian及周期时的fractional，surface/view-plane说明交点来源；测量含angstrom/degree单位和顺序实例，退化诊断不产生NaN。模式切换/load/clear清临时交互；结构修订保留仍有效的实例选择并清空测量。
 

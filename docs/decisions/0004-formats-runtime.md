@@ -13,6 +13,7 @@ M3科学模型已经合并；M4一次替换正式格式接口，并提供可独�
 - core的`createDocumentStore`唯一拥有源快照、文档身份、修订和历史。一次批量操作一个事务，失败/空操作不入历史；默认100事务；undo/redo增加修订，load换文档并清历史。新原子不能重用该文档曾发出的ID。
 - viewer的`createComputationRuntime`显式创建，默认独占一个module Worker；sync与worker使用同一任务分派，不复制科学算法。请求/响应携带requestId/documentId/revision/category；同类派生latest-wins，超时默认30秒。取消/取代/clear/dispose必须立即终结Promise，静默Worker退出通过超时有界终结；故障后下一明确请求可重建，不自动无限重试。
 - `createEditorController`组合store与runtime，统一管理empty/computing/ready/error/disposed。源事务队列不等待昂贵派生，否则快速load/连续编辑会被旧计算阻塞。有效源提交后派生或交付失败保留新源并置error；提交前校验失败保留旧文档。
+- 2026-10-30 M6落实补充：controller新增cancel和cancelled状态，保留已接受源/历史/修订并终结未接受队列及未完成任务；已有recompute恢复同一源，不创建事务。空闲/重复/销毁后取消幂等，完整viewer提交契约见[ADR0005](0005-formal-viewer.md)。上项状态列表记录M4最初决定。
 - controller的异步`commit`回调是M5完整渲染帧的提交边界；辅助倒易/BZ任务共享相同runtime，不新增第二个Worker。M4默认交付回调立即完成，并以可控回调验证失败和迟完成；M5不另建状态机。
 
 ## 后果与验证

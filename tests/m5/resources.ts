@@ -14,6 +14,8 @@ export function observeResources() {
     owner: 'sdk' | 'playwright' | 'user-script'
   }>()
   let delayedPosts = 0
+  let delayedCategory: string | undefined
+  const delayedInFlight = new Set<string>()
   let failedPosts = 0
   let gpuHeld = false
   const captures: {
@@ -85,15 +87,26 @@ export function observeResources() {
         terminate()
       }
       const post = worker.postMessage.bind(worker)
-      worker.postMessage = ((message: { kind?: string }, options?: StructuredSerializeOptions) => {
+      worker.postMessage = ((
+        message: { kind?: string; category?: string },
+        options?: StructuredSerializeOptions
+      ) => {
         if (message?.kind === 'compute' && failedPosts > 0) {
           failedPosts--
           throw new Error('M5 external transport failure')
         }
-        if (message?.kind === 'compute' && delayedPosts > 0) {
+        if (
+          message?.kind === 'compute' &&
+          delayedPosts > 0 &&
+          (delayedCategory === undefined || delayedCategory === message.category)
+        ) {
           const delay = delayedPosts
           delayedPosts = 0
+          delayedCategory = undefined
+          const category = message.category ?? ''
+          delayedInFlight.add(category)
           setTimeout(() => {
+            delayedInFlight.delete(category)
             if (workers.has(worker)) post(message, options)
           }, delay)
         } else post(message, options)
@@ -221,8 +234,12 @@ export function observeResources() {
         canvases: document.querySelectorAll('canvas').length
       }
     },
-    delayNextPost(ms: number) {
+    delayNextPost(ms: number, category?: string) {
       delayedPosts = ms
+      delayedCategory = category
+    },
+    hasDelayedPost(category: string) {
+      return delayedInFlight.has(category)
     },
     failNextPost() {
       failedPosts++

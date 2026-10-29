@@ -102,6 +102,10 @@ export interface Viewer {
   execute(command: EditCommand | readonly EditCommand[]): Promise<void>
   undo(): Promise<void>
   redo(): Promise<void>
+  /** Cancel pending work while retaining the accepted source and transaction history. */
+  cancel(): void
+  /** Rebuild the current source without adding a transaction or clearing history. */
+  recompute(): Promise<void>
   getCamera(): CameraPose
   setCamera(pose: CameraPose): void
   rotate(azimuthDegrees: number, elevationDegrees: number): void

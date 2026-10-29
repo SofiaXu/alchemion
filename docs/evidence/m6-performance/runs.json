@@ -1,0 +1,69 @@
+{
+  "sourceRevision": "5b5a7fa11bef348e1d85001c84caee5bc5dba360",
+  "sourceHash": "627e729fa3af281e40c827e18143798427bef787f3047c32e787cffb236f8ca9",
+  "tarballSha256": "f221e5fa5b30737b18ef907746815520b105f4caad16a82ead3a3099f6a87bbc",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26300",
+  "cpu": "Intel(R) Core(TM) Ultra X7 358H",
+  "logicalProcessors": 16,
+  "totalMemory": 33840197632,
+  "hardware": {
+    "gpu": [
+      {
+        "Name": "GameViewer Virtual Display Adapter",
+        "DriverVersion": "15.6.5.199"
+      },
+      {
+        "Name": "Intel(R) Arc(TM) B390 GPU",
+        "DriverVersion": "32.0.101.8356"
+      }
+    ],
+    "battery": [
+      {
+        "BatteryStatus": 2,
+        "EstimatedChargeRemaining": 100
+      }
+    ],
+    "power": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)"
+  },
+  "parallelism": 1,
+  "purpose": "T-PERF-01 M6 formal viewer via isolated installed tarball",
+  "fixture": {
+    "sourceCount": 10000,
+    "displayCount": 10000,
+    "bonds": 20000,
+    "expansion": "identity only; legal molecular source preserves M2 positions and topology without its synthetic 500-source mapping"
+  },
+  "runs": [
+    {
+      "id": "space-filling-r1",
+      "status": "measured",
+      "passed": true
+    },
+    {
+      "id": "ball-and-stick-r1",
+      "status": "measured",
+      "passed": true
+    },
+    {
+      "id": "space-filling-r2",
+      "status": "measured",
+      "passed": true
+    },
+    {
+      "id": "ball-and-stick-r2",
+      "status": "measured",
+      "passed": true
+    },
+    {
+      "id": "space-filling-r3",
+      "status": "measured",
+      "passed": true
+    },
+    {
+      "id": "ball-and-stick-r3",
+      "status": "measured",
+      "passed": true
+    }
+  ]
+}

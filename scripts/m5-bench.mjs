@@ -9,7 +9,9 @@ import { gzipSync } from 'node:zlib'
 import os from 'node:os'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const output = join(root, '.tmp/bench/m5')
+// One collector serves the retained M5 reproduction and final M6 acceptance.
+const phase = process.argv.includes('--phase=m5') ? 'm5' : 'm6'
+const output = join(root, `.tmp/bench/${phase}`)
 const args = process.argv.slice(2)
 const option = (name, fallback) =>
   args.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback
@@ -251,7 +253,7 @@ async function sample(url, mode, round, common) {
   }
   console.log(
     JSON.stringify({
-      event: 'm5-run',
+      event: `${phase}-run`,
       id,
       status: result.status,
       firstFrameMs: result.load?.render?.duration,
@@ -267,7 +269,7 @@ async function sample(url, mode, round, common) {
 }
 export async function measure(url, packaged) {
   await mkdir(output, { recursive: true })
-  const lockPath = join(root, '.tmp/bench/m5.lock'),
+  const lockPath = join(root, '.tmp/bench/formal-viewer.lock'),
     lock = await open(lockPath, 'wx')
   await lock.writeFile(String(process.pid))
   try {
@@ -287,7 +289,7 @@ export async function measure(url, packaged) {
       totalMemory: os.totalmem(),
       hardware: hardware(),
       parallelism: 1,
-      purpose: 'T-PERF-01 M5 formal viewer via isolated installed tarball',
+      purpose: `T-PERF-01 ${phase.toUpperCase()} formal viewer via isolated installed tarball`,
       fixture: {
         sourceCount: 10000,
         displayCount: 10000,
@@ -340,7 +342,7 @@ export async function measure(url, packaged) {
       ) + '\n'
     )
     if (results.some((result) => result.status !== 'measured' || !result.passed))
-      throw new Error('M5 performance gates failed; inspect saved evidence')
+      throw new Error(`${phase.toUpperCase()} performance gates failed; inspect saved evidence`)
   } finally {
     await lock.close()
     await unlink(lockPath)

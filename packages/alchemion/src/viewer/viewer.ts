@@ -76,6 +76,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   let frameSequence = 0
   let activeFrame: AbortController | undefined
   let viewBusy = false
+  let viewCancelled = false
   let viewFailure: readonly Diagnostic[] | undefined
   let displayDiagnostics: readonly Diagnostic[] = []
   let selection: ViewerSelection | undefined
@@ -86,6 +87,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   let shown: typeof prepared
   let state: EditorState
   let sourceCalls = 0
+  let sourceGeneration = 0
   let centerDocument: string | undefined
   let auxiliary: { key: string; reciprocal?: ReciprocalLattice; zone?: BrillouinZone } | undefined
   let controller: ReturnType<typeof createControllerWithRuntime>
@@ -93,7 +95,15 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   const getState = (): ViewerState =>
     immutable({
       ...context(),
-      status: disposed ? 'disposed' : viewFailure ? 'error' : viewBusy ? 'computing' : state.status,
+      status: disposed
+        ? 'disposed'
+        : viewCancelled
+          ? 'cancelled'
+          : viewFailure
+            ? 'error'
+            : viewBusy
+              ? 'computing'
+              : state.status,
       canUndo: state.canUndo,
       canRedo: state.canRedo,
       diagnostics: [...state.diagnostics, ...displayDiagnostics, ...(viewFailure ?? [])],
@@ -143,6 +153,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     const current = getState()
     if (current.status === 'ready') return Promise.resolve()
     if (current.status === 'disposed') return Promise.reject(abortError())
+    if (current.status === 'cancelled') return Promise.reject(abortError())
     if (current.status === 'error')
       return Promise.reject(
         new ComputationError(
@@ -239,6 +250,10 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
         viewFailure = undefined
         auxiliary = undefined
         prepared = undefined
+        if (viewCancelled || state.status === 'cancelled') {
+          publish()
+          return
+        }
         if (controller.getState().snapshot)
           void controller.recompute().catch((error) => report(error))
         else publish()
@@ -261,6 +276,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     const sequence = ++frameSequence
     activeFrame?.abort()
     viewBusy = true
+    viewCancelled = false
     viewFailure = undefined
     publish()
     try {
@@ -376,6 +392,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     state = next
     if (next.status === 'computing') {
       invalidateFrame()
+      viewCancelled = false
       prepared = undefined
       viewFailure = undefined
       displayDiagnostics = []
@@ -492,14 +509,17 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   }
   async function sourceOperation(action: () => Promise<void>): Promise<void> {
     open()
+    const generation = sourceGeneration
     sourceCalls++
     try {
       await action()
+      if (generation !== sourceGeneration) throw abortError()
     } catch (error) {
+      if (generation !== sourceGeneration) throw abortError()
       report(error)
       throw error
     } finally {
-      sourceCalls--
+      if (generation === sourceGeneration) sourceCalls--
     }
   }
   return {
@@ -519,7 +539,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
         publish()
         return
       }
-      if (derivationChanged(previous, next)) await sourceOperation(() => controller.recompute())
+      if (derivationChanged(previous, next) || viewCancelled || state.status === 'cancelled')
+        await sourceOperation(() => controller.recompute())
       else if (state.status === 'computing' || viewBusy) await waitForDisplay()
       else if (prepared) {
         try {
@@ -533,6 +554,29 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     execute: (command) => sourceOperation(() => controller.execute(command)),
     undo: () => sourceOperation(() => controller.undo()),
     redo: () => sourceOperation(() => controller.redo()),
+    cancel() {
+      if (
+        disposed ||
+        (viewCancelled && sourceCalls === 0) ||
+        (state.status !== 'computing' && !viewBusy && sourceCalls === 0 && waiters.size === 0)
+      )
+        return
+      viewCancelled = true
+      sourceGeneration++
+      sourceCalls = 0
+      invalidateFrame()
+      rejectWaiters(abortError())
+      backend.clear()
+      viewFailure = undefined
+      displayDiagnostics = []
+      prepared = undefined
+      shown = undefined
+      auxiliary = undefined
+      resetInteraction(true)
+      controller.cancel()
+      publish()
+    },
+    recompute: () => sourceOperation(() => controller.recompute()),
     getCamera: () => backend.getCamera(),
     setCamera(pose) {
       open()
@@ -565,6 +609,9 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     clear() {
       if (disposed) return
       invalidateFrame()
+      viewCancelled = false
+      sourceGeneration++
+      sourceCalls = 0
       rejectWaiters(abortError())
       controller.clear()
       backend.clear()
@@ -579,6 +626,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     dispose() {
       if (disposed) return
       disposed = true
+      sourceGeneration++
+      sourceCalls = 0
       invalidateFrame()
       rejectWaiters(abortError())
       observer.disconnect()
