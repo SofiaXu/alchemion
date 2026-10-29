@@ -1,0 +1,78 @@
+{
+  "source": ".tmp/m5-browser-first.json",
+  "reason": "Reuse successful first-run attachments; no browser test repeated for screenshots",
+  "screenshots": [
+    {
+      "name": "space-filling",
+      "project": "chromium",
+      "title": "@workspace M5 modes, styles, input isolation and numerical camera",
+      "path": "docs/evidence/m5/chromium-space-filling.png"
+    },
+    {
+      "name": "triclinic-helpers",
+      "project": "chromium",
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "path": "docs/evidence/m5/chromium-triclinic-helpers.png"
+    },
+    {
+      "name": "orthogonal-helpers",
+      "project": "chromium",
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "path": "docs/evidence/m5/chromium-orthogonal-helpers.png"
+    },
+    {
+      "name": "torsion",
+      "project": "chromium",
+      "title": "@workspace M5 ordered distance, angle, signed torsion and degenerate geometry",
+      "path": "docs/evidence/m5/chromium-torsion.png"
+    },
+    {
+      "name": "space-filling",
+      "project": "firefox",
+      "title": "@workspace M5 modes, styles, input isolation and numerical camera",
+      "path": "docs/evidence/m5/firefox-space-filling.png"
+    },
+    {
+      "name": "triclinic-helpers",
+      "project": "firefox",
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "path": "docs/evidence/m5/firefox-triclinic-helpers.png"
+    },
+    {
+      "name": "orthogonal-helpers",
+      "project": "firefox",
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "path": "docs/evidence/m5/firefox-orthogonal-helpers.png"
+    },
+    {
+      "name": "torsion",
+      "project": "firefox",
+      "title": "@workspace M5 ordered distance, angle, signed torsion and degenerate geometry",
+      "path": "docs/evidence/m5/firefox-torsion.png"
+    },
+    {
+      "name": "space-filling",
+      "project": "webkit",
+      "title": "@workspace M5 modes, styles, input isolation and numerical camera",
+      "path": "docs/evidence/m5/webkit-space-filling.png"
+    },
+    {
+      "name": "triclinic-helpers",
+      "project": "webkit",
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "path": "docs/evidence/m5/webkit-triclinic-helpers.png"
+    },
+    {
+      "name": "orthogonal-helpers",
+      "project": "webkit",
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "path": "docs/evidence/m5/webkit-orthogonal-helpers.png"
+    },
+    {
+      "name": "torsion",
+      "project": "webkit",
+      "title": "@workspace M5 ordered distance, angle, signed torsion and degenerate geometry",
+      "path": "docs/evidence/m5/webkit-torsion.png"
+    }
+  ]
+}

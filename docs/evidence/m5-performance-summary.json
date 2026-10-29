@@ -1,0 +1,213 @@
+{
+  "status": "passed",
+  "requiredRuns": 6,
+  "measuredRuns": 6,
+  "exitCode": 0,
+  "command": "pnpm bench -- --phase=m5 --prepared",
+  "sourceRevisionAtStart": "c361469beddb8e82d4b8cb6160386b4e17d7f526",
+  "inputSourceHash": "6e73aedc3bcf2d66a0924e0538e280513983814a78651f186ffe83b752fc2c54",
+  "finalSourceHashVerified": true,
+  "tarballSha256": "47a3fd8adf7100a7383dabf5ab9d4def8c10930b21274ef3a0445169b9b3727b",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26300",
+  "browser": "153.0.8010.12",
+  "hardware": {
+    "gpu": [
+      {
+        "Name": "GameViewer Virtual Display Adapter",
+        "DriverVersion": "15.6.5.199"
+      },
+      {
+        "Name": "Intel(R) Arc(TM) B390 GPU",
+        "DriverVersion": "32.0.101.8356"
+      }
+    ],
+    "battery": [
+      {
+        "BatteryStatus": 2,
+        "EstimatedChargeRemaining": 100
+      }
+    ],
+    "power": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)"
+  },
+  "gpu": {
+    "renderer": "ANGLE (Intel, Intel(R) Arc(TM) B390 GPU (0x0000B080) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (Intel)",
+    "attributes": {
+      "alpha": false,
+      "antialias": true,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "error": 0
+  },
+  "parallelism": 1,
+  "fixture": {
+    "sourceCount": 10000,
+    "displayCount": 10000,
+    "bonds": 20000,
+    "expansion": "identity only; legal molecular source preserves M2 positions and topology without its synthetic 500-source mapping"
+  },
+  "worst": {
+    "firstFrameMs": 91.90000003576279,
+    "medianFps": 59.880239520968516,
+    "frameP95Ms": 16.900000000001455,
+    "pickP95Ms": 10.236700000008568,
+    "updateP95Ms": 32.39999997615814,
+    "loadEndToEndMs": 3734.100000023842,
+    "updateEndToEndP95Ms": 4275.199999988079
+  },
+  "runs": [
+    {
+      "id": "ball-and-stick-r1",
+      "startedAt": "2026-10-29T15:59:35.313Z",
+      "completedAt": "2026-10-29T16:05:23.035Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 85.69999998807907,
+      "loadEndToEndMs": 3734.100000023842,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.884500000043772,
+      "updateP95Ms": 25.600000023841858,
+      "updateEndToEndP95Ms": 1743.6000000238419,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "ball-and-stick-r2",
+      "startedAt": "2026-10-29T16:11:06.944Z",
+      "completedAt": "2026-10-29T16:16:50.765Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 91.90000003576279,
+      "loadEndToEndMs": 3710,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.9954999999608845,
+      "updateP95Ms": 26.19999998807907,
+      "updateEndToEndP95Ms": 1675,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "ball-and-stick-r3",
+      "startedAt": "2026-10-29T16:22:33.519Z",
+      "completedAt": "2026-10-29T16:28:17.478Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 87.90000003576279,
+      "loadEndToEndMs": 3409.800000011921,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.809800000162795,
+      "updateP95Ms": 25.80000001192093,
+      "updateEndToEndP95Ms": 1658.5999999642372,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "space-filling-r1",
+      "startedAt": "2026-10-29T15:49:41.185Z",
+      "completedAt": "2026-10-29T15:59:34.947Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 40.19999998807907,
+      "loadEndToEndMs": 3635.7999999523163,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 10.236700000008568,
+      "updateP95Ms": 32.39999997615814,
+      "updateEndToEndP95Ms": 4275.199999988079,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "space-filling-r2",
+      "startedAt": "2026-10-29T16:05:23.425Z",
+      "completedAt": "2026-10-29T16:11:06.595Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 39.30000001192093,
+      "loadEndToEndMs": 3687.5,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.274600000004284,
+      "updateP95Ms": 18.599999964237213,
+      "updateEndToEndP95Ms": 1680.8999999761581,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    },
+    {
+      "id": "space-filling-r3",
+      "startedAt": "2026-10-29T16:16:51.145Z",
+      "completedAt": "2026-10-29T16:22:33.115Z",
+      "status": "measured",
+      "passed": true,
+      "firstFrameMs": 44,
+      "loadEndToEndMs": 3689.199999988079,
+      "medianFps": 59.880239520968516,
+      "frameP95Ms": 16.900000000001455,
+      "pickP95Ms": 7.54189999983646,
+      "updateP95Ms": 18.899999976158142,
+      "updateEndToEndP95Ms": 1651.1000000238419,
+      "gpuUpdateProbe": true,
+      "gates": {
+        "count": true,
+        "firstFrame": true,
+        "interaction": true,
+        "picking": true,
+        "updates": true,
+        "lifecycle": true,
+        "browserErrors": true
+      }
+    }
+  ],
+  "rawArchive": "m5-performance/manifest.json: six lossless .json.gz files with original/gzip SHA256 and byte lengths"
+}

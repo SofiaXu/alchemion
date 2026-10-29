@@ -20,13 +20,13 @@
     "check": "node scripts/tasks.mjs check",
     "check:m1": "node scripts/tasks.mjs check:m1",
     "bench": "node scripts/tasks.mjs bench",
-    "docs:check": "node scripts/docs-check.mjs"
+    "docs:check": "node scripts/docs-check.mjs",
+    "ci:m5": "node scripts/m5-ci.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",
     "@playwright/test": "1.63.0",
     "@types/bootstrap": "5.2.10",
-    "@types/earcut": "2.1.4",
     "@types/node": "24.10.1",
     "@types/three": "0.186.0",
     "alchemion": "workspace:*",

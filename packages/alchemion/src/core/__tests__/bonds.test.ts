@@ -39,6 +39,45 @@ function sourcePairs(snapshot: StructureSnapshot) {
 }
 
 describe('T-DOM-03 deterministic geometric bonds', () => {
+  it('keeps explicit and inferred endpoints valid when symmetry mates are disabled', () => {
+    const e = value(parseSymmetryOperation('x,y,z', 'custom-e'))
+    const i = value(parseSymmetryOperation('-x,-y,-z', 'custom-i'))
+    const snapshot: PeriodicStructureSnapshot = {
+      kind: 'periodic',
+      cell: {
+        basis: [
+          [10, 0, 0],
+          [0, 10, 0],
+          [0, 0, 10]
+        ]
+      },
+      symmetry: { operations: [e, i] },
+      atoms: [
+        { id: 'a', element: 'C', fractional: [0.1, 0.1, 0.1] },
+        { id: 'b', element: 'C', fractional: [0.24, 0.1, 0.1] }
+      ],
+      bonds: [
+        {
+          id: 'ab',
+          order: 'double',
+          endpoints: [endpoint('a', 'custom-e'), endpoint('b', 'custom-e')]
+        }
+      ]
+    }
+    for (const inferBonds of [false, true]) {
+      const result = value(deriveStructure(snapshot, { applySymmetry: false, inferBonds }))
+      expect(result.atoms).toHaveLength(2)
+      expect(result.bonds).toHaveLength(1)
+      expect(result.bonds[0]).toMatchObject({
+        sourceBondId: 'ab',
+        order: 'double',
+        provenance: 'explicit'
+      })
+      expect(
+        result.bonds[0].endpoints.every((id) => result.atoms.some((atom) => atom.id === id))
+      ).toBe(true)
+    }
+  })
   it('rejects dangling instance provenance instead of silently skipping a fabricated source', () => {
     const snapshot = molecule([{ id: 'a', element: 'C', cartesian: [0, 0, 0] }])
     const instance = value(deriveInstances(snapshot))[0]

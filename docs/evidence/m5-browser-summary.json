@@ -1,0 +1,310 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Hong_Kong",
+  "workingDirectory": "D:/source/alchemion",
+  "workers": 4,
+  "retries": 0,
+  "environment": {
+    "node": "24.22.1",
+    "pnpm": "9.7.0",
+    "playwright": "1.63.0",
+    "browsers": {
+      "chromium": "153.0.8010.12",
+      "firefox": "155.0",
+      "webkit": "26.6"
+    },
+    "webgl2": "A real WebGL2 context rendered successfully in all three browsers, including WEBGL_lose_context restoration and WebGL handle tracking. This functional result does not establish hardware GPU performance for each browser. WebKit is Playwright WebKit, not a Safari device claim."
+  },
+  "firstRun": {
+    "command": "TEST_WORKERS=4 pnpm test:browser -- --phase=m5 --prepared",
+    "source": ".tmp/m5-browser-first.json",
+    "sha256": "53d3f2a42e0adb0c79a4ade57769af80c26bd680511c0924b7c6456286a9cf0e",
+    "startedAt": "2026-10-29T15:37:57.842Z",
+    "durationMs": 21613.834,
+    "exitCode": 1,
+    "passed": 15,
+    "failed": 9,
+    "skipped": 0
+  },
+  "recheck": {
+    "command": "TEST_WORKERS=4 pnpm test:browser -- --phase=m5 --prepared --grep='real-worker races|two viewers|unavailable WebGL'",
+    "startedAt": "2026-10-29T15:45:35.018Z",
+    "durationMs": 15461.735,
+    "exitCode": 0,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "evidence": "Actual observed Playwright JSON statistics and CLI completion: 9 passed (15.5s). The original .tmp/m5-browser.json was subsequently overwritten by the package reporter before archival; its per-round attachments are unavailable. This summary preserves the observed result and asserted conditions, and does not recreate the missing raw report or rerun tests to replace it."
+  },
+  "reasons": {
+    "resource": "First-run resource checks reported a fixed 14 listeners. A single minimal create/load/dispose diagnostic per browser recorded every registration stack: 13 Playwright global/interceptor listeners and one externally injected AdGuard listener. Classification now follows concrete registration provenance; no constant is subtracted and every SDK listener must reach zero.",
+    "unavailable": "The renderer error exposed code WEBGL2_UNAVAILABLE separately from its message. Error messages now include their diagnostic code; the original message assertion remained strict.",
+    "reviewCounterexample": "The same affected asynchronous case gained a concrete visual-failure counterexample after review found a transient false-ready boundary: atomScale=Number.MAX_VALUE rejects while retaining the source, publishes no ready between computing and error, and atomScale=1 recovers. This is the sole scope expansion during the targeted recheck."
+  },
+  "finalUniqueCases": 24,
+  "carryForwardPassedCases": 15,
+  "recheckedCases": 9,
+  "cases": [
+    {
+      "title": "@workspace M5 modes, styles, input isolation and numerical camera",
+      "browser": "chromium",
+      "firstStatus": "passed",
+      "firstDurationMs": 3272,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "browser": "chromium",
+      "firstStatus": "passed",
+      "firstDurationMs": 3680,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 atom and bond identities, auxiliary exclusion and point coordinates",
+      "browser": "chromium",
+      "firstStatus": "passed",
+      "firstDurationMs": 3217,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 ordered distance, angle, signed torsion and degenerate geometry",
+      "browser": "chromium",
+      "firstStatus": "passed",
+      "firstDurationMs": 3475,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 derived-instance edits, selection retention and transaction history",
+      "browser": "chromium",
+      "firstStatus": "passed",
+      "firstDurationMs": 2207,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 real-worker races, pre/post-commit failures and GPU-stage disposal",
+      "browser": "chromium",
+      "firstStatus": "failed",
+      "firstDurationMs": 2343,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 two viewers isolate source, camera, resize and disposal",
+      "browser": "chromium",
+      "firstStatus": "failed",
+      "firstDurationMs": 1844,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 unavailable WebGL, context recovery and twenty measured lifecycles",
+      "browser": "chromium",
+      "firstStatus": "failed",
+      "firstDurationMs": 1266,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 modes, styles, input isolation and numerical camera",
+      "browser": "firefox",
+      "firstStatus": "passed",
+      "firstDurationMs": 4157,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "browser": "firefox",
+      "firstStatus": "passed",
+      "firstDurationMs": 5433,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 atom and bond identities, auxiliary exclusion and point coordinates",
+      "browser": "firefox",
+      "firstStatus": "passed",
+      "firstDurationMs": 3920,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 ordered distance, angle, signed torsion and degenerate geometry",
+      "browser": "firefox",
+      "firstStatus": "passed",
+      "firstDurationMs": 4520,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 derived-instance edits, selection retention and transaction history",
+      "browser": "firefox",
+      "firstStatus": "passed",
+      "firstDurationMs": 1839,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 real-worker races, pre/post-commit failures and GPU-stage disposal",
+      "browser": "firefox",
+      "firstStatus": "failed",
+      "firstDurationMs": 2222,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 two viewers isolate source, camera, resize and disposal",
+      "browser": "firefox",
+      "firstStatus": "failed",
+      "firstDurationMs": 2351,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 unavailable WebGL, context recovery and twenty measured lifecycles",
+      "browser": "firefox",
+      "firstStatus": "failed",
+      "firstDurationMs": 1042,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 modes, styles, input isolation and numerical camera",
+      "browser": "webkit",
+      "firstStatus": "passed",
+      "firstDurationMs": 3344,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 crystal helpers, symmetry, neighbors, cutoff and inferred bonds",
+      "browser": "webkit",
+      "firstStatus": "passed",
+      "firstDurationMs": 4041,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 atom and bond identities, auxiliary exclusion and point coordinates",
+      "browser": "webkit",
+      "firstStatus": "passed",
+      "firstDurationMs": 2349,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 ordered distance, angle, signed torsion and degenerate geometry",
+      "browser": "webkit",
+      "firstStatus": "passed",
+      "firstDurationMs": 3609,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 derived-instance edits, selection retention and transaction history",
+      "browser": "webkit",
+      "firstStatus": "passed",
+      "firstDurationMs": 2775,
+      "finalStatus": "passed",
+      "evidence": "first run, unchanged successful path"
+    },
+    {
+      "title": "@workspace M5 real-worker races, pre/post-commit failures and GPU-stage disposal",
+      "browser": "webkit",
+      "firstStatus": "failed",
+      "firstDurationMs": 2446,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 two viewers isolate source, camera, resize and disposal",
+      "browser": "webkit",
+      "firstStatus": "failed",
+      "firstDurationMs": 2130,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    },
+    {
+      "title": "@workspace M5 unavailable WebGL, context recovery and twenty measured lifecycles",
+      "browser": "webkit",
+      "firstStatus": "failed",
+      "firstDurationMs": 1102,
+      "finalStatus": "passed",
+      "evidence": "targeted recheck, observed exit 0 and strict assertions"
+    }
+  ],
+  "lifecycleAssertions": {
+    "basis": "The rechecked public-browser lifecycle case asserts these conditions on each returned round; raw recheck attachments were overwritten as explained above.",
+    "roundsPerBrowser": 20,
+    "browserCount": 3,
+    "eachRound": {
+      "before": {
+        "gpuObjects": ">0",
+        "workers": 1
+      },
+      "after": {
+        "gpuObjects": 0,
+        "workers": 0,
+        "rafs": 0,
+        "observers": 0,
+        "listeners": 0,
+        "canvases": 0
+      }
+    },
+    "contextRecovery": {
+      "unavailable": "Construction rejects with explicit WEBGL2_UNAVAILABLE",
+      "lost": "error diagnostic containing CONTEXT",
+      "restored": "ready with four atom instances and three bonds"
+    },
+    "heap": "Trend only; no exact GC or heap-zero assertion"
+  },
+  "externalListenerEvidence": {
+    "source": "m5-listener-ownership.json",
+    "diagnostic": "One minimal ownership diagnostic per browser, not a repeated functionality suite",
+    "counts": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "rawRemaining": 14,
+        "reviewedSdkRemaining": 0,
+        "playwright": 13,
+        "userScript": 1
+      },
+      {
+        "browser": "firefox",
+        "version": "155.0",
+        "rawRemaining": 14,
+        "reviewedSdkRemaining": 0,
+        "playwright": 13,
+        "userScript": 1
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "rawRemaining": 14,
+        "reviewedSdkRemaining": 0,
+        "playwright": 13,
+        "userScript": 1
+      }
+    ],
+    "note": "The diagnostic preserves its initial classifier counters (Firefox/WebKit stack spelling initially left one/two unclassified), original stacks, and explicit stack review. The subsequent nine strict integration cases passed with the corrected classifier."
+  },
+  "screenshots": {
+    "manifest": "m5/screenshots.json",
+    "count": 12,
+    "basis": "Copied first-run successful PNG attachments without rerunning scenarios"
+  },
+  "notRun": [
+    "Full M3 scientific suite",
+    "Full M4 formats/runtime suite",
+    "M2 comparison suite",
+    "Full check command",
+    "M6 complete demo workflow"
+  ],
+  "performance": "This functional summary is not the separate 10k/20k hardware benchmark report."
+}

@@ -1,204 +1,72 @@
-import { AlchemionEditor } from 'alchemion/viewer'
-import { legacyFixture } from './legacy-fixture'
+import { createViewer, type InteractionMode } from 'alchemion/viewer'
+import { demoStructure } from './demo-structure'
 import './main.scss'
-import Modal from 'bootstrap/js/dist/modal'
 
-const openLatticeSettings = () => {
-  const modalElement = document.querySelector('.modal')
-  if (!modalElement) return
-  const modal = new Modal(modalElement)
-  modal.show()
-}
-
-const openAtomSettings = () => {
-  const modalElement = document.querySelector('.modal')
-  if (!modalElement) return
-  const modal = new Modal(modalElement)
-  modal.show()
-}
-
-;(async () => {
-  const structure = legacyFixture()
-  const editor = new AlchemionEditor('.editor')
-  const status = document.createElement('output')
-  status.id = 'demo-status'
-  document.querySelector('.leftPanel')?.appendChild(status)
-  editor.status.subscribe((value) => {
-    status.textContent = value
-  })
-  window.addEventListener('pagehide', () => editor.dispose(), { once: true })
-  editor.loadStructure(structure)
-  editor.distance.subscribe((distance) => alert(`Distance: ${distance} Å`))
-  editor.angle.subscribe((angle) => alert(`Angle: ${angle} °`))
-  editor.point.subscribe((point) => alert(`Fraction Point: ${point[0]}, ${point[1]}, ${point[2]}`))
-  const toolBox = document.querySelector('.leftPanel')
-  const tools: {
-    title: string
-    direction: 'row' | 'column'
-    actions: {
-      name: string
-      type: 'button' | 'input-text' | 'input-number' | 'text'
-      action?: (e: Event) => void
-      defaultValue?: string
-    }[]
-  }[] = [
-    {
-      title: 'Tool Box',
-      direction: 'row',
-      actions: [
-        { name: '🗑️', type: 'button', action: () => editor.clearStructures() },
-        { name: '🆕', type: 'button', action: () => editor.loadStructure(structure) }
-      ]
-    },
-    {
-      title: 'Camera Control',
-      direction: 'row',
-      actions: [
-        { name: 'Ⓜ️', type: 'button', action: () => editor.centerStructure() },
-        { name: '⬅️', type: 'button', action: () => editor.left() },
-        { name: '➡️', type: 'button', action: () => editor.right() },
-        { name: '⬆️', type: 'button', action: () => editor.up() },
-        { name: '⬇️', type: 'button', action: () => editor.down() },
-        { name: '➕', type: 'button', action: () => editor.zoomIn() },
-        { name: '➖', type: 'button', action: () => editor.zoomOut() }
-      ]
-    },
-    {
-      title: 'Display Settings',
-      direction: 'row',
-      actions: [
-        {
-          name: 'Show Lattice',
-          type: 'button',
-          action: () => (editor.options = { showLattice: !editor.options.showLattice })
-        },
-        {
-          name: 'Show Neighbor Cells',
-          type: 'button',
-          action: () => (editor.options = { showNeighborCells: !editor.options.showNeighborCells })
-        },
-        {
-          name: 'Show Symmetry Mates',
-          type: 'button',
-          action: () => (editor.options = { showSymmetryMates: !editor.options.showSymmetryMates })
-        },
-        {
-          name: 'Show Reciprocal Lattice',
-          type: 'button',
-          action: () =>
-            (editor.options = { showReciprocalLattice: !editor.options.showReciprocalLattice })
-        }
-      ]
-    },
-    {
-      title: 'Click Mode',
-      direction: 'row',
-      actions: [
-        {
-          name: 'Select',
-          type: 'button',
-          action: () => (editor.options = { clickMode: 'select' })
-        },
-        {
-          name: 'Distance',
-          type: 'button',
-          action: () => (editor.options = { clickMode: 'measure-distance' })
-        },
-        {
-          name: 'Angle',
-          type: 'button',
-          action: () => (editor.options = { clickMode: 'measure-angle' })
-        },
-        {
-          name: 'Pick Point',
-          type: 'button',
-          action: () => (editor.options = { clickMode: 'pick-point' })
-        },
-        {
-          name: 'None',
-          type: 'button',
-          action: () => (editor.options = { clickMode: 'none' })
-        }
-      ]
-    },
-    {
-      title: 'Camera Settings',
-      direction: 'column',
-      actions: [
-        {
-          name: 'Rotate Step',
-          type: 'input-number',
-          defaultValue: editor.rotateStep.toString(),
-          action: (e: Event) => (editor.rotateStep = Number((e.target as HTMLInputElement).value))
-        },
-        {
-          name: 'Zoom Step',
-          type: 'input-number',
-          defaultValue: editor.zoomStep.toString(),
-          action: (e: Event) => (editor.zoomStep = Number((e.target as HTMLInputElement).value))
-        }
-      ]
-    },
-    {
-      title: 'Latice Settings',
-      direction: 'column',
-      actions: [
-        { name: 'Open Lattice Settings', type: 'button', action: () => openLatticeSettings() }
-      ]
-    },
-    {
-      title: 'Atom Settings',
-      direction: 'column',
-      actions: [{ name: 'Open Atom Settings', type: 'button', action: () => openAtomSettings() }]
-    }
-  ]
-  for (const tool of tools) {
-    const div = document.createElement('div')
-    const h2 = document.createElement('h2')
-    h2.textContent = tool.title
-    div.classList.add('row')
-    div.appendChild(h2)
-    toolBox?.appendChild(div)
-    const container = document.createElement('div')
-    if (tool.actions.every((x) => x.type === 'button')) {
-      container.classList.add('btn-group')
-      container.role = 'group'
-    }
-    toolBox?.appendChild(container)
-    for (const action of tool.actions) {
-      if (action.type === 'button') {
-        const button = document.createElement('button')
-        button.textContent = action.name
-        button.classList.add('btn')
-        button.classList.add('btn-outline-primary')
-        if (action.action) button.onclick = action.action
-        container.appendChild(button)
-      } else if (action.type === 'input-text') {
-        const inputBox = document.createElement('div')
-        inputBox.classList.add('inputBox')
-        const label = document.createElement('label')
-        label.textContent = action.name
-        const input = document.createElement('input')
-        input.value = action.defaultValue || ''
-        input.type = 'text'
-        if (action.action) input.onchange = action.action
-        inputBox.appendChild(label)
-        inputBox.appendChild(input)
-        container.appendChild(inputBox)
-      } else if (action.type === 'input-number') {
-        const inputBox = document.createElement('div')
-        inputBox.classList.add('inputBox')
-        const label = document.createElement('label')
-        label.textContent = action.name
-        const input = document.createElement('input')
-        input.classList.add('form-control')
-        input.value = action.defaultValue || '0'
-        input.type = 'number'
-        if (action.action) input.onchange = action.action
-        inputBox.appendChild(label)
-        inputBox.appendChild(input)
-        container.appendChild(inputBox)
-      }
-    }
+const container = document.querySelector<HTMLElement>('.editor')!
+const viewer = createViewer(container)
+const panel = document.querySelector<HTMLElement>('.leftPanel')!
+const status = document.createElement('output')
+status.id = 'demo-status'
+const details = document.createElement('pre')
+panel.append(status, details)
+viewer.subscribe((event) => {
+  if (event.type === 'state') {
+    status.textContent = event.state.status
+    if (event.state.diagnostics.length)
+      details.textContent = event.state.diagnostics.map((d) => `${d.code}: ${d.message}`).join('\n')
+  } else if (event.type === 'point') details.textContent = JSON.stringify(event.point, null, 2)
+  else if (event.type === 'measurement')
+    details.textContent = event.measurement
+      ? `${event.measurement.value.toFixed(4)} ${event.measurement.unit}`
+      : event.diagnostics.map((d) => d.message).join('\n')
+  else if (event.type === 'selection')
+    details.textContent = event.selection ? JSON.stringify(event.selection, null, 2) : ''
+})
+function run(action: () => void | Promise<void>) {
+  try {
+    Promise.resolve(action()).catch((error: Error) => {
+      if (error.name !== 'AbortError') details.textContent = error.message
+    })
+  } catch (error) {
+    details.textContent = error instanceof Error ? error.message : String(error)
   }
-})()
+}
+function button(label: string, action: () => void | Promise<void>) {
+  const element = document.createElement('button')
+  element.type = 'button'
+  element.className = 'btn btn-outline-primary m-1'
+  element.textContent = label
+  element.addEventListener('click', () => run(action))
+  panel.append(element)
+}
+button('Load', () => viewer.load(demoStructure()))
+button('Clear', () => viewer.clear())
+button('Center', () => viewer.center())
+button('Rotate', () => viewer.rotate(15, 0))
+button('Zoom in', () => viewer.zoom(1 / 1.2))
+button('Zoom out', () => viewer.zoom(1.2))
+button('Space filling', () => viewer.setOptions({ renderMode: 'space-filling' }))
+button('Ball and stick', () => viewer.setOptions({ renderMode: 'ball-and-stick' }))
+for (const [label, key] of [
+  ['Cell', 'showLattice'],
+  ['Symmetry', 'showSymmetryMates'],
+  ['Reciprocal', 'showReciprocalLattice'],
+  ['First BZ', 'showBrillouinZone']
+] as const)
+  button(label, () => viewer.setOptions({ [key]: !viewer.getState().options[key] }))
+button('Neighbors', () =>
+  viewer.setOptions({
+    neighborCells: viewer.getState().options.neighborCells.length ? [] : [[1, 0, 0]]
+  })
+)
+for (const mode of [
+  'none',
+  'select',
+  'pick-point',
+  'measure-distance',
+  'measure-angle',
+  'measure-torsion'
+] satisfies InteractionMode[])
+  button(mode, () => viewer.setOptions({ interactionMode: mode }))
+window.addEventListener('pagehide', () => viewer.dispose(), { once: true })
+run(() => viewer.load(demoStructure()))

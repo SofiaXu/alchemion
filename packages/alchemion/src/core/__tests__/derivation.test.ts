@@ -36,6 +36,34 @@ function crystal(
 }
 
 describe('T-DOM-02/06 symmetry and display provenance', () => {
+  it('can hide symmetry mates by numeric identity while preserving IDs, integer shifts and source symmetry', () => {
+    const shiftedIdentity = value(parseSymmetryOperation('x+1,y,z', 'custom-e'))
+    const snapshot = crystal(
+      [{ id: 'a', element: 'C', fractional: [0, 0, 0] }],
+      [shiftedIdentity, inversion]
+    )
+    const before = JSON.stringify(snapshot)
+    const hidden = value(
+      deriveInstances(snapshot, { applySymmetry: false, neighborCells: [[1, 0, 0]] })
+    )
+    expect(hidden).toHaveLength(2)
+    expect(hidden.every((entry) => entry.symmetryOperationId === 'custom-e')).toBe(true)
+    expect(
+      hidden.map((entry) => value(sourcePositionFromInstance(snapshot, entry, entry.cartesian)))
+    ).toEqual([
+      [0, 0, 0],
+      [0, 0, 0]
+    ])
+    expect(JSON.stringify(snapshot)).toBe(before)
+    expect(
+      deriveInstances(crystal(snapshot.atoms, [inversion]), { applySymmetry: false }).diagnostics[0]
+        .code
+    ).toBe('SYMMETRY_IDENTITY_REQUIRED')
+    expect(deriveInstances(snapshot, { applySymmetry: 'false' as never }).ok).toBe(false)
+    expect(
+      value(deriveInstances(snapshot)).every((entry) => entry.equivalentSources.length === 2)
+    ).toBe(true)
+  })
   it('parses exact restricted affine expressions and refuses executable/nonlattice syntax', () => {
     const operation = value(parseSymmetryOperation('-y+1/2,x-y+2/3,z-0.25', 'affine'))
     expect(operation.rotation).toEqual([

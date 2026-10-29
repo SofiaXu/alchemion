@@ -1,4 +1,5 @@
 import { elementData } from './elements'
+import { vanDerWaalsRadii } from './vdw-radii'
 import { spaceGroupData } from './space-groups'
 import type { ElementRecord, SpaceGroupSetting } from './types'
 import type { SymmetryOperation } from '../types'
@@ -12,7 +13,24 @@ function freeze<T>(value: T): T {
   return value
 }
 
-export const ELEMENTS: readonly ElementRecord[] = freeze(elementData)
+export const ELEMENTS: readonly ElementRecord[] = freeze(
+  elementData.map((element) => ({
+    ...element,
+    ...(vanDerWaalsRadii[element.symbol] === undefined
+      ? {}
+      : {
+          vanDerWaalsRadius: {
+            value: vanDerWaalsRadii[element.symbol],
+            provenance: {
+              source:
+                'https://github.com/lmmentel/mendeleev-data/tree/67e08702c5e9e8541d9944824b10edfb718d61e8',
+              version: 'mendeleev-data 1.1.0 Alvarez/Vogt',
+              reference: '10.1039/C3DT50599E; 10.1021/ic501364h; see VDW_DATA_MANIFEST.json'
+            }
+          }
+        })
+  }))
+)
 const elementsBySymbol = new Map(ELEMENTS.map((element) => [element.symbol, element]))
 export function getElement(symbol: string): ElementRecord | undefined {
   return elementsBySymbol.get(symbol)

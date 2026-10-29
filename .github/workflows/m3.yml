@@ -1,20 +1,7 @@
 name: M3 scientific core
 on:
-  pull_request:
-    paths:
-      # M4 owns model validation/editing and its consumer. Keep this historical
-      # scientific gate tied to actual algorithm/data changes.
-      - 'packages/alchemion/src/core/cell.ts'
-      - 'packages/alchemion/src/core/math.ts'
-      - 'packages/alchemion/src/core/symmetry.ts'
-      - 'packages/alchemion/src/core/derivation.ts'
-      - 'packages/alchemion/src/core/bonds.ts'
-      - 'packages/alchemion/src/core/measurements.ts'
-      - 'packages/alchemion/src/core/reciprocal.ts'
-      - 'packages/alchemion/src/core/brillouin-zone.ts'
-      - 'packages/alchemion/src/core/data/**'
-      - 'scripts/scientific-data/**'
-      - 'scripts/scientific-reference.py'
+  # Historical full-stage reproduction is opt-in. Current delivery CI selects
+  # only scientific files actually affected by the M5 change.
   workflow_dispatch:
 jobs:
   scientific-core:

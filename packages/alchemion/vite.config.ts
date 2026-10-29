@@ -38,7 +38,7 @@ export default defineConfig({
       fileName: (_format, entry) => `${entry}.js`
     },
     rollupOptions: {
-      external: (id) => /^(@babylonjs\/|rxjs(?:\/|$)|mathjs$|earcut$|deep-object-diff$)/.test(id)
+      external: (id) => /^three(?:\/|$)/.test(id)
     }
   },
   worker: { format: 'es' }

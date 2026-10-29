@@ -1,0 +1,380 @@
+{
+  "sdk": {
+    "assets": [
+      {
+        "file": "dist/assets/computation-worker-D0MYlblr.js",
+        "bytes": 547478,
+        "gzipBytes": 38547
+      },
+      {
+        "file": "dist/core.js",
+        "bytes": 32508,
+        "gzipBytes": 9900
+      },
+      {
+        "file": "dist/formats.js",
+        "bytes": 103196,
+        "gzipBytes": 32881
+      },
+      {
+        "file": "dist/FORMAT_DATA_MANIFEST.json",
+        "bytes": 1398,
+        "gzipBytes": 774
+      },
+      {
+        "file": "dist/structure-eCcM1exk.js",
+        "bytes": 530945,
+        "gzipBytes": 34712
+      },
+      {
+        "file": "dist/types/core/bonds.d.ts",
+        "bytes": 1168,
+        "gzipBytes": 527
+      },
+      {
+        "file": "dist/types/core/brillouin-zone.d.ts",
+        "bytes": 1033,
+        "gzipBytes": 412
+      },
+      {
+        "file": "dist/types/core/cell.d.ts",
+        "bytes": 787,
+        "gzipBytes": 307
+      },
+      {
+        "file": "dist/types/core/data/elements.d.ts",
+        "bytes": 106,
+        "gzipBytes": 104
+      },
+      {
+        "file": "dist/types/core/data/index.d.ts",
+        "bytes": 436,
+        "gzipBytes": 214
+      },
+      {
+        "file": "dist/types/core/data/space-groups.d.ts",
+        "bytes": 123,
+        "gzipBytes": 112
+      },
+      {
+        "file": "dist/types/core/data/types.d.ts",
+        "bytes": 1218,
+        "gzipBytes": 434
+      },
+      {
+        "file": "dist/types/core/data/vdw-radii.d.ts",
+        "bytes": 73,
+        "gzipBytes": 92
+      },
+      {
+        "file": "dist/types/core/derivation.d.ts",
+        "bytes": 1072,
+        "gzipBytes": 498
+      },
+      {
+        "file": "dist/types/core/editing/index.d.ts",
+        "bytes": 1870,
+        "gzipBytes": 601
+      },
+      {
+        "file": "dist/types/core/index.d.ts",
+        "bytes": 1407,
+        "gzipBytes": 503
+      },
+      {
+        "file": "dist/types/core/math.d.ts",
+        "bytes": 973,
+        "gzipBytes": 320
+      },
+      {
+        "file": "dist/types/core/measurements.d.ts",
+        "bytes": 614,
+        "gzipBytes": 331
+      },
+      {
+        "file": "dist/types/core/reciprocal.d.ts",
+        "bytes": 406,
+        "gzipBytes": 261
+      },
+      {
+        "file": "dist/types/core/result.d.ts",
+        "bytes": 400,
+        "gzipBytes": 198
+      },
+      {
+        "file": "dist/types/core/structure.d.ts",
+        "bytes": 274,
+        "gzipBytes": 169
+      },
+      {
+        "file": "dist/types/core/symmetry.d.ts",
+        "bytes": 2199,
+        "gzipBytes": 745
+      },
+      {
+        "file": "dist/types/core/types.d.ts",
+        "bytes": 5582,
+        "gzipBytes": 1472
+      },
+      {
+        "file": "dist/types/formats/cif/document.d.ts",
+        "bytes": 566,
+        "gzipBytes": 323
+      },
+      {
+        "file": "dist/types/formats/cif/index.d.ts",
+        "bytes": 163,
+        "gzipBytes": 107
+      },
+      {
+        "file": "dist/types/formats/cif/structure.d.ts",
+        "bytes": 660,
+        "gzipBytes": 330
+      },
+      {
+        "file": "dist/types/formats/cif/types.d.ts",
+        "bytes": 1610,
+        "gzipBytes": 499
+      },
+      {
+        "file": "dist/types/formats/contracts.d.ts",
+        "bytes": 1658,
+        "gzipBytes": 506
+      },
+      {
+        "file": "dist/types/formats/index.d.ts",
+        "bytes": 468,
+        "gzipBytes": 215
+      },
+      {
+        "file": "dist/types/formats/loss.d.ts",
+        "bytes": 658,
+        "gzipBytes": 359
+      },
+      {
+        "file": "dist/types/formats/mol/common.d.ts",
+        "bytes": 1174,
+        "gzipBytes": 531
+      },
+      {
+        "file": "dist/types/formats/mol/finite.d.ts",
+        "bytes": 791,
+        "gzipBytes": 341
+      },
+      {
+        "file": "dist/types/formats/mol/index.d.ts",
+        "bytes": 92,
+        "gzipBytes": 79
+      },
+      {
+        "file": "dist/types/formats/mol/reader.d.ts",
+        "bytes": 163,
+        "gzipBytes": 140
+      },
+      {
+        "file": "dist/types/formats/mol/writer.d.ts",
+        "bytes": 236,
+        "gzipBytes": 157
+      },
+      {
+        "file": "dist/types/formats/poscar/index.d.ts",
+        "bytes": 245,
+        "gzipBytes": 158
+      },
+      {
+        "file": "dist/types/viewer/backend/geometry.d.ts",
+        "bytes": 520,
+        "gzipBytes": 310
+      },
+      {
+        "file": "dist/types/viewer/backend/three.d.ts",
+        "bytes": 215,
+        "gzipBytes": 162
+      },
+      {
+        "file": "dist/types/viewer/frame.d.ts",
+        "bytes": 580,
+        "gzipBytes": 278
+      },
+      {
+        "file": "dist/types/viewer/index.d.ts",
+        "bytes": 583,
+        "gzipBytes": 249
+      },
+      {
+        "file": "dist/types/viewer/interaction/pointer.d.ts",
+        "bytes": 484,
+        "gzipBytes": 272
+      },
+      {
+        "file": "dist/types/viewer/internal-contracts.d.ts",
+        "bytes": 2429,
+        "gzipBytes": 838
+      },
+      {
+        "file": "dist/types/viewer/options.d.ts",
+        "bytes": 649,
+        "gzipBytes": 278
+      },
+      {
+        "file": "dist/types/viewer/runtime/computation-worker.d.ts",
+        "bytes": 11,
+        "gzipBytes": 31
+      },
+      {
+        "file": "dist/types/viewer/runtime/controller.d.ts",
+        "bytes": 618,
+        "gzipBytes": 280
+      },
+      {
+        "file": "dist/types/viewer/runtime/index.d.ts",
+        "bytes": 384,
+        "gzipBytes": 171
+      },
+      {
+        "file": "dist/types/viewer/runtime/protocol.d.ts",
+        "bytes": 942,
+        "gzipBytes": 362
+      },
+      {
+        "file": "dist/types/viewer/runtime/runtime.d.ts",
+        "bytes": 552,
+        "gzipBytes": 266
+      },
+      {
+        "file": "dist/types/viewer/runtime/task.d.ts",
+        "bytes": 305,
+        "gzipBytes": 199
+      },
+      {
+        "file": "dist/types/viewer/runtime/types.d.ts",
+        "bytes": 3124,
+        "gzipBytes": 873
+      },
+      {
+        "file": "dist/types/viewer/types.d.ts",
+        "bytes": 4073,
+        "gzipBytes": 1180
+      },
+      {
+        "file": "dist/types/viewer/viewer.d.ts",
+        "bytes": 250,
+        "gzipBytes": 194
+      },
+      {
+        "file": "dist/viewer.js",
+        "bytes": 68575,
+        "gzipBytes": 19418
+      }
+    ],
+    "bytes": 1328044,
+    "gzipBytes": 153220
+  },
+  "note": "SDK assets report actual installed package contents. Consumer variants include the acceptance host; the separate Three chunk and module Worker assets show runtime dependency cost.",
+  "raw": {
+    "assets": [
+      {
+        "file": "assets/computation-worker-D0MYlblr-DFzDkOrF.js",
+        "bytes": 551614,
+        "gzipBytes": 38737
+      },
+      {
+        "file": "assets/index-CT5Ykx-e.js",
+        "bytes": 658030,
+        "gzipBytes": 68635
+      },
+      {
+        "file": "assets/three-BPo8l-ps.js",
+        "bytes": 1095731,
+        "gzipBytes": 198112
+      },
+      {
+        "file": "index.html",
+        "bytes": 572,
+        "gzipBytes": 313
+      }
+    ],
+    "bytes": 2305947,
+    "gzipBytes": 305797,
+    "engine": [
+      {
+        "file": "assets/three-BPo8l-ps.js",
+        "bytes": 1095731,
+        "gzipBytes": 198112
+      }
+    ],
+    "workers": [
+      {
+        "file": "assets/computation-worker-D0MYlblr-DFzDkOrF.js",
+        "bytes": 551614,
+        "gzipBytes": 38737
+      }
+    ],
+    "modules": [
+      "D:/source/alchemion/\u0000vite/modulepreload-polyfill.js",
+      "fixtures.ts",
+      "index.html",
+      "index.html?html-proxy&inline-css&index=0.css",
+      "main.ts",
+      "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/core.js",
+      "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/structure-eCcM1exk.js",
+      "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/viewer.js",
+      "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.core.js",
+      "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.module.js",
+      "resources.ts"
+    ]
+  },
+  "minified": {
+    "assets": [
+      {
+        "file": "assets/computation-worker-D0MYlblr-E0aevOvy.js",
+        "bytes": 411628,
+        "gzipBytes": 35813
+      },
+      {
+        "file": "assets/index-CSwLpJba.js",
+        "bytes": 487577,
+        "gzipBytes": 60746
+      },
+      {
+        "file": "assets/three-CG1ilbFp.js",
+        "bytes": 522254,
+        "gzipBytes": 129501
+      },
+      {
+        "file": "index.html",
+        "bytes": 572,
+        "gzipBytes": 314
+      }
+    ],
+    "bytes": 1422031,
+    "gzipBytes": 226374,
+    "engine": [
+      {
+        "file": "assets/three-CG1ilbFp.js",
+        "bytes": 522254,
+        "gzipBytes": 129501
+      }
+    ],
+    "workers": [
+      {
+        "file": "assets/computation-worker-D0MYlblr-E0aevOvy.js",
+        "bytes": 411628,
+        "gzipBytes": 35813
+      }
+    ],
+    "modules": [
+      "D:/source/alchemion/\u0000vite/modulepreload-polyfill.js",
+      "fixtures.ts",
+      "index.html",
+      "index.html?html-proxy&inline-css&index=0.css",
+      "main.ts",
+      "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/core.js",
+      "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/structure-eCcM1exk.js",
+      "node_modules/.pnpm/alchemion@file+alchemion-0.1.0.tgz/node_modules/alchemion/dist/viewer.js",
+      "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.core.js",
+      "node_modules/.pnpm/three@0.186.1/node_modules/three/build/three.module.js",
+      "resources.ts"
+    ]
+  }
+}

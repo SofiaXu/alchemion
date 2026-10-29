@@ -4,11 +4,9 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 ## 当前状态
 
-M1工程基线、M3科学核心和M4格式/编辑/计算运行时已完成；Windows定向验证及Ubuntu CI通过，实际证据见[当前计划](docs/plans/m4-formats-runtime.md)和[M4报告](docs/evidence/m4-formats-runtime.md)。正式Three viewer与完整demo仍由M5/M6完成。
+M1–M4已完成，M2已选定Three.js0.186.1。M5正式viewer已完成Windows/Ubuntu定向功能及正式tarball六轮硬件验收，见[当前计划](docs/plans/m5-viewer.md)与[M5报告](docs/evidence/m5-viewer.md)；完整demo流程和最终分发复核由M6完成。实际状态与证据入口见[交接](docs/handoff.md)。
 
-M2 已完成并选定 Three.js 0.186.1，Windows 与 Ubuntu 定向验证通过；现有 SDK viewer 仍为历史 Babylon 路径，M5/M6 迁移。实际进展见 [交接](docs/handoff.md)、[M2 计划](docs/plans/m2-renderer-selection.md) 和 [M2 证据](docs/evidence/m2-renderer-selection.md)。历史代码基准为 06784cf。
-
-正式`core`和`formats`使用同一新版科学模型。科学能力、参考和验证见[M3计划](docs/plans/m3-scientific-core.md)、[独立参考](docs/evidence/m3-scientific-reference.md)与[ADR0003](docs/decisions/0003-scientific-core.md)；M4接口决策见[ADR0004](docs/decisions/0004-formats-runtime.md)。历史Babylon viewer/demo暂用自产旧模型输入，不提供新旧模型适配。
+正式core/formats/viewer采用同一新版模型。viewer只保留Three后端和M4独立控制器/运行时，历史Babylon代码、Worker和旧数据已退出正式产物，不提供旧API适配。科学约定见[领域规范](docs/domain.md)，三维接口见[ADR0005](docs/decisions/0005-formal-viewer.md)。
 
 ## 现有工程入口
 
@@ -32,11 +30,11 @@ Linux 安装浏览器时使用 Playwright 的 --with-deps 选项。不要跳过�
 | pnpm format:check                                  | 只读 Prettier，包含代码、配置和 Markdown。                                                          |
 | pnpm test -- <文件路径>                            | 单次 Vitest；可指定相关文件，默认最多 4 个进程，无重试。                                            |
 | pnpm test:watch                                    | 显式启用 Vitest watch。                                                                             |
-| pnpm test:browser                                  | 准备 SDK，运行三个浏览器的 M1 创建/真实 Worker/拾取/销毁冒烟。                                      |
+| pnpm test:browser                                  | 准备 SDK，运行三个浏览器的工程创建/真实 Worker/拾取/销毁冒烟。                                      |
 | pnpm test:browser -- --phase=m2                    | 构建 M2 宿主，定向运行三个浏览器的候选正确性、Worker、更新与生命周期场景。                          |
 | pnpm test:browser -- --phase=m4                    | 准备SDK和M4宿主，定向运行三个浏览器的计算运行时、编辑控制器与异步终结场景。                         |
-| pnpm test:package                                  | pack 后在仓库外安装 tarball，检查全部公开声明、生产构建和三个浏览器的嵌套 Worker 场景。             |
-| pnpm test:package -- --phase=m4 --project=chromium | 真实tarball编译core/formats无DOM声明，核对新Worker、格式、编辑及受影响历史入口；不依赖源码alias。   |
+| pnpm test:package                                  | pack 后在仓库外安装 tarball，检查全部公开声明、生产构建和三个浏览器的模块 Worker 场景。             |
+| pnpm test:package -- --phase=m4 --project=chromium | 真实tarball编译core/formats无DOM声明，核对Worker、格式、编辑及新viewer入口；不依赖源码alias。       |
 | pnpm check:m1                                      | 复用一次 SDK 构建，执行历史 M1 工程检查、新版 CIF 目录、浏览器与 tarball 验收；不作为 M2 默认验证。 |
 | pnpm check                                         | 显式全量检查入口；新增阶段后可能扩大，不作为默认任务验证。                                          |
 | pnpm bench -- --smoke                              | 128 原子、120 帧的真实采集冒烟，输出 .tmp/bench/m1-smoke.json；不验收 T-PERF-01。                   |
@@ -46,6 +44,16 @@ Linux 安装浏览器时使用 Playwright 的 --with-deps 选项。不要跳过�
 测试默认 4 个进程，可用 TEST_WORKERS 覆盖浏览器并行数。资源允许时使用 4–8；资源不足时记录降并行的原因。只运行与变更直接相关的检查，重复或扩大验证须记录技术理由。
 
 M2 Ubuntu 软件功能场景因实际资源超时降为 2 进程，保留完整数量与画质，采用显式软件同步配置；硬件采样独占串行，软件数据不用于性能验收。失败及复验理由见 M2 证据。
+
+M5入口已建立：
+
+```sh
+pnpm test:browser -- --phase=m5
+pnpm test:package -- --phase=m5 --project=chromium
+pnpm bench -- --phase=m5
+```
+
+browser默认三个浏览器/4进程、无重试；可传`--grep=<正则>`只复验受影响场景。`--prepared`仅复用同轮SDK构建。M5硬件bench从真实tarball采集两模式各三轮，GPU独占串行；软件渲染只用于功能验证。模式/轮次、resume及原始数据规则见质量规范，不能用子集宣称性能关卡完成。
 
 ## SDK 与 demo 边界
 
@@ -70,7 +78,31 @@ console.log(exported.text, exported.diagnostics)
 window.addEventListener('pagehide', () => editor.dispose(), { once: true })
 ```
 
-纯事务也可从`alchemion/core`使用`createDocumentStore`。导出默认拒绝科学损失；显式接受该次损失可传`allowLoss:true`，硬性格式前提仍需满足。完整字段矩阵见[产品规范](docs/product.md)。正式三维门面由M5接入上述控制器；当前`pnpm dev`仍运行暂存历史demo。
+纯事务也可从`alchemion/core`使用`createDocumentStore`。导出默认拒绝科学损失；显式接受该次损失可传`allowLoss:true`，硬性格式前提仍需满足。完整字段矩阵见[产品规范](docs/product.md)。正式三维门面复用相同控制器。当前`pnpm dev`已最小迁移到新API；完整导入、编辑表单和导出工作流留M6。
+
+```ts
+import { createViewer } from 'alchemion/viewer'
+import type { StructureSnapshot } from 'alchemion/core'
+
+const sourceSnapshot: StructureSnapshot = {
+  kind: 'molecular',
+  atoms: [{ id: 'C1', element: 'C', cartesian: [0, 0, 0] }],
+  bonds: []
+}
+
+const viewer = createViewer(document.querySelector<HTMLElement>('#viewer')!, {
+  renderMode: 'ball-and-stick',
+  interactionMode: 'select',
+  showLattice: true
+})
+viewer.subscribe((event) => console.log(event))
+await viewer.load(sourceSnapshot)
+await viewer.execute({ type: 'set-element', atomId: sourceSnapshot.atoms[0].id, element: 'O' })
+await viewer.undo()
+viewer.dispose()
+```
+
+异步方法在对应完整帧提交后完成。新请求取代、clear或dispose可能返回`AbortError`，宿主应处理这种正常控制流；源校验失败保留原结构，接受有效源后的计算/渲染失败保留新源并呈现error。空间填充默认范德华半径，球棍和颜色/尺寸可配置；自由点、测量、选择事件的单位和来源见架构规范。
 
 ## 科学核心示例
 
@@ -91,7 +123,7 @@ if (source.ok) {
 }
 ```
 
-结果携带诊断，失败分支没有半成品；实例携带可逆来源。无对称信息时只假定恒等操作并报告警告。该快照供正式格式、编辑和计算接口使用；历史`AlchemionEditor`仍在M5迁移。
+结果携带诊断，失败分支没有半成品；实例携带可逆来源。无对称信息时只假定恒等操作并报告警告。该快照供正式格式、编辑和计算接口使用；可直接传给正式`createViewer`。
 
 ## 文档导航
 
@@ -100,4 +132,4 @@ if (source.ok) {
 - [历史审计](docs/baseline.md)、[数据来源](docs/data-sources.md)、[路线图](docs/roadmap.md)
 - [基础决策](docs/decisions/0001-project-foundation.md)、[已接受的渲染决策](docs/decisions/0002-renderer-selection.md)
 
-仓库代码使用[MIT License](LICENSE)。科学表与格式数据的来源、版本、散列和许可见随包`SCIENTIFIC_DATA_MANIFEST.json`、`dist/FORMAT_DATA_MANIFEST.json`及`THIRD_PARTY_NOTICES.md`。旧格式实现和失去消费者的样例已替换/移除；历史viewer元素/配色仍由M5/M6处理，不替后续阶段宣称完成审核。
+仓库代码使用[MIT License](LICENSE)。科学表与格式数据的来源、版本、散列和许可见随包`SCIENTIFIC_DATA_MANIFEST.json`、`dist/FORMAT_DATA_MANIFEST.json`及`THIRD_PARTY_NOTICES.md`。M5新增范德华数据的来源、散列和许可见随包`VDW_DATA_MANIFEST.json`；默认配色为项目独立定义。最终demo资产和分发复核留M6。
