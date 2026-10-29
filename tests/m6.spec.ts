@@ -296,7 +296,11 @@ test('@demo CIF block, periodic displays, derived edit, cell, finite MOL and all
   await page.locator('#finite-kind').selectOption('source')
   await page.locator('#finite-all').click()
   await page.locator('#preview-export').click()
-  await acceptLossIfPresent(page)
+  await expect(page.locator('#export-diagnostics')).toContainText('MOL_PERIODICITY_LOSS')
+  await expect(page.locator('#export-diagnostics')).toContainText('MOL_ATOM_LABEL_LOSS')
+  await expect(page.locator('#export-output')).toHaveValue('')
+  await page.locator('#accept-loss').click()
+  await expect(page.locator('#export-output')).toHaveValue(/V3000/)
   expect(await details(page, 'export-mapping')).toHaveLength(2)
   for (const version of ['1', '2']) {
     await preview(page, 'cif', version)

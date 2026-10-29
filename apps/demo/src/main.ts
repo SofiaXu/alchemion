@@ -392,27 +392,43 @@ function exportOptions(allowLoss = false): WriteOptions {
         : {})
   }
 }
+const lossExceptions = new Set([
+  'CIF_UNCERTAINTY_STALE',
+  'CIF_UNMAPPED_SCIENCE',
+  'CIF_UNMAPPED_FRAME'
+])
+function onlyLossErrors(items: readonly Diagnostic[]): boolean {
+  const blocking = items.filter((d) => d.severity === 'error')
+  return (
+    blocking.length > 0 &&
+    blocking.every((d) => d.code.endsWith('_LOSS') || lossExceptions.has(d.code))
+  )
+}
 function checkExport(accept = false) {
   const options = exportOptions(accept)
   if (accept && (!lastExport || lastExport.fingerprint !== fingerprint(exportOptions(false))))
     throw new InputError('exportChanged')
-  const result = writeStructure(requireSource(), options)
+  const source = requireSource()
+  let result = writeStructure(source, options)
+  if (!accept && !result.text && onlyLossErrors(result.diagnostics)) {
+    // A codec may stop at an early scientific-loss gate. Enumerate deeper
+    // diagnostics in a pure dry run; its generated text is never exposed or
+    // retained. The user must see the full list before accepting this export.
+    const dryRun = writeStructure(source, { ...options, allowLoss: true })
+    const complete = new Map<string, Diagnostic>()
+    for (const entry of [...result.diagnostics, ...dryRun.diagnostics]) {
+      const key = JSON.stringify([entry.code, entry.message, entry.context, entry.sourceLocation])
+      if (!complete.has(key)) complete.set(key, entry)
+    }
+    result = { diagnostics: [...complete.values()] }
+  }
   lastExport = { fingerprint: fingerprint(exportOptions(false)), options, result }
   exportDiagnostics = result.diagnostics
   put('export-output', result.text ?? '')
   el('export-mapping').textContent = result.atomMapping ? json(result.atomMapping) : ''
   // Stable diagnostic codes distinguish an explicitly acceptable scientific loss
   // from hard format requirements. A hard error must never offer an override.
-  const blocking = result.diagnostics.filter((d) => d.severity === 'error')
-  const lossExceptions = new Set([
-    'CIF_UNCERTAINTY_STALE',
-    'CIF_UNMAPPED_SCIENCE',
-    'CIF_UNMAPPED_FRAME'
-  ])
-  const lossesOnly =
-    blocking.length > 0 &&
-    blocking.every((d) => d.code.endsWith('_LOSS') || lossExceptions.has(d.code))
-  disable('accept-loss', !!result.text || !lossesOnly || accept)
+  disable('accept-loss', !!result.text || !onlyLossErrors(result.diagnostics) || accept)
   disable('download-export', !result.text)
   disable('reimport-export', !result.text || options.format === 'poscar')
   showDiagnostics()
