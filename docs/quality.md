@@ -6,6 +6,8 @@
 
 当前会话遵循最小充分验证：只运行变更直接相关的测试，不默认执行全套。新增、扩大或重复检查须说明技术理由。M1 的 `check:m1` 固定选取两个迁移 CIF 文件、三浏览器工程冒烟与真实 tarball，M1 CI 已验过同一范围。M2 CI 定向运行构建、受影响类型/lint、M2 三浏览器正确性及 tarball 冒烟，不默认重复 CIF 或全部业务测试。浏览器进程默认 4，可通过 `TEST_WORKERS` 调到 4–8；资源不足时有证据地降低。不启用自动重试。
 
+M4使用独立phase入口与定向CI：仅新格式、编辑、运行时及受影响模型校验；M3算法/数据未变时不触发整个科学关卡，M2亦不随M4共享脚本触发。Windows首跑后仅复验失败或因具体缺口改变的文件；Ubuntu复验本交付集合是为检查路径/换行和真实打包Worker的跨平台差异。纯文档归档只查格式/链接。历史`check:m1`的旧CIF文件已移除，当前脚本明确指向新版CIF测试目录，不作为M4默认入口。
+
 科学计算使用解析解、独立推导或可追溯参考数据作 oracle，不能把旧函数结果换个名字当预期值。小规模参考算法可用于对照优化实现，但要验证其公式与单位。容差、晶胞矩阵方向、倒易约定、周期边界和损失策略统一引用 [领域规范](domain.md)，测试不得另定相冲突的常量。
 
 单元测试可使用 Node 上的测试运行器，但这不构成 SDK 的 Node 运行时承诺。浏览器行为必须在真实浏览器引擎中验证；截图可以证明可见状态，不能单独证明数值、拾取映射、资源释放或 Worker 正确性。
@@ -72,7 +74,7 @@
 | `pnpm test:browser`      | 准备 SDK 及测试宿主产物后运行 Playwright Chromium、Firefox、WebKit 功能与生命周期测试；安装/环境缺失显式失败或标记未运行，不能跳过后算通过。Playwright WebKit 不等于真实 Safari 验证。                                              |
 | `pnpm build`             | 按 SDK（含声明/Worker）→demo 的依赖顺序构建；无 CJS、测试、调试源码或旧兼容入口混入正式产物。                                                                                                                                       |
 | `pnpm test:package`      | 构建后 pack 并运行隔离浏览器消费者，验证 tarball 的 exports、声明、资源 URL、Worker 和公开交互；不能复用仓库源 alias。                                                                                                              |
-| `pnpm check:m1`          | 定向执行历史 M1 的格式、lint、SDK/demo 构建、类型、文档链接、两个 CIF 文件、三浏览器和 tarball；SDK 构建只准备一次。M2 不以此作为默认验证。                                                                                         |
+| `pnpm check:m1`          | 定向执行历史 M1 的格式、lint、SDK/demo 构建、类型、文档链接、当前CIF目录、三浏览器和 tarball；SDK 构建只准备一次。M2 不以此作为默认验证。                                                                                           |
 | `pnpm check`             | 按 format:check、lint、build（SDK→demo）、typecheck、test、test:browser、test:package 的顺序执行，任一步失败即返回失败；复用本次已准备的产物。干净 checkout 不能依赖旧 dist 或源码 alias。不把硬件性能 bench 混作普通 CI 稳定门槛。 |
 | `pnpm bench -- --smoke`  | M1 运行 128 原子、120 帧的真实采集冒烟；输出环境和原始帧时间，不构成 T-PERF-01 通过。固定一万实例/两模式/全部指标由 M2 补齐。                                                                                                       |
 
@@ -81,6 +83,8 @@ M1 可以先建立测试与性能 harness，后续场景随阶段补齐；空测
 M2 新增显式参数：`pnpm test:browser -- --phase=m2` 构建独立宿主并只匹配 M2 场景；无该参数仍为 M1 冒烟。`pnpm bench -- --renderer-selection` 构建单候选 ESM 消费者、验证其产物，再按 A/B、B/A、A/B 在真实硬件 GPU 上串行采样两种模式各三轮。软件渲染仅可提供功能证据。`--artifacts-only` 只检查体积与 ESM 消费者；`--skip-artifacts` 复用本轮已验证产物；`--resume` 只续跑同一输入/代码的缺失轮次；`--candidate=`、`--mode=`、`--round=` 用于明确限定重跑，不能用子集宣称完整选型。
 
 完整双候选比较实现保留于 07527f8；当前树仅含获选 Three，上述常规 bench 在当前树复验其两种模式各三轮，不宣称仍可直接运行落选后端。
+
+M4新增`pnpm test:browser -- --phase=m4`，构建独立宿主并只运行`@workspace`的M4场景；`pnpm test:package -- --phase=m4 --project=chromium`安装真实tarball，核对三个入口、core/formats无DOM声明、生产计算Worker、编辑/历史和受影响历史输入的最小回归。`--prepared`只用于复用同轮已构建的SDK。并行上限4，单个tarball场景实际只用1个进程，不人为复制场景。M4无canvas的运行时验证不充当M5三维或性能验收。
 
 `--resources-only --source-ref=<commit>` 只从指定 Git 提交恢复比较资产到忽略目录，安装其精确引擎依赖，用 CDP 核对 20 轮全局监听归属，不重跑性能。软件功能验证以 `M2_FUNCTIONAL_SOFTWARE=1` 显式选择，使用同步 GPU 完成和有界任务交付，不提供帧呈现性能证据；硬件 bench 拒绝此路径。M2 Ubuntu 四进程软件验证已实际超时，改为两个进程并保留完整 10k/20k 及几何；证据与复验理由见 M2 报告。
 

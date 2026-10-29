@@ -1,0 +1,6 @@
+PyCifRW==5.0.1
+numpy==2.2.6
+scipy==1.15.3
+rdkit==2025.9.6
+ase==3.26.0
+openbabel-wheel==3.1.1.23

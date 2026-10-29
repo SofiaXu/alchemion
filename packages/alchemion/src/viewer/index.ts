@@ -621,3 +621,16 @@ export class AlchemionEditor implements IEditor {
 }
 
 export type { IEditorOptions } from './contracts'
+export { createComputationRuntime, createEditorController, ComputationError } from './runtime'
+export type {
+  ComputationTask,
+  ComputationCategory,
+  ComputationRequest,
+  ComputationContext,
+  ComputationResult,
+  ComputationRuntime,
+  ComputationRuntimeOptions,
+  EditorController,
+  EditorControllerOptions,
+  EditorState
+} from './runtime'

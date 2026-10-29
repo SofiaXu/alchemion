@@ -15,6 +15,11 @@ export default defineConfig({
           ],
           { stdio: 'inherit' }
         )
+        execFileSync(
+          process.execPath,
+          [fileURLToPath(new URL('../../scripts/format-data.mjs', import.meta.url))],
+          { stdio: 'inherit' }
+        )
       }
     }
   ],

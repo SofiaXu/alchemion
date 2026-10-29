@@ -9,6 +9,7 @@ export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pnpm = process.env.npm_execpath
 const browserFlags = process.argv.filter((arg) => arg.startsWith('--project='))
 const phaseM2 = process.argv.includes('--phase=m2')
+const phaseM4 = process.argv.includes('--phase=m4')
 if (!pnpm) throw new Error('Use pnpm to invoke this task.')
 
 export function run(args, cwd = root, env = {}) {
@@ -98,8 +99,39 @@ async function comparisonBrowser() {
   )
 }
 
+async function runtimeBrowser() {
+  const output = join(root, '.tmp/m4-host')
+  await viteBuild({
+    configFile: false,
+    root: join(root, 'tests/m4'),
+    base: './',
+    build: { target: 'es2022', outDir: output, emptyOutDir: true },
+    worker: { format: 'es' }
+  })
+  await host(
+    output,
+    (url) =>
+      run(
+        [
+          'exec',
+          'playwright',
+          'test',
+          '--config=playwright.m4.config.ts',
+          '--grep',
+          '@workspace',
+          ...browserFlags
+        ],
+        root,
+        { M4_BASE_URL: url }
+      ),
+    4176
+  )
+}
+
 async function packaged() {
-  const consumer = await mkdtemp(join(tmpdir(), 'alchemion-m1-consumer-'))
+  const consumer = await mkdtemp(
+    join(tmpdir(), phaseM4 ? 'alchemion-m4-consumer-' : 'alchemion-m1-consumer-')
+  )
   await run(['pack', '--pack-destination', consumer], join(root, 'packages/alchemion'))
   const archive = (await readdir(consumer)).find((name) => name.endsWith('.tgz'))
   if (!archive) throw new Error('pnpm pack did not produce a tarball.')
@@ -115,7 +147,7 @@ async function packaged() {
   )
   // Ignore the parent workspace, its source paths and its node_modules layout.
   await writeFile(join(consumer, '.npmrc'), 'link-workspace-packages=false\n')
-  await cp(join(root, 'tests/host'), consumer, { recursive: true })
+  await cp(join(root, phaseM4 ? 'tests/consumer-m4' : 'tests/host'), consumer, { recursive: true })
   await run(
     [
       'install',
@@ -138,6 +170,8 @@ async function packaged() {
   for (const notice of ['THIRD_PARTY_NOTICES.md', 'SCIENTIFIC_DATA_MANIFEST.json']) {
     await readFile(join(consumer, 'node_modules/alchemion', notice), 'utf8')
   }
+  if (phaseM4)
+    await readFile(join(consumer, 'node_modules/alchemion/dist/FORMAT_DATA_MANIFEST.json'), 'utf8')
   for (const [name, version] of [
     ['typescript', '5.9.3'],
     ['vite', '7.3.5']
@@ -188,14 +222,27 @@ async function packaged() {
     consumer
   )
   const assets = await readdir(join(consumer, 'dist'), { recursive: true })
-  if (!assets.some((name) => /atom-worker-.*\.js$/.test(name))) {
-    throw new Error('Nested module Worker missing from the consumer production build.')
+  const expectedWorker = phaseM4 ? /computation-worker-.*\.js$/ : /atom-worker-.*\.js$/
+  if (!assets.some((name) => expectedWorker.test(name))) {
+    throw new Error('Required module Worker missing from the consumer production build.')
   }
   // Serve only the consumer build. No workspace aliases or development server fallback.
   await host(join(consumer, 'dist'), (url) =>
-    run(['exec', 'playwright', 'test', '--grep', '@package', ...browserFlags], root, {
-      M1_BASE_URL: url
-    })
+    run(
+      [
+        'exec',
+        'playwright',
+        'test',
+        ...(phaseM4 ? ['--config=playwright.m4.config.ts'] : []),
+        '--grep',
+        '@package',
+        ...browserFlags
+      ],
+      root,
+      {
+        [phaseM4 ? 'M4_BASE_URL' : 'M1_BASE_URL']: url
+      }
+    )
   )
   console.log(`Isolated tarball consumer: ${consumer}`)
 }
@@ -260,12 +307,7 @@ async function check(m1) {
     'exec',
     'vitest',
     'run',
-    ...(m1
-      ? [
-          'packages/alchemion/src/formats/parsers/cif-parser/__tests__/index.test.ts',
-          'packages/alchemion/src/formats/parsers/cif-parser/__tests__/cif-document-parser.test.ts'
-        ]
-      : [])
+    ...(m1 ? ['packages/alchemion/src/formats/cif/__tests__'] : [])
   ])
   await browser()
   await packaged()
@@ -289,7 +331,8 @@ try {
       if (phaseM2) await comparisonBrowser()
       else {
         if (!process.argv.includes('--prepared')) await sdk()
-        await browser()
+        if (phaseM4) await runtimeBrowser()
+        else await browser()
       }
       break
     case 'package':

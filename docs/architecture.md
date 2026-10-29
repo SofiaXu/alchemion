@@ -1,10 +1,10 @@
 # 目标架构与接口边界
 
-状态：2026-10-29。M1 已建立 SDK/demo workspace 与公开子路径；M3 已按 [ADR 0003](decisions/0003-scientific-core.md) 实现正式科学模型并通过本地/Ubuntu定向验证。格式、事务/运行时和最终 viewer API 仍为 M4–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
+状态：2026-10-29。M1建立SDK/demo workspace；M3科学模型已通过本地/Ubuntu验证；M4格式、事务和独立运行时已实现并通过Windows定向关卡，Ubuntu状态见当前交接。正式三维Viewer仍由M5实现。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
-采用 pnpm workspace：一个 SDK 包和一个独立 demo。表中目录与三个子路径已由 M1 建立；职责是 M3–M5 的最终目标，当前仍搬迁使用旧模型和算法。
+采用pnpm workspace：一个SDK包和一个独立demo。三个子路径已由M1建立，正式core/formats和独立编辑/运行时已实现；历史viewer暂存到M5迁移。
 
 | 目标位置／正式入口   | 职责与允许依赖                                                                                                                                           |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -18,13 +18,13 @@
 
 正式公共入口为上述三个子路径，使用显式 `exports`；不开放任意内部深层导入，也不保留旧全量入口的兼容实现。`core`/`formats` 导入必须无启动场景、注册全局处理器或创建 Worker 的副作用。Node.js 用于工具链和无浏览器检查，不构成 SDK 的 Node.js 运行时支持承诺。
 
-M4 的纯命令/历史状态机从 `core` 公开，能够在不创建 viewer 的情况下验证事务和历史；浏览器计算运行时从 `viewer` 子路径以显式工厂公开，只有调用该工厂才创建 Worker，独立使用时不创建 canvas 或 WebGL。正式 viewer 组合这两者，不另建私有的第二套编辑规则。具体函数声明在 M4 实施前根据 M3 的模型补全到本文件和消费者编译用例。
+M4的纯命令/历史状态机从`core`的`createDocumentStore`公开；`viewer`公开`createComputationRuntime`和`createEditorController`。导入没有创建Worker/canvas的副作用，首次计算才创建自有执行器。正式viewer组合相同控制器，不另建第二套编辑规则。具体决策见[ADR0004](decisions/0004-formats-runtime.md)。
 
 M2 已实测选定 Three.js 0.186.1（类型 0.186.0），依据见 [Accepted ADR 0002](decisions/0002-renderer-selection.md)。新版正式 viewer 只使用该后端，不建设通用双引擎框架。M2 的 `RenderSnapshot`/adapter 仅是比较契约，M3/M4 仍须建立正式领域类型和运行时。
 
 M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29 用户确认，历史 Babylon 7.23.0 viewer/demo 保留至 M5/M6 迁移；定案时收束新候选，不在 M2 为删除历史依赖而提前重写完整 viewer。
 
-M3 正式 `core` 不再导出历史 `IAtom/IStructure/ILattice`、事件工具或旧数据表。历史消费者的必要依赖移至 `internal/legacy`，只修改内部导入，不创建新旧模型转换层；formats 迁移前暂消费这一内部模型。新 core 禁止导入该历史目录。无消费者的旧键价数据已删除。
+正式core不再导出历史IAtom/IStructure/ILattice、事件工具或旧数据表。M3曾将旧格式/viewer依赖隔离到internal/legacy；M4已移除旧格式和历史setting数组，仅旧viewer继续使用必要历史类型/算法，不创建转换层。新core/formats均禁止导入历史目录。无消费者的旧键价数据已删除。
 
 ## M3 科学接口
 
@@ -38,6 +38,16 @@ M3 正式 `core` 不再导出历史 `IAtom/IStructure/ILattice`、事件工具�
 
 ## 数据、状态与编辑
 
+### M4独立接口
+
+`createDocumentStore({historyLimit?})`提供同步`load/execute/undo/redo/clear/getState`，事务操作返回`ScientificResult<DocumentChange>`。状态包含可选源快照/documentId、revision及canUndo/canRedo。`execute`接受单命令或数组，命令涵盖add-atom/remove-atom/set-element/set-position/set-instance-position/set-cell/set-symmetry；新原子ID由调用者提供，禁止重用本文件曾发出的ID。实例命令带原documentId/revision，旧实例必须被拒绝。
+
+`createComputationRuntime({mode?,timeoutMs?})`提供`compute/invalidate/dispose`，模式为worker或sync，默认30秒。任务为derive、reciprocal或brillouin-zone，携带documentId/revision；响应增加requestId/category/value/diagnostics。每个runtime独占执行器，默认Worker；全部模式使用同一core任务分派。同步执行本身不可抢占，取消正确性仍由请求失效检查保证。
+
+`createEditorController({historyLimit?,mode?,timeoutMs?,derivation?,commit?})`提供异步load/execute/undo/redo/recompute、辅助compute以及clear/dispose/subscribe/getState。commit接收DerivedStructure、请求上下文和AbortSignal，Promise完成才发ready；默认立即完成，M5以完整帧提交替换它。辅助compute只接受倒易/BZ任务并共享同一Worker，不修改结构历史或主派生状态。订阅立即交付当前状态，返回幂等退订函数。
+
+格式正式入口为`parseCifDocument/writeCifDocument/parseStructure/writeStructure`。MOL的`finite`可选source+atomIds或instances+endpoints；周期输入必须指定，`WriteResult.atomMapping`给出fileAtomNumber/exportAtomId/source。CIF AST拥有全部blocks、saveFrames、item/loop和值类型，格式专属来源元数据只通过JSON保留科学损失清单与测量锚点，不向core加入AST。编译用例同时检查core/formats声明无DOM。
+
 - **输入与源模型**：`load` 取得独立快照；周期结构保存显式分数坐标，非周期结构保存 Å 制笛卡尔坐标。解析或结构校验在提交前失败时，保留原文档、历史和显示；源快照通过校验后才接受新 documentId 并清历史/选择。调用者后续修改输入不影响 viewer；读取快照也不能修改内部权威状态。
 - **身份与派生显示**：原子和键使用稳定 ID。计算输出的每个显示实例包含实例 ID、源原子 ID、对称操作/晶胞偏移及笛卡尔位置；显示键引用显示实例。选择和编辑通过映射回到源对象，不能通过 mesh 名称、坐标相等或对象引用猜测身份。
 - **周期键端点**：源结构的每个键端点都包含 `sourceAtomId`、`symmetryOperationId`、`integerCellOffset`；非周期端点使用恒等操作和零偏移。两个端点都能表达非恒等对称影像，不能仅保存 AtomId 或单一相对 shift。键去重按规范端点及物理实例映射处理，科学规范决定操作规范化方式。
@@ -47,7 +57,7 @@ M3 正式 `core` 不再导出历史 `IAtom/IStructure/ILattice`、事件工具�
 
 ## 公共 API 职责草案
 
-下面保留 M4/M5 格式与 viewer 的**目标 TypeScript 契约草案**；core 的身份、诊断和科学模型已经建立，其余门面尚不能在当前仓库导入或执行。领域模型和格式结果的详细字段由领域/产品规范约束；M4 建立具体声明与编译用例，M5 实现浏览器门面。
+下面展示已实现的M4格式边界及M5三维门面的目标草案；格式完整声明以`formats/contracts.ts`为准，独立编辑/运行时接口见上文。`createViewer`、完整ViewerOptions/ViewerEvent仍由M5实现，不能在当前仓库调用。领域模型和格式结果的详细字段受领域/产品规范约束。
 
 ```ts
 // alchemion/core：周期键最小身份契约，其他科学属性由领域规范补全。
@@ -70,7 +80,13 @@ export type BlockSelector = { name: string } | { index: number }
 export type ParseOptions = { format: 'cif'; block?: BlockSelector } | { format: 'mol' }
 export type WriteOptions = (
   | { format: 'cif'; version: '1' | '2' }
-  | { format: 'mol'; version?: 'V2000' | 'V3000' }
+  | {
+      format: 'mol'
+      version?: 'V2000' | 'V3000'
+      finite?:
+        | { kind: 'source'; atomIds: readonly AtomId[] }
+        | { kind: 'instances'; endpoints: readonly BondEndpoint[] }
+    }
   | { format: 'poscar' }
 ) & { allowLoss?: boolean }
 export interface ParseResult {
@@ -81,6 +97,7 @@ export interface ParseResult {
 export interface WriteResult {
   text?: string
   diagnostics: readonly Diagnostic[]
+  atomMapping?: readonly { fileAtomNumber: number; exportAtomId: string; source: BondEndpoint }[]
 }
 export interface CifDocumentResult {
   document?: CifDocument

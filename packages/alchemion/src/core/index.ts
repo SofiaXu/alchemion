@@ -29,3 +29,11 @@ export { reciprocalLattice, reciprocalPoint } from './reciprocal'
 export type { ReciprocalLattice } from './reciprocal'
 export { computeBrillouinZone } from './brillouin-zone'
 export type { BrillouinZone, BrillouinZoneFace, BrillouinZoneOptions } from './brillouin-zone'
+export { createDocumentStore } from './editing'
+export type {
+  EditCommand,
+  DocumentStore,
+  DocumentStoreOptions,
+  DocumentState,
+  DocumentChange
+} from './editing'

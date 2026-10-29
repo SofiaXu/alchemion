@@ -68,6 +68,7 @@ export default ts.config(
         'error',
         {
           patterns: [
+            '**/internal/**',
             '**/viewer/**',
             '**/viewer',
             '@babylonjs/*',

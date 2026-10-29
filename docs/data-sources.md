@@ -1,55 +1,38 @@
 # 数据、样例与规范来源台账
 
-观察日期：2026-10-29。历史基准：`06784cf0a61d09c76906086bebac773459f5b33d`。M3 已在线核对正式科学表的固定版本、原始字节和许可，并用独立检查验证；历史格式/显示资产仍按表中负责阶段处理。“待核实”不能写成已授权或已完成科学验证。
+观察日期：2026-10-29，Asia/Hong_Kong。历史基准 `06784cf`；M4入口 `560e41e`。来源核验与科学验证分别记录，实际通过情况见各阶段证据。根MIT许可不能替第三方资产追认来源。
 
-本台账服务 R-022 / T-DATA-01。领域公式与语义归 [domain.md](domain.md)，格式支持范围归 [product.md](product.md)。根 [MIT License](../LICENSE) 的存在不证明所有内嵌数据均由项目作者创作。
+## 当前资产与历史处置
 
-## 当前资产登记
+| 来源ID | 资产与依据                                                                                                                                                                                   | 状态与后续                                                                                                                                         |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-001  | [正式元素表](../packages/alchemion/src/core/data/elements.ts)：periodictable2.0.2、118元素、96个Cordero半径；public domain。                                                                 | M3已核验。历史元素表仍仅供旧viewer，M5/M6移除；不将新表许可追认给旧表。                                                                            |
+| D-002  | [已删除的旧键价表](https://github.com/SofiaXu/alchemion/blob/3ab8d6f/packages/alchemion/src/core/elements/bvparm.ts)。                                                                       | M3确认无消费者后移除，不新增键价能力。                                                                                                             |
+| D-003  | [正式setting表](../packages/alchemion/src/core/data/space-groups.ts)：spglib2.6.0，BSD3-Clause，530 Hall/230 IT/7388操作。                                                                   | M3科学核验有效。M4删除失去消费者的历史操作数组，仅保留旧viewer所需CrystalSystem枚举；不由IT号猜setting。                                           |
+| D-004  | [历史1010541.cif](https://github.com/SofiaXu/alchemion/blob/560e41e/apps/demo/public/1010541.cif)：文件头COD revision202022、Bragg1926，DOI10.1098/rspa.1926.0088。                          | M4删除未再使用的静态文件；保留这条历史登记，不宣称在线授权核验完成。重新引入须核查原记录和散列。                                                   |
+| D-005  | [历史9002807.cif](https://github.com/SofiaXu/alchemion/blob/560e41e/apps/demo/public/9002807.cif)：COD/AMCSD revision282068，Yamanaka/Hirai/Komatsu2002，American Mineralogist87:1183–1189。 | M4删除静态文件及旧测试副本，使用自产输入替换；不把COD收录等同MIT或public domain。                                                                  |
+| D-006  | [历史咖啡因MOL](https://github.com/SofiaXu/alchemion/blob/560e41e/apps/demo/public/C8H10N4O2.mol)。                                                                                          | 原下载来源/许可无法由本地文件确认；M4随失去消费者的旧资产移除，改用项目自行构造的分子，不推断原文件作者。                                          |
+| D-007  | [新版CIF实现及测试](../packages/alchemion/src/formats/cif/index.ts)。                                                                                                                        | M4按IUCr规范独立编写小样例，项目MIT；替换无集中来源的旧19个CIF样例，不继承旧错误断言。                                                             |
+| D-008  | [历史CIF JSON schema](https://github.com/SofiaXu/alchemion/blob/560e41e/packages/alchemion/src/formats/parsers/cif-parser/schema.json)。                                                     | 无运行消费者，M4随旧parser移除；不据schema标识推断许可或文本合规性。                                                                               |
+| D-009  | [旧宿主自产输入](../tests/host/legacy-fixture.ts)、[暂存demo输入](../apps/demo/src/legacy-fixture.ts)、[M2图形夹具](../tests/renderer-selection/fixture.ts)。                                | 项目MIT，自编确定输入；工程/图形检查资产，不是独立科学oracle。M4不把旧viewer加载计入新viewer验收。                                                 |
+| D-010  | [历史配色表](../packages/alchemion/src/internal/legacy/colors/index.ts)。                                                                                                                    | 来源仍待核实，M5确认或独立定义默认配色，M6核对分发。                                                                                               |
+| D-011  | [M3独立参考](evidence/m3-scientific-reference.md)及生成程序。                                                                                                                                | 项目MIT，NumPy2.2.6/SciPy1.15.3只供开发，保留已测数据与证据，本阶段不重复生成。                                                                    |
+| D-012  | [Unicode16.0.0来源记录](../packages/alchemion/src/formats/cif/unicode-source.json)、[许可](../packages/alchemion/src/formats/cif/UNICODE-LICENSE.txt)。                                      | 1557条C+F casefold映射，NFD前后归一，用于CIF2名称比较。官方原字节SHA及许可SHA保存在来源记录；分发表SHA由构建写入FORMAT_DATA_MANIFEST.json。        |
+| D-013  | [RDKit参考质量数](../packages/alchemion/src/formats/mol/reference-isotopes.json)、[BSD许可](../packages/alchemion/src/formats/mol/RDKIT_LICENSE.txt)。                                       | 固定Release_2025_09_6 atomic_data.cpp的reference mass-number列，只作CTfile编码参考，不取代core平均原子量。源SHA/许可SHA在JSON，输出SHA随构建分发。 |
+| D-014  | [MOL/POSCAR测试](../packages/alchemion/src/formats/mol/index.ts)、[一次性代表输出生成](../scripts/m4-mol-fixtures.mjs)。                                                                     | 项目自行构造，MIT；输入真值显式声明，预期不由生产reader反向生成。CIF使用对应自产生成程序和独立工具核对。                                           |
 
-| 来源 ID | 仓库资产                                                                                                                                                    | 已知来源证据与状态                                                                                                                                                                                                                                                                                   | 后续动作                                                                                                                   |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| D-001   | [M3 元素表](../packages/alchemion/src/core/data/elements.ts)；[历史表](../packages/alchemion/src/internal/legacy/elements/elements.ts)                      | 正式表替换为 periodictable 2.0.2 的118元素、质量和96个Cordero共价半径；来源文件明确public domain。缺失半径不补值，代表同位素质量单独标识。源版本/散列/转换见随包manifest；M3数据测试通过。历史表仍未核实，隔离供旧viewer/formats使用。                                                               | M4/M5迁移时删除失去消费者的历史表；M6核对最终tarball不再携带旧表。                                                         |
-| D-002   | [已删除键价表的历史提交](https://github.com/SofiaXu/alchemion/blob/3ab8d6f/packages/alchemion/src/core/elements/bvparm.ts)                                  | M3全仓检索确认没有消费者；已删除数据、公开导出和会覆盖价态参数的Map。未核实再分发条件，不作为新版数据或功能。                                                                                                                                                                                        | 不新增键价计算产品能力；若未来提出该功能，重新核验来源与多参数语义。                                                       |
-| D-003   | [M3 setting 表](../packages/alchemion/src/core/data/space-groups.ts)；[历史表](../packages/alchemion/src/internal/legacy/structure/space-group-settings.ts) | 正式表来自spglib 2.6.0、BSD 3-Clause：Hall1–530、IT1–230、7388操作。旋转列存储，平移精确有理化往返误差0；全部setting独立整数群闭合/逆元检查通过。历史表来源仍待核实。                                                                                                                                | M4改用正式setting解析后删除旧表；不得由IT号猜setting。                                                                     |
-| D-004   | [1010541.cif](../apps/demo/public/1010541.cif)                                                                                                              | 文件头称来自 COD，revision `202022`（2017-10-15），并声明 contributors 将数据置于 public domain。内含 Bragg, W. L.，1926，DOI `10.1098/rspa.1926.0088`。这是本地文件头声明，未在线核实。                                                                                                             | M4：核对 COD 记录和原文信息，保留数据头和文献引用；登记下载/核验日期及内容散列。                                           |
-| D-005   | [9002807.cif](../apps/demo/public/9002807.cif) 和 [测试副本](../packages/alchemion/src/formats/parsers/cif-parser/__tests__/test-data/9002807.cif)          | 文件头称来自 COD/AMCSD，revision `282068`（2023-03-26）；要求对原论文适当署名。内含 Yamanaka, T.; Hirai, M.; Komatsu, Y.，2002，American Mineralogist 87，1183–1189，题名 `Structure change of Ca1-xSrxTiO3 perovskite with composition and pressure`。不能仅因存于 COD 就改记为 MIT/public domain。 | M4：核实来源与使用条件，保留完整引用；比较两个副本散列并消除无必要重复。demo 如展示该样例，应提供来源入口。                |
-| D-006   | [C8H10N4O2.mol](../apps/demo/public/C8H10N4O2.mol)                                                                                                          | V2000 文件；头部含程序标识，未见可确认的下载来源、作者或许可。待核实。                                                                                                                                                                                                                               | M4：追查来源；不能确认时以项目自行构造、可公开分发的合成分子 fixture 替换。不可仅凭分子式推断来源。                        |
-| D-007   | [CIF 语法 fixtures](../packages/alchemion/src/formats/parsers/cif-parser/__tests__/test-data)                                                               | 目录共 19 个 CIF 文件，包含 D-005 及空白、注释、引号、loop、CIF1/2、Unicode、列表、表和容器样例；其余样例没有集中出处说明。待核实。                                                                                                                                                                  | M4：按文件确认自产/第三方来源与许可。未知来源的小型语法用例可按规范重新独立编写，保留覆盖意图，不继承未经验证的旧断言。    |
-| D-008   | [CIF JSON schema](../packages/alchemion/src/formats/parsers/cif-parser/schema.json)                                                                         | 文件声明 JSON Schema draft-06，并含 `http://www.iucr.org/resources/cif/cif-json.json` 标识；标识本身不证明版本、许可或与实际解析器一致。待核实。                                                                                                                                                     | M4：核实原始 schema 与使用方式；未使用时移除运行依赖或作为有来源的参考资产。不能将该 schema 当成 CIF 文本完整合规证明。    |
-| D-009   | [M1合成宿主](../tests/host/main.ts) 和 [M2图形夹具](../tests/renderer-selection/fixture.ts)                                                                 | M1自编正交胞碳CIF及128原子网格；M2自编间距3Å的25×20×20格点、20,000键、球24×16/封口圆柱16段、固定配色/相机/更新序列；无随机数或外部数据，项目MIT。仅作工程/渲染验证，不是科学oracle。                                                                                                                 | M1工程与M2[实测](evidence/m2-renderer-selection.md)已验证；正式科学参考和数据核验仍由M3/M4完成。                           |
-| D-010   | [原子配色表](../packages/alchemion/src/internal/legacy/colors/index.ts)                                                                                     | 按元素索引存储颜色，未见配色方案名称、来源版本或许可说明；不能从颜色相似性推断属于某个公开色表。待核实。                                                                                                                                                                                             | M5：确认实际采用的默认方案、来源和许可；无法核实时独立定义并说明项目默认配色，消费者仍可自定义，不能冒称兼容特定外部方案。 |
+## 一手规范与工具
 
-## 核验记录格式
+- [IUCr CIF规范](https://www.iucr.org/what-we-do/digital-standards/cif/specification)及[CIF2正式规范](https://journals.iucr.org/j/issues/2016/01/00/aj5269/)决定文档语法；结构字段范围见[产品](product.md)。
+- [BIOVIA CTfile2020](https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf)决定MOL记录/属性/表示限制。
+- [VASP POSCAR](https://vasp.at/wiki/POSCAR)决定比例因子、基矢、物种分组和Direct坐标。
+- [Unicode固定输入](https://unicode.org/Public/16.0.0/ucd/CaseFolding.txt)原字节SHA256为`6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb`。
+- [RDKit固定输入](https://raw.githubusercontent.com/rdkit/rdkit/Release_2025_09_6/Code/GraphMol/atomic_data.cpp)原字节SHA256为`7f9cee6e430b60d303a0a7fa9e33c45e5c529ee204f86afeab6a20f68b6b0631`。
 
-负责阶段应直接更新上表，补充可复查的证据记录。每项至少包含：资产路径与用途；原始作者/机构与一手来源 URL；来源版本、记录 ID 或获取日期；明确的许可文本及署名条件；仓库文件 SHA-256；原始数据到本地格式的转换；科学校验方法；状态及核验日期。
+M4独立环境固定Python3.12.10、PyCifRW5.0.1、NumPy2.2.6、SciPy1.15.3、RDKit2025.9.6、ASE3.26.0及openbabel-wheel3.1.1.23，见[requirements](../scripts/m4-reference-requirements.txt)。后者运行时版本字符串为3.1.0，包装版本和实际字符串同时记录；只为RDKit合并singlet/triplet的参考信息缺口补充spin multiplicity核验。工具不进入SDK依赖，用户文件不上传外部服务；安装成功不等同格式验证通过。
 
-同源副本引用相同来源 ID，分别记录散列与用途。数据经过筛选、修正或重排时保留转换依据，不把改过的数据伪装为原始下载。不要把网页截图、搜索摘要或推断当成许可证明。
+## 分发与验证记录
 
-## 一手规范核验入口
+M3原始输入/输出散列、计数及转换保持在[科学manifest](../packages/alchemion/SCIENTIFIC_DATA_MANIFEST.json)，不因M4重生成。M4构建另生成`dist/FORMAT_DATA_MANIFEST.json`，记录两个新格式数据集、许可证和分发表的SHA；[第三方声明](../packages/alchemion/THIRD_PARTY_NOTICES.md)携带完整许可。两者随真实SDK tarball核对。
 
-M0 规划时已查阅 CIF、CTfile 和 POSCAR 的一手规范入口，用于定义目标支持范围；尚未执行格式合规测试，也未在线核实上表资产的来源与许可。实施时应核对实际采用的规范版本、条目及获取日期。
-
-| 规范/来源     | 官方入口                                                                                                  | 用途与负责阶段                                                                                                      |
-| ------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| IUCr CIF      | [CIF 官方规范](https://www.iucr.org/what-we-do/digital-standards/cif/specification)                       | M3/M4：CIF1/2 语法、核心字典、缺失/未知值及晶体字段含义。                                                           |
-| BIOVIA CTfile | [CTfile Formats 2020](https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) | M4：以此已查阅版本为规范基准，核对 MOL V2000/V3000 结构、计数、键、属性与不支持特性的诊断；若改用新规范须登记差异。 |
-| VASP POSCAR   | [VASP Wiki：POSCAR](https://vasp.at/wiki/POSCAR)                                                          | M4：周期晶胞、比例因子、Direct/Cartesian 与物种/计数顺序。                                                          |
-| COD           | [Crystallography Open Database](https://www.crystallography.net/cod/)                                     | M4：核对 D-004/D-005 的记录、原始引用及实际使用条件。                                                               |
-
-M3 已采用的科学数据选择见 [ADR 0003](decisions/0003-scientific-core.md)。旧内部表仍保留原待核实状态，不将新版表的来源追认给旧数据。
-
-## 交付关卡
-
-- M0 交付来源缺口的真实清单，允许存在明确标记的待核实项，不宣称已完成授权审查。
-- M1 可以为历史基线进行本地机械搬迁与验证，但不能将搬迁后的数据标成新版已审核数据。
-- M3–M5 按上表负责阶段，为进入科学核心、格式测试、默认配色和演示样例的资产完成核验或有证据的替换；数据预期值还需独立科学测试，来源可信不等于实现正确。
-- M6 检查正式 tarball、demo 静态资源和 tests 中实际携带的所有数据。进入分发的资产必须有可确认的来源和使用条件，并带必要署名；不满足的资产应替换或排除，不能默认为 MIT，也不能通过删除台账条目掩盖缺口。
-- 验证统一使用 T-DATA-01，结果和证据记入相应执行计划。发布到外部服务是单独动作，M6 分发验收不等于已经发布。
-
-## M3 核验记录（2026-10-29）
-
-固定上游文件、原始字节 SHA-256、输出规范化 UTF-8/LF 散列、7388操作计数和转换策略集中保存在 [随包manifest](../packages/alchemion/SCIENTIFIC_DATA_MANIFEST.json)，许可全文/作者/论文引用在 [第三方声明](../packages/alchemion/THIRD_PARTY_NOTICES.md)。两个声明均加入SDK的files白名单；实际tarball结果见阶段报告。
-
-[生成程序](../scripts/scientific-data/generate.py) 使用Python3.12.10、periodictable2.0.2和spglib2.6.0，仅执行一次且退出0；源文件六项均按固定tag与SHA校验。共价半径来自Cordero2008，C取sp3、Mn/Fe/Co取低自旋，97–118缺失。质量保留CIAAW2021与AME2020出处及类型；不迁入无来源的价态/电负性或旧单向成键白名单。
-
-新增D-011：[独立科学参考](evidence/m3-scientific-reference.md)、自编解析点/网格与[生成程序](../scripts/scientific-reference.py)为项目MIT。NumPy2.2.6/SciPy1.15.3只参与开发参考生成；固定输入和结果已入库，不进入SDK运行依赖。科学数据测试3项及其余core测试共57项首轮通过；这不表示历史样例、配色、格式语义或完整分发的T-DATA-01已完成。
+T-DATA-01的实际结果归阶段报告。未确认的历史配色/元素资产继续由M5/M6处理，不能把本阶段来源登记写成完整产品授权关卡通过。M6须核对最终tarball与demo静态资源；未来重新引入已移除文件时，重新核查来源、使用条件和署名。

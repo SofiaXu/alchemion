@@ -1,5 +1,5 @@
 import { AlchemionEditor } from 'alchemion/viewer'
-import { CifParser } from 'alchemion/formats'
+import { legacyFixture } from './legacy-fixture'
 import './main.scss'
 import Modal from 'bootstrap/js/dist/modal'
 
@@ -18,9 +18,7 @@ const openAtomSettings = () => {
 }
 
 ;(async () => {
-  const file = await fetch('/9002807.cif').then((x) => x.text())
-  const parser = new CifParser()
-  const structure = parser.parse(file)
+  const structure = legacyFixture()
   const editor = new AlchemionEditor('.editor')
   const status = document.createElement('output')
   status.id = 'demo-status'

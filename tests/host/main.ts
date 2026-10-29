@@ -1,24 +1,6 @@
 import { createCell, createStructureSnapshot, fractionalToCartesian } from 'alchemion/core'
-import { CifParser } from 'alchemion/formats'
+import { legacyFixture } from './legacy-fixture'
 import { AlchemionEditor, type IEditorOptions } from 'alchemion/viewer'
-
-// Project-authored synthetic fixture: orthogonal unit cell, one carbon at (1/4,1/4,1/4).
-const cif = `data_m1
-_cell_length_a 1
-_cell_length_b 1
-_cell_length_c 1
-_cell_angle_alpha 90
-_cell_angle_beta 90
-_cell_angle_gamma 90
-_cell_volume 1
-_space_group_IT_number 1
-loop_
-_atom_site_label
-_atom_site_fract_x
-_atom_site_fract_y
-_atom_site_fract_z
-C1 0.25 0.25 0.25
-`
 
 let editor: AlchemionEditor | undefined
 const status = document.querySelector('output')!
@@ -27,7 +9,7 @@ const state = { picked: '', sourceCount: 0, loadMs: 0 }
 
 async function run(mode: 'basic' | 'nested' | 'bench' = 'basic') {
   const start = performance.now()
-  const structure = new CifParser().parse(cif)
+  const structure = legacyFixture()
   // New scientific core is exercised independently of the historical parser/viewer model.
   const cell = createCell({ a: 2, b: 3, c: 4, alpha: 90, beta: 90, gamma: 90 })
   if (!cell.ok) throw new Error('Scientific core cell creation failed.')

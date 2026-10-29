@@ -1,6 +1,6 @@
 # M4：格式、编辑事务与浏览器运行时
 
-状态：未开始。
+状态：进行中（实现和Windows本地关卡已通过，Ubuntu定向CI待运行）。入口基准 `master@560e41e`，实施分支 `codex/m4-formats-runtime`。
 需求：R-002、R-003、R-004、R-005、R-006、R-017、R-018、R-019；承接 R-001/R-022，为 R-020/R-023 提供接口。
 测试：T-FMT-01、T-FMT-02、T-FMT-03、T-FMT-04、T-RUN-01、T-EDIT-01、T-DATA-01；T-DOM-06/T-PKG-01 辅助验证身份和模块边界，viewer 集成由 M5 完成。
 
@@ -43,7 +43,7 @@ SDK 消费者能够读取/输出声明范围内的 CIF1/CIF2、MOL V2000/V3000 �
 
 独立参考应在实施开始时固定具体工具版本并记录到证据：CIF 使用与本项目无代码复用的规范校验/晶体解析工具，MOL 使用独立 CTfile 解析工具，POSCAR 使用独立结构读取工具；工具须在本地运行，不把用户文件上传外部服务。若某个独立工具不支持要求中的标准字段，换用支持该字段的独立工具并保留原因，不删去该项验收来适配工具。标准来源为 [IUCr](https://www.iucr.org/what-we-do/digital-standards/cif/specification)、[BIOVIA](https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 和 [VASP](https://vasp.at/wiki/POSCAR)。
 
-M1 完成后在仓库根目录使用目标命令 `pnpm test`（单次）、`pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm build`、`pnpm test:browser` 和 `pnpm test:package`，先运行相关场景再执行全部必需检查。迭代时的 watch 模式为 `pnpm test:watch`，不作为完成证据。`pnpm check` 的聚合范围及 `pnpm bench` 的运行方式以质量规范为准；本轮 M0 未建立或执行这些目标命令。
+本阶段实际使用定向Vitest文件（4进程）、SDK/demo构建、纯core/formats及消费者类型、改动lint/格式和文档链接；浏览器使用`pnpm test:browser -- --phase=m4 --prepared`，真实tarball使用`pnpm test:package -- --phase=m4 --prepared --project=chromium`。`--prepared`只复用本轮SDK；不默认执行check、完整科学/渲染测试或bench。精确范围、退出码和首次失败/复验理由见[M4证据](../evidence/m4-formats-runtime.md)。
 
 关卡：产品格式矩阵逐项通过；独立解析证明输出科学语义；事务/历史不依赖 viewer；全部异步终结路径可复现，无永久 pending Promise 或旧结果污染。M5 只需组合已有能力，不再承担补写格式/历史正确性的隐含任务。
 
@@ -55,23 +55,30 @@ M1 完成后在仓库根目录使用目标命令 `pnpm test`（单次）、`pnpm
 
 ## 进展（Progress）
 
-- [ ] M3 关卡、格式接口和诊断模型已核对。
-- [ ] CIF1/CIF2 文档层、晶体映射、writer 与多 block 选择通过。
-- [ ] MOL V2000/V3000、周期 POSCAR 与损失控制通过。
-- [ ] 编辑事务、稳定身份、undo/redo 与 load 行为通过。
-- [ ] 同步/worker 一致性及全部异步终结路径通过。
+- [x] M3 关卡、格式接口和诊断模型已核对。
+- [x] CIF1/CIF2 文档层、晶体映射、writer 与多 block 选择通过。
+- [x] MOL V2000/V3000、周期 POSCAR 与损失控制通过。
+- [x] 编辑事务、稳定身份、undo/redo 与 load 行为通过。
+- [x] 同步/worker 一致性及全部异步终结路径通过。
 - [ ] 独立格式证据、必需检查及 M5 交接完成。
 
 ## 发现（Surprises & Discoveries）
 
-尚无 M4 执行发现。历史 parser/writer 的静态问题见 [现状审计](../baseline.md)，本计划不声称已运行复现。
+2026-10-29接管时：只读核查确认历史 demo/宿主依赖旧格式模型，决定迁移为自产旧模型样例，不建立适配层。Worker URL 脚本硬编码两个入口，需按实际资产检查。系统 Node/pnpm 与固定版本不同，使用已有 `.tools/pnpm.cmd`（Node24.22.1/pnpm9.7.0）；当时尚未运行业务验证。
+
+实施后：首轮96单元5失败源于浮点/CRLF/fixture及optional字段断言，保持生产科学约束后定向修复。审查新增CIF长文本和两个同步deadline竞态；六文件78项复验通过，其余21项沿用首轮，总99场景。三浏览器12/12、真实tarball1/1、独立格式17/17通过。OpenBabel不支持token内部物理续行，仅其补充spin参考通道展开物理续行，原输入仍由RDKit验证，保留原/转换散列；没有降低字段范围。
 
 ## 决策（Decision Log）
 
 - 2026-10-29：执行产品已确定的 CIF1/CIF2、MOL 双版本及周期 POSCAR 范围；MOL 默认 V3000，周期转 MOL 要求有限快照与损失诊断，POSCAR 拒绝无晶胞和部分占位。
 - 2026-10-29：命令/历史在 M4 实现、M5 接入交互；事务成功才更新历史，load 清历史，undo/redo 不倒退 revision。同类派生任务 latest-wins，结构命令保持顺序。
 - 上述为 M0 目标决策，尚无实现证据；后续跨阶段变更须进入正式决策记录并同步相关规范。
+- 2026-10-29：用户授权完整 M4、提交并合并 master。固定三个不再拆分的工作包：CIF；MOL/POSCAR/有限范围；编辑/运行时。主会话统一共享类型、入口、构建、消费者、CI与文档。
+- 2026-10-29：格式损失清单随快照元数据保留；默认100事务、30秒超时、独占单Worker；controller提供异步commit边界供M5复用。验证仅M4及直接受影响场景，默认4进程、无重试；不默认运行完整科学/渲染测试。
+- 2026-10-29：实际接口/来源/提交边界归[ADR0004](../decisions/0004-formats-runtime.md)。完整字段验收和独立工具结果见M4证据，后续只做CI及归档，不自动进入M5。
 
 ## 结果与回顾（Outcomes & Retrospective）
 
-尚未实施，无格式、历史或运行时验证结果。完成后记录格式字段覆盖、独立参考、未支持构造、运行时限制和 M5 的具体接入入口，不预填成功结论。
+三个工作包直接完成，没有二次委派或建立第二套正式实现。Windows本地实现、科学格式和运行时关卡已通过，详情见M4证据；Ubuntu定向CI、PR合并和最终交接尚待完成。
+
+M5接入`createEditorController`的commit回调及辅助compute；选择/测量、Three完整帧和GPU资源仍由M5验收。查询/反应/Sgroup/增强立体、完整CIF字典映射等超出既定范围的构造明确诊断；不新增产品能力或声称完整原文无损。
