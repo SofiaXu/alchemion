@@ -1,6 +1,6 @@
 # M3：科学核心与领域不变量
 
-状态：进行中；2026-10-29 获授权实施完整 M3 并通过 PR 合并远端 master。
+状态：完成；2026-10-29 科学/工程关卡通过。主分支归档见 PR #6 和 master 的 Git HEAD。
 需求：R-001、R-007、R-008、R-009、R-012、R-013、R-014、R-016、R-022；为 R-017/R-018 提供身份和校验基础。
 测试：T-DOM-01、T-DOM-02、T-DOM-03、T-DOM-04、T-DOM-05、T-DOM-06、T-DATA-01；模块隔离由 T-PKG-01 辅助验证，性能最终关卡为 T-PERF-01。
 
@@ -59,7 +59,7 @@ SDK 消费者可以在不加载 viewer、DOM 或 Worker 的条件下创建和校
 - [x] 晶胞/坐标与科学数据校验通过。
 - [x] 对称、邻胞、cutoff 和成键通过；审查新增来源反例后仅复验成键文件。
 - [x] 测量、倒易晶格与第一 BZ 通过独立参考验证。
-- [ ] 必需检查、证据、M4 接口交付及交接完成。
+- [x] 必需检查、证据、M4 接口交付及交接完成；Ubuntu源码提交93937da定向CI首轮通过，PR #6归档。
 
 ## 发现（Surprises & Discoveries）
 
@@ -76,4 +76,4 @@ SDK 消费者可以在不加载 viewer、DOM 或 Worker 的条件下创建和校
 
 ## 结果与回顾（Outcomes & Retrospective）
 
-已交付新版科学模型/算法、固定来源数据、独立参考和真实消费者检查；本地科学、类型、lint、SDK/demo构建与Chromium tarball通过。文档收尾和定向Ubuntu CI尚待记录后完成阶段。M4 从正式core快照、校验和派生接口接入；当前历史formats/viewer和其未核实数据仍按原阶段迁移，不声称已经使用新版科学路径。
+已交付新版科学模型/算法、固定来源数据、独立参考和真实消费者检查；Windows定向检查与Ubuntu首轮CI均通过。源码提交93937da的7文件/58项科学测试、完整构建、类型、改动lint/格式、链接和Chromium tarball 1/1均有证据。详见 [科学核心报告](../evidence/m3-scientific-core.md)、[CI摘要](../evidence/m3-ci-summary.json) 和 [PR #6](https://github.com/SofiaXu/alchemion/pull/6)。M4 从正式core快照、校验和派生接口接入；当前历史formats/viewer和其未核实数据仍按原阶段迁移，不声称已经使用新版科学路径。

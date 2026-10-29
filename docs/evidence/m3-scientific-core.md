@@ -1,6 +1,6 @@
 # M3 科学核心验证
 
-日期：2026-10-29，Asia/Hong_Kong。工作目录 `D:\source\alchemion`；入口基准 `3ab8d6f`，共享契约/历史隔离提交 `80216d6`。实现和后续 CI 的确切提交在完成记录补入；当前仍在集成收尾。
+日期：2026-10-29，Asia/Hong_Kong。工作目录 `D:\source\alchemion`；入口基准 `3ab8d6f`，共享契约/历史隔离提交 `80216d6`。实现和科学CI提交为 `93937da9dd9e69d4c92b83bd33b24f6ee41d2d79`；归档提交与主分支合并记录见 [PR #6](https://github.com/SofiaXu/alchemion/pull/6)。后续仅更新文档，源码保持该已测提交。
 
 ## 交付与科学依据
 
@@ -34,6 +34,14 @@
 
 新增7个科学测试文件用于首次交付的T-DOM-01–06及正式数据T-DATA-01。主会话审查新增1个来源回归测试，理由是缺失来源会静默跳过而破坏逆映射契约。唯一完整本地科学首跑后只重跑了对应成键文件；未执行旧CIF/MOL测试、完整check、M2三浏览器/硬件bench或M4/M5未来场景。
 
-来源回归之后 `pnpm --filter alchemion build:source` 已通过0，并再次检查依赖新声明的 `tsc -p tsconfig.json` 通过0；没有重建未受影响demo。改动文件 `pnpm exec prettier --check <文件集合>` 已通过0；`pnpm docs:check` 已通过0，检查27份Markdown的本地链接。Ubuntu定向CI和远端合并仍待完成。CI只在本次代码变化时执行M3集合；后续纯文档记录更新只查格式/链接。Ubuntu重复科学与打包是为跨平台工程证据，不能把软件WebGL结果当硬件性能结论。
+来源回归之后 `pnpm --filter alchemion build:source` 已通过0，并再次检查依赖新声明的 `tsc -p tsconfig.json` 通过0；没有重建未受影响demo。改动文件 `pnpm exec prettier --check <文件集合>` 已通过0；`pnpm docs:check` 已通过0，检查27份Markdown的本地链接。Ubuntu定向CI已首轮通过，结果见下节；主分支归档见PR #6。CI只在本次代码变化时执行M3集合；后续纯文档记录更新只查格式/链接。Ubuntu重复科学与打包是为跨平台工程证据，不能把软件WebGL结果当硬件性能结论。
 
 完整R-022尚包括M4/M5样例和配色、M6最终分发复核；本阶段只声明新版科学数据通过。事务/历史/取消协议和Three正式viewer未实施，第一BZ和成键结果尚未接入历史demo显示。
+
+## Ubuntu 最终源码与真实产物
+
+[Actions run40851532341](https://github.com/SofiaXu/alchemion/actions/runs/40851532341)，job123371926616，attempt1，success；源码commit93937da。2026-10-29 17:40:54–17:43:16（Asia/Hong_Kong）。Ubuntu24.04.5、runner镜像ubuntu-24.04/20261025.353.1，Node24.22.1、pnpm9.7.0、Chromium153.0.8010.12。
+
+实际7文件/58项科学测试通过，4进程、2.88秒；SDK/demo构建、两项类型检查、改动文件lint/格式和27文档链接检查全部通过。最终SDK真实tarball的Chromium消费者1/1通过，26.5秒；生产构建和两层Worker均正确。完整命令与退出状态见工作流日志，精简可复核数据见 [CI摘要](m3-ci-summary.json)。
+
+CI使用LIBGL_ALWAYS_SOFTWARE=1；只提供功能/分发证据，不提供性能结论。M2工作流未触发。后续文档归档提交只检查格式/链接，保留已测源码不变；远端主分支的合并SHA以PR #6与master HEAD为准。

@@ -1,6 +1,6 @@
 # 目标架构与接口边界
 
-状态：2026-10-29。M1 已建立 SDK/demo workspace 与公开子路径；M3 正在以 [ADR 0003](decisions/0003-scientific-core.md) 落实正式科学模型，运行验证以阶段证据为准。格式、事务/运行时和最终 viewer API 仍为 M4–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
+状态：2026-10-29。M1 已建立 SDK/demo workspace 与公开子路径；M3 已按 [ADR 0003](decisions/0003-scientific-core.md) 实现正式科学模型并通过本地/Ubuntu定向验证。格式、事务/运行时和最终 viewer API 仍为 M4–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
