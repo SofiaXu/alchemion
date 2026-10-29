@@ -1,6 +1,6 @@
 # M2：渲染后端同条件验证与定案
 
-状态：未开始。
+状态：进行中（2026-10-29）。
 需求：R-010、R-014、R-019、R-021、R-023。
 测试：T-VIEW-01、T-VIEW-02、T-VIEW-03、T-RUN-01、T-PERF-01、T-PKG-01。
 
@@ -10,10 +10,12 @@
 
 ## 上下文与入口条件
 
-- M0 文档与 M1 工程基线已经完成；M1 的 workspace、浏览器测试、构建和基准命令可用。当前尚未实施 M1，下述目标命令不能视为已经存在。
+- M0 文档与 M1 工程基线已经完成；M1 的 workspace、浏览器测试、构建和基准命令可用；M2 参数由本阶段新增。
 - 读取 [架构](../architecture.md)、[质量规范](../quality.md)、[ADR 0001](../decisions/0001-project-foundation.md) 与 [ADR 0002](../decisions/0002-renderer-selection.md)。后者的硬门槛及有限决策规则是本阶段的选择依据。
 - 可运行目标桌面 WebGL2 浏览器，能记录真实设备/GPU/驱动和浏览器版本。无可用 GPU 或只能软件模拟时，可以开发夹具，不得据此完成选型。
 - M2 不依赖尚未完成的 M3/M4。使用最小引擎无关 RenderSnapshot 测试契约、已准备坐标和测试 Worker，验证传输与取消模式；正式科学推导和编辑调度由 M3/M4 实现后继续验证。
+- 本轮授权明确保留历史 viewer/demo 至 M5/M6 迁移；M2 候选是开发验证资产，不改变 SDK 公开入口。定案只收束新候选，旧 Babylon 7.23.0 依赖单独登记，不视为新版第二后端。
+- 固定四个工作包：主会话负责集成/脚本/配置/文档/Git；三个子代理分别完整负责 Three adapter、Babylon adapter、共享夹具/Worker/浏览器与采样资产，不再拆分。
 
 ## 实施步骤
 
@@ -47,19 +49,21 @@
 
 ## 进展（Progress）
 
-- [ ] M1 与真实 WebGL2 环境满足入口条件。
-- [ ] 同一夹具、画质、采样及 Worker/多实例测试已固定。
+- [x] M1 与真实 WebGL2 环境满足入口条件；完整 Chromium 的 D3D11 路径报告 Intel Arc B390，默认 headless shell 为 SwiftShader，后者不用于选型。
+- [x] 同一夹具、画质、采样及 Worker/多实例测试已固定；三浏览器 12/12，真实 tarball 3/3。性能采样尚未执行。
 - [ ] 两候选、两种模式各三轮数据及必要失败修复完整。
 - [ ] 单后端决策、产物/代码量证据及依赖收束完成。
 - [ ] ADR、架构、M5、执行结果与交接已同步。
 
 ## 发现（Surprises & Discoveries）
 
-尚无执行发现。当前只有官方实例化能力资料与旧代码静态审计，没有本项目候选基准结果。
+系统 Node 为 26.13.0，系统 pnpm shim 缺失 Corepack；现有 `.tools` 便携 Node 24.22.1/pnpm 9.7.0 可用，无须更改系统工具。初始工作区干净，当前分支 `codex/m2-renderer-selection` 与本地/远端 master 同为 3c54711。尚未执行 M2 功能或性能验收。
 
 ## 决策（Decision Log）
 
 2026-10-29：采用同等最小原型并按 [ADR 0002](../decisions/0002-renderer-selection.md) 有限择一；不凭旧引擎或纸面比较选定正式后端。
+
+2026-10-29：用户确认历史 viewer 保留至 M5/M6；新候选冻结为 three 0.186.1（类型 0.186.0）和 Babylon core 9.32.1。功能检查默认 4 进程；正式 GPU 采样独占串行，避免争用污染同条件比较。
 
 ## 结果与回顾（Outcomes & Retrospective）
 

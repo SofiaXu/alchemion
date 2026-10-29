@@ -8,6 +8,7 @@ import { createServer, build as viteBuild } from 'vite'
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pnpm = process.env.npm_execpath
 const browserFlags = process.argv.filter((arg) => arg.startsWith('--project='))
+const phaseM2 = process.argv.includes('--phase=m2')
 if (!pnpm) throw new Error('Use pnpm to invoke this task.')
 
 export function run(args, cwd = root, env = {}) {
@@ -59,6 +60,34 @@ async function browser(directory = join(root, 'tests/host'), grep = '@workspace'
   })
   await host(output, (url) =>
     run(['exec', 'playwright', 'test', '--grep', grep, ...browserFlags], root, { M1_BASE_URL: url })
+  )
+}
+
+async function comparisonHost() {
+  const output = join(root, '.tmp/m2-host')
+  await viteBuild({
+    configFile: false,
+    root: join(root, 'tests/renderer-selection/host'),
+    base: './',
+    build: { target: 'es2022', outDir: output, emptyOutDir: true },
+    worker: { format: 'es' }
+  })
+  return output
+}
+
+async function comparisonBrowser() {
+  const output = await comparisonHost()
+  await host(
+    output,
+    (url) =>
+      run(
+        ['exec', 'playwright', 'test', '--config=playwright.m2.config.ts', ...browserFlags],
+        root,
+        {
+          M2_BASE_URL: url
+        }
+      ),
+    4175
   )
 }
 
@@ -237,8 +266,11 @@ try {
       await types()
       break
     case 'browser':
-      if (!process.argv.includes('--prepared')) await sdk()
-      await browser()
+      if (phaseM2) await comparisonBrowser()
+      else {
+        if (!process.argv.includes('--prepared')) await sdk()
+        await browser()
+      }
       break
     case 'package':
       if (!process.argv.includes('--prepared')) await sdk()
@@ -251,9 +283,15 @@ try {
       await check(true)
       break
     case 'bench': {
-      await sdk()
-      const { measure } = await import('./bench.mjs')
-      await host(join(root, 'tests/host'), measure)
+      if (process.argv.includes('--renderer-selection')) {
+        const output = await comparisonHost()
+        const { measure } = await import('./renderer-selection.mjs')
+        await host(output, measure, 4175)
+      } else {
+        await sdk()
+        const { measure } = await import('./bench.mjs')
+        await host(join(root, 'tests/host'), measure)
+      }
       break
     }
     default:

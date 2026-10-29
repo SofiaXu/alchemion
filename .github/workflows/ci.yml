@@ -1,15 +1,16 @@
-name: M1 foundation
+name: M2 engineering
 on:
   push:
     paths-ignore: ['**/*.md', 'docs/**']
   pull_request:
     paths-ignore: ['**/*.md', 'docs/**']
 jobs:
-  foundation:
+  renderer-harness:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       LIBGL_ALWAYS_SOFTWARE: '1'
+      TEST_WORKERS: '4'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,11 +19,16 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: xvfb-run --auto-servernum pnpm check:m1
+      - run: pnpm build
+      - run: pnpm exec tsc -p tsconfig.json
+      - run: pnpm exec eslint scripts/tasks.mjs scripts/renderer-selection.mjs playwright.m2.config.ts tests/renderer-selection
+      - run: pnpm docs:check
+      - run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m2
+      - run: xvfb-run --auto-servernum pnpm test:package -- --prepared
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: m1-diagnostics
+          name: m2-diagnostics
           path: |
             playwright-report
             test-results

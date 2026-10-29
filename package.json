@@ -23,19 +23,22 @@
     "docs:check": "node scripts/docs-check.mjs"
   },
   "devDependencies": {
+    "@babylonjs/core": "9.32.1",
     "@eslint/js": "9.39.1",
     "@playwright/test": "1.63.0",
-    "@types/node": "24.10.1",
-    "@types/earcut": "2.1.4",
     "@types/bootstrap": "5.2.10",
+    "@types/earcut": "2.1.4",
+    "@types/node": "24.10.1",
+    "@types/three": "0.186.0",
+    "alchemion": "workspace:*",
     "eslint": "9.39.1",
     "eslint-config-prettier": "10.1.8",
     "prettier": "3.3.3",
+    "sass": "1.77.8",
+    "three": "0.186.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.50.0",
     "vite": "7.3.5",
-    "vitest": "4.0.18",
-    "sass": "1.77.8",
-    "alchemion": "workspace:*"
+    "vitest": "4.0.18"
   }
 }

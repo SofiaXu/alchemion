@@ -6,7 +6,7 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 M1 工程基线已完成，Windows 本地与 Ubuntu CI 关卡均已通过：已建立 pnpm workspace、ESM 子路径、声明、两层模块 Worker、独立 demo 与定向检查。保留的 Babylon.js 与科学/格式实现仅用于历史场景迁移；渲染引擎由 M2 实测定案。稳定身份、统一科学模型、完整格式、编辑历史和异步协议尚待 M3–M5，不因搬迁而视为完成。
 
-实际进展见 [交接](docs/handoff.md)、[M1 计划](docs/plans/m1-foundation.md) 和 [运行证据](docs/evidence/m1-foundation.md)。历史代码基准为 06784cf。
+M2 对照正在实施；候选尚未定案。实际进展见 [交接](docs/handoff.md)、[M2 计划](docs/plans/m2-renderer-selection.md) 和 [M2 证据](docs/evidence/m2-renderer-selection.md)。历史代码基准为 06784cf。
 
 ## 现有工程入口
 
@@ -21,21 +21,23 @@ pnpm dev
 
 Linux 安装浏览器时使用 Playwright 的 --with-deps 选项。不要跳过安装脚本。CI 使用 Ubuntu 24.04；本地 Windows 和 Linux 的运行结果分别记录。
 
-| 命令                    | 当前作用                                                                                        |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| pnpm dev / pnpm demo    | 等价入口；先构建 SDK/声明，再监听 SDK 更新并启动独立 demo。                                     |
-| pnpm build              | SDK 类型检查、ESM/模块 Worker/声明构建，然后构建 demo。                                         |
-| pnpm typecheck          | 先准备 SDK，再检查纯 core/formats、demo、测试和构建配置。                                       |
-| pnpm lint               | 只读 ESLint，包含模块边界限制。                                                                 |
-| pnpm format:check       | 只读 Prettier，包含代码、配置和 Markdown。                                                      |
-| pnpm test -- <文件路径> | 单次 Vitest；可指定相关文件，默认最多 4 个进程，无重试。                                        |
-| pnpm test:watch         | 显式启用 Vitest watch。                                                                         |
-| pnpm test:browser       | 准备 SDK，运行三个浏览器的 M1 创建/真实 Worker/拾取/销毁冒烟。                                  |
-| pnpm test:package       | pack 后在仓库外安装 tarball，检查全部公开声明、生产构建和三个浏览器的嵌套 Worker 场景。         |
-| pnpm check:m1           | 复用一次 SDK 构建，执行 M1 工程检查、两个 CIF 文件、浏览器与 tarball 验收。当前 CI 使用此范围。 |
-| pnpm check              | 显式全量检查入口；新增阶段后可能扩大，不作为默认任务验证。                                      |
-| pnpm bench -- --smoke   | 128 原子、120 帧的真实采集冒烟，输出 .tmp/bench/m1-smoke.json；不验收 T-PERF-01。               |
-| pnpm docs:check         | 检查本地 Markdown 链接。                                                                        |
+| 命令                               | 当前作用                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| pnpm dev / pnpm demo               | 等价入口；先构建 SDK/声明，再监听 SDK 更新并启动独立 demo。                                         |
+| pnpm build                         | SDK 类型检查、ESM/模块 Worker/声明构建，然后构建 demo。                                             |
+| pnpm typecheck                     | 先准备 SDK，再检查纯 core/formats、demo、测试和构建配置。                                           |
+| pnpm lint                          | 只读 ESLint，包含模块边界限制。                                                                     |
+| pnpm format:check                  | 只读 Prettier，包含代码、配置和 Markdown。                                                          |
+| pnpm test -- <文件路径>            | 单次 Vitest；可指定相关文件，默认最多 4 个进程，无重试。                                            |
+| pnpm test:watch                    | 显式启用 Vitest watch。                                                                             |
+| pnpm test:browser                  | 准备 SDK，运行三个浏览器的 M1 创建/真实 Worker/拾取/销毁冒烟。                                      |
+| pnpm test:browser -- --phase=m2    | 构建 M2 宿主，定向运行三个浏览器的候选正确性、Worker、更新与生命周期场景。                          |
+| pnpm test:package                  | pack 后在仓库外安装 tarball，检查全部公开声明、生产构建和三个浏览器的嵌套 Worker 场景。             |
+| pnpm check:m1                      | 复用一次 SDK 构建，执行历史 M1 工程检查、两个 CIF 文件、浏览器与 tarball 验收；不作为 M2 默认验证。 |
+| pnpm check                         | 显式全量检查入口；新增阶段后可能扩大，不作为默认任务验证。                                          |
+| pnpm bench -- --smoke              | 128 原子、120 帧的真实采集冒烟，输出 .tmp/bench/m1-smoke.json；不验收 T-PERF-01。                   |
+| pnpm bench -- --renderer-selection | 同条件硬件 GPU 对照；两模式各三轮，原始数据在 .tmp/bench/m2。                                       |
+| pnpm docs:check                    | 检查本地 Markdown 链接。                                                                            |
 
 测试默认 4 个进程，可用 TEST_WORKERS 覆盖浏览器并行数。资源允许时使用 4–8；资源不足时记录降并行的原因。只运行与变更直接相关的检查，重复或扩大验证须记录技术理由。
 

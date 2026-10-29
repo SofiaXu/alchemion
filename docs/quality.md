@@ -4,7 +4,7 @@
 
 ## 验证原则与证据
 
-当前会话遵循最小充分验证：只运行变更直接相关的测试，不默认执行全套。新增、扩大或重复检查须说明技术理由。M1 的 `check:m1` 固定选取两个迁移 CIF 文件、三浏览器工程冒烟与真实 tarball；CI 使用相同范围。浏览器进程默认 4，可通过 `TEST_WORKERS` 调到 4–8；资源不足时有证据地降低。不启用自动重试。
+当前会话遵循最小充分验证：只运行变更直接相关的测试，不默认执行全套。新增、扩大或重复检查须说明技术理由。M1 的 `check:m1` 固定选取两个迁移 CIF 文件、三浏览器工程冒烟与真实 tarball，M1 CI 已验过同一范围。M2 CI 定向运行构建、受影响类型/lint、M2 三浏览器正确性及 tarball 冒烟，不默认重复 CIF 或全部业务测试。浏览器进程默认 4，可通过 `TEST_WORKERS` 调到 4–8；资源不足时有证据地降低。不启用自动重试。
 
 科学计算使用解析解、独立推导或可追溯参考数据作 oracle，不能把旧函数结果换个名字当预期值。小规模参考算法可用于对照优化实现，但要验证其公式与单位。容差、晶胞矩阵方向、倒易约定、周期边界和损失策略统一引用 [领域规范](domain.md)，测试不得另定相冲突的常量。
 
@@ -72,11 +72,13 @@
 | `pnpm test:browser`      | 准备 SDK 及测试宿主产物后运行 Playwright Chromium、Firefox、WebKit 功能与生命周期测试；安装/环境缺失显式失败或标记未运行，不能跳过后算通过。Playwright WebKit 不等于真实 Safari 验证。                                              |
 | `pnpm build`             | 按 SDK（含声明/Worker）→demo 的依赖顺序构建；无 CJS、测试、调试源码或旧兼容入口混入正式产物。                                                                                                                                       |
 | `pnpm test:package`      | 构建后 pack 并运行隔离浏览器消费者，验证 tarball 的 exports、声明、资源 URL、Worker 和公开交互；不能复用仓库源 alias。                                                                                                              |
-| `pnpm check:m1`          | 定向执行 M1 的格式、lint、SDK/demo 构建、类型、文档链接、两个 CIF 文件、三浏览器和 tarball；SDK 构建只准备一次。当前 CI 使用此命令。                                                                                                |
+| `pnpm check:m1`          | 定向执行历史 M1 的格式、lint、SDK/demo 构建、类型、文档链接、两个 CIF 文件、三浏览器和 tarball；SDK 构建只准备一次。M2 不以此作为默认验证。                                                                                         |
 | `pnpm check`             | 按 format:check、lint、build（SDK→demo）、typecheck、test、test:browser、test:package 的顺序执行，任一步失败即返回失败；复用本次已准备的产物。干净 checkout 不能依赖旧 dist 或源码 alias。不把硬件性能 bench 混作普通 CI 稳定门槛。 |
 | `pnpm bench -- --smoke`  | M1 运行 128 原子、120 帧的真实采集冒烟；输出环境和原始帧时间，不构成 T-PERF-01 通过。固定一万实例/两模式/全部指标由 M2 补齐。                                                                                                       |
 
 M1 可以先建立测试与性能 harness，后续场景随阶段补齐；空测试集合、仅打印成功的脚本或永久跳过不构成阶段交付。每份计划须明确当前阶段已经实现哪些场景。
+
+M2 新增显式参数：`pnpm test:browser -- --phase=m2` 构建独立宿主并只匹配 M2 场景；无该参数仍为 M1 冒烟。`pnpm bench -- --renderer-selection` 构建单候选 ESM 消费者、验证其产物，再按 A/B、B/A、A/B 在真实硬件 GPU 上串行采样两种模式各三轮。软件渲染仅可提供功能证据。`--artifacts-only` 只检查体积与 ESM 消费者；`--skip-artifacts` 复用本轮已验证产物；`--resume` 只续跑同一输入/代码的缺失轮次；`--candidate=`、`--mode=`、`--round=` 用于明确限定重跑，不能用子集宣称完整选型。
 
 依赖 SDK 产物的独立命令必须显式准备其前置产物；聚合检查可以通过内部任务编排复用一次构建，不能为了避免重复准备而依赖前一会话留下的 dist。SDK 自身的源类型检查不得依赖 demo，从而保持构建依赖有向无环。
 
