@@ -4,7 +4,7 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 ## 当前状态
 
-M1–M4已完成，M2已选定Three.js0.186.1。M5正式viewer正在按[当前计划](docs/plans/m5-viewer.md)实施验收；完整demo流程和最终分发复核由M6完成。实际状态与证据入口见[交接](docs/handoff.md)。
+M1–M4已完成，M2已选定Three.js0.186.1。M5正式viewer已完成Windows/Ubuntu定向功能及正式tarball六轮硬件验收，见[当前计划](docs/plans/m5-viewer.md)与[M5报告](docs/evidence/m5-viewer.md)；完整demo流程和最终分发复核由M6完成。实际状态与证据入口见[交接](docs/handoff.md)。
 
 正式core/formats/viewer采用同一新版模型。viewer只保留Three后端和M4独立控制器/运行时，历史Babylon代码、Worker和旧数据已退出正式产物，不提供旧API适配。科学约定见[领域规范](docs/domain.md)，三维接口见[ADR0005](docs/decisions/0005-formal-viewer.md)。
 

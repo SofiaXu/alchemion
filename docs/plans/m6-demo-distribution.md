@@ -13,7 +13,7 @@
 - 先读 [AGENTS](../../AGENTS.md)、[PLANS](../../PLANS.md)、[产品](../product.md)、[领域](../domain.md)、[架构](../architecture.md)、[质量](../quality.md)、[数据来源](../data-sources.md) 与 [交接](../handoff.md)。
 - M1–M5 对应关卡均已取得真实证据；M5 完整 viewer 的显示、拾取、测量、编辑和生命周期验收完成后才能进入本阶段。不能用 demo 页面掩盖未完成的核心或 renderer。
 - M2 引擎 ADR 已为 Accepted，正式 SDK 只保留选定实现；M3 科学语义、M4 格式/异步/历史契约和 M5 正式 API 已同步到规范。
-- 目标目录为 `packages/alchemion` 与 `apps/demo`；本轮 M0 尚不存在这些目录或产物。开始时依实际工程状态核对，不假定计划描述已实现。
+- 现有目录为 `packages/alchemion` 与 `apps/demo`；M5已提供createViewer并最小迁移demo，正式能力与实际关卡见M5记录。M6仍须在M5全部关卡通过后实施，不将最小演示当成完整用户工作流。
 
 ## 实施步骤
 

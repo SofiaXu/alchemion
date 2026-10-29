@@ -1,27 +1,27 @@
 # 当前交接
 
-更新时间：2026-10-29，Asia/Hong_Kong。
+更新时间：2026-10-30，Asia/Hong_Kong。
 
 ## 当前入口
 
-- **M5正式Three viewer实现已落地，验收进行中。** 分支`codex/m5-viewer`，起点`master@c361469`，执行入口为[M5计划](plans/m5-viewer.md)，实际记录为[M5证据](evidence/m5-viewer.md)。本阶段尚未标完成。
-- 新公开`createViewer`接M4 controller唯一源/历史/单模块Worker；两模式、晶格/倒易/BZ独立视窗、真实拾取、点坐标、三种测量、编辑历史、取消和context恢复已实现。接口/语义见[ADR0005](decisions/0005-formal-viewer.md)。
-- 历史Babylon viewer/Worker/旧模型及无来源配色已移除，Three0.186.1是唯一正式后端。demo仅迁新API并验证启动，完整工作流留M6。
+- **M5正式Three viewer已完成全部验收。** 实现提交1287018、CI启动修复623534a；归档与主分支合并见[PR #8](https://github.com/SofiaXu/alchemion/pull/8)和Git HEAD。接管入口为[M5计划](plans/m5-viewer.md)与[M5报告](evidence/m5-viewer.md)。
+- `createViewer`组合M4唯一源/历史/单模块Worker；两模式、晶格、倒易/BZ独立视窗、真实拾取/点坐标/三种测量、编辑历史、取消和context恢复均已验证。正式契约见[ADR0005](decisions/0005-formal-viewer.md)。
+- SDK仅Three0.186.1，历史Babylon viewer/Worker/旧模型及无来源配色已移除。范德华来源、缺失策略及MIT许可随包记录；demo仅最小迁新API并验证启动，完整流程留M6。
 
-## 已取得的证据
+## 完成证据
 
-- Windows定向5文件35单元首轮全部通过，4进程、无重试；新增vdW/对称开关/门面和内部源类别组合有具体测试理由，没有运行完整科学/格式/传输套件。
-- 三浏览器首轮15通过/9失败，失败仅定向复验9/9通过：24个独立场景均有通过证据。context恢复、各浏览器20轮自有资源归零及多实例隔离通过；[摘要](evidence/m5-browser-summary.json)、[监听归属原始记录](evidence/m5-listener-ownership.json)、[现成截图](evidence/m5/screenshots.json)。
-- 14条首轮剩余监听逐条确认为Playwright/AdGuard外部注册，SDK按所有权严格归零。纯视觉失败假ready审查反例已修复并在同一待复验场景验证。
-- 复验原始JSON被后续package覆盖，附件未归档；摘要如实保留已观察CLI/统计/严格断言结果，未为补报告重跑。workspace/package报告现分名。
-- SDK/demo构建、core/formats无DOM与根类型、改动lint/格式、真实tarball Chromium1/1、demo dev真实Worker启动通过。31份文档links通过；数据来源/许可随包可追溯。
+- Windows5文件35单元首轮全部通过，4进程、无重试；三浏览器首轮15通过/9失败，只复验失败9项后全部通过，共24独立场景。[浏览器摘要](evidence/m5-browser-summary.json)、[监听原始归属](evidence/m5-listener-ownership.json)、[现成截图](evidence/m5/screenshots.json)。各浏览器20轮自有资源严格归零。
+- 14条初次剩余监听逐条确认为Playwright/AdGuard外部注册，未按常数减计数。后端错误代码及纯视觉失败假ready反例已修复验证；复验JSON被package覆盖的归档限制明确披露，未为补报告重复场景，现报告分名。
+- SDK/demo、无DOM及根类型、改动lint/格式、真实tarball Chromium1/1、demo dev真实Worker启动均通过。
+- [Ubuntu CI](https://github.com/SofiaXu/alchemion/actions/runs/40908739503)在精确623534ac上35单元、三浏览器24/24、tarball1/1及工程/31文档检查全部success；[CI摘要](evidence/m5-ci-summary.json)保留首轮辅助脚本失败（业务未运行）及修复理由。
+- [正式包硬件六轮](evidence/m5-performance-summary.json)全部达标：10k原子/20k键，最差首帧91.9ms、median FPS59.88、拾取p95 10.24ms、renderer更新p95 32.4ms；120轮大结构销毁自有资源归零，GPU像素更新探针通过。原始数据[无损gzip清单](evidence/m5-performance/manifest.json)保留完整字段及原始/压缩散列，源散列最终复核一致。硬件仅声明实测Arc B390/Chromium，不泛称所有GPU性能通过。
 
-## 尚待完成
+## 限制与后续
 
-- `pnpm bench -- --phase=m5 --prepared`正在独占GPU运行，输出`.tmp/bench/m5`，锁`.tmp/bench/m5.lock`；固定10k/20k、两模式各三轮，当前没有完整性能通过结论。不要在采样中修改生产源码、tests/m5、bench脚本或lockfile。
-- 源码拟先提交为草稿PR，使Ubuntu定向CI与Windows硬件采样并行，尽早发现平台差异，减少全部采样后改代码引起的复验。性能和CI关卡均通过才合并master。
-- M3/M4先前证据继续有效。M5硬件原始数据、Ubuntu CI、最终源SHA及merge结果取得后写入报告并更新阶段完成状态。
+- M5无未解决必需关卡。10k端到端编辑p95最差4.275秒，后五轮约1.65–1.74秒，不能用renderer预算替代。静态发现整源复制/重复校验及O(E\*N)线性端点解析；尚未profile，后续可先建立请求局部AtomId索引再验证科学等价，不在本轮擅自改变源码或预算。
+- Windows复验原始JSON附件缺失已披露；Linux完整日志、原始监听记录与Windows成功截图均已归档。Playwright WebKit不等于真实Safari设备验证。
+- 本机固定工具入口.tools/pnpm.cmd；默认SSH签名为1Password op-ssh-sign，首次commit因其交互挂起，本次仅对单命令关闭签名，未改全局配置。
 
 ## 下一项可执行任务
 
-续接当前基准进程与`.tmp/bench/m5`，按固定协议收齐六轮，检查首帧/交互/点击/局部更新/20轮资源和raw/gzip；失败保留原始数据，仅有技术理由地修复/复验受影响范围。通过后归档证据、等待针对同一源码的Ubuntu CI，更新M5计划与交接，提交文档，确认PR head SHA后merge到master。本会话已获提交、推送及合并授权；完成后M6入口是完整demo和最终分发验收。
+接管[M6计划](plans/m6-demo-distribution.md)：以createViewer和三个公开入口完成独立demo的文件导入/block选择、诊断、全部显示/测量、基础编辑表单、undo/redo、格式版本/损失反馈、导出与重新导入；再做最终真实消费者、资产来源和分发复核。M5测试宿主及最小demo不等于M6完成。本会话不自动实施M6或发布npm/站点。

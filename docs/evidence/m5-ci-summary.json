@@ -2,7 +2,7 @@
   "timezone": "Asia/Hong_Kong",
   "repository": "SofiaXu/alchemion",
   "pullRequest": "https://github.com/SofiaXu/alchemion/pull/8",
-  "state": "first_run_failed_before_validation",
+  "state": "passed_after_ci_entrypoint_correction",
   "runs": [
     {
       "runId": 40907714527,
@@ -61,6 +61,135 @@
         "GitHub Actions job log, returned without truncation",
         "GitHub Actions job step summaries, all validation steps explicitly skipped"
       ]
+    },
+    {
+      "runId": 40908739503,
+      "jobId": 123570575183,
+      "url": "https://github.com/SofiaXu/alchemion/actions/runs/40908739503",
+      "jobUrl": "https://github.com/SofiaXu/alchemion/actions/runs/40908739503/job/123570575183",
+      "headRevision": "623534ac5ab39ab2302030b42bdc0ee5c4e114a0",
+      "baseRevision": "c361469beddb8e82d4b8cb6160386b4e17d7f526",
+      "incrementalBaseRevision": "12870185eb309ae1f5f533c7cf98f9d3ee5ad7ae",
+      "status": "completed",
+      "conclusion": "success",
+      "observedLogIntervalUtc": {
+        "firstLine": "2026-10-29T16:09:21.8003689Z",
+        "cleanup": "2026-10-29T16:12:54.1698945Z"
+      },
+      "observedLocalDate": "2026-10-30",
+      "environment": {
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerVersion": "2.338.0",
+        "runnerImage": "ubuntu-24.04 20261025.353.1",
+        "node": "24.22.1",
+        "pnpm": "9.7.0",
+        "testWorkers": 4,
+        "retries": 0,
+        "softwareRendering": true,
+        "browsers": {
+          "chromium": "153.0.8010.12, Playwright build 1243",
+          "firefox": "155.0, Playwright build 1543",
+          "webkit": "26.6, Playwright build 2359"
+        }
+      },
+      "scope": {
+        "command": "pnpm ci:m5 --scope",
+        "exitCode": 0,
+        "reason": "CI harness changed; first/affected platform gate must cover the candidate delivery",
+        "selectedDeliveryBase": "c361469beddb8e82d4b8cb6160386b4e17d7f526",
+        "note": "The entrypoint/routing fix selected the complete candidate M5 delivery because the initial run executed no tests. It did not default to the complete M3/M4 suites."
+      },
+      "unit": {
+        "command": "pnpm ci:m5 --unit",
+        "exitCode": 0,
+        "filesPassed": 5,
+        "testsPassed": 35,
+        "durationSeconds": 2.94,
+        "files": [
+          { "path": "packages/alchemion/src/core/__tests__/bonds.test.ts", "passed": 14 },
+          { "path": "packages/alchemion/src/core/__tests__/derivation.test.ts", "passed": 8 },
+          { "path": "packages/alchemion/src/core/__tests__/vdw.test.ts", "passed": 2 },
+          { "path": "packages/alchemion/src/viewer/__tests__/presentation.test.ts", "passed": 2 },
+          {
+            "path": "packages/alchemion/src/viewer/runtime/__tests__/controller.test.ts",
+            "passed": 9
+          }
+        ],
+        "excludedUnchangedSuites": [
+          "M3 data group closure",
+          "M3 remaining scientific files",
+          "M4 format codecs",
+          "M4 runtime.test.ts"
+        ]
+      },
+      "checks": {
+        "sdkAndDemoBuild": {
+          "command": "pnpm build",
+          "status": "passed",
+          "sdkBuildSeconds": 2.4,
+          "demoBuildSeconds": 6.67
+        },
+        "pureCoreFormatsTypes": {
+          "command": "pnpm exec tsc -p packages/alchemion/tsconfig.core.json",
+          "status": "passed"
+        },
+        "consumerTypes": { "command": "pnpm exec tsc -p tsconfig.json", "status": "passed" },
+        "lintFormattingDocs": {
+          "command": "pnpm ci:m5 --checks",
+          "status": "passed",
+          "markdownDocuments": 31
+        },
+        "browserInstallation": {
+          "command": "pnpm exec playwright install --with-deps chromium firefox webkit",
+          "status": "passed"
+        }
+      },
+      "viewerBrowser": {
+        "command": "xvfb-run --auto-servernum pnpm test:browser -- --phase=m5 --prepared",
+        "exitCode": 0,
+        "passed": 24,
+        "reportedDuration": "1.5m",
+        "workers": 4,
+        "retries": 0,
+        "byBrowser": { "chromium": 8, "firefox": 8, "webkit": 8 },
+        "coverage": [
+          "modes, styles, caller snapshot isolation and numerical camera",
+          "orthogonal/triclinic helpers, symmetry, neighbors, cutoff and inferred bonds",
+          "atom/bond identities, auxiliary exclusion and periodic point coordinates",
+          "ordered distance, angle, signed torsion and degenerate diagnostics",
+          "derived-instance source editing, selection retention and transaction history",
+          "real-worker races, pre/post-commit failures, visual failure without false-ready, recovery and GPU-stage disposal",
+          "two viewers, resize, camera/source isolation and independent disposal",
+          "WebGL2 unavailable, context restoration and twenty actual resource-observed lifecycles per browser"
+        ],
+        "resourceAssertions": "The passed lifecycle case checks all twenty rounds in each browser: owned GPU handles, Worker, RAF, observers, SDK listeners and canvas counts are zero after disposal. This is functional software-driver evidence, not hardware performance."
+      },
+      "tarballConsumer": {
+        "command": "xvfb-run --auto-servernum pnpm test:package -- --phase=m5 --prepared --project=chromium",
+        "exitCode": 0,
+        "passed": 1,
+        "reportedDurationSeconds": 4.6,
+        "actualWorkers": 1,
+        "productionBuildSeconds": 3.68,
+        "consumerDirectory": "/tmp/alchemion-m5-consumer-gPm50h",
+        "coverage": "Actual installed tarball: three public subpaths, pure core/formats declarations, private renderer subpath rejection, no engine type leakage, production computation Worker, viewer load/edit/undo/redo, real pointer source identity and repeated disposal."
+      },
+      "artifact": {
+        "id": 12912218097,
+        "name": "m5-viewer-evidence",
+        "bytes": 571010,
+        "sha256": "e59277d712808891835249eb241afe09e2a3e3acb152bff8bfb775dd6eb76d44",
+        "url": "https://github.com/SofiaXu/alchemion/actions/runs/40908739503/artifacts/12912218097",
+        "createdAt": "2026-10-29T16:12:53Z",
+        "expiresAt": "2027-01-27T16:09:17Z",
+        "archiveContentsInspected": false
+      },
+      "evidence": [
+        "GitHub Actions job step summaries: every preparation, validation and upload step completed successfully",
+        "Complete decoded GitHub Actions job log (172904 characters), including exact scope output, five selected test paths, 35/35 unit summary and all 24 named browser successes",
+        "GitHub Actions artifact metadata with matching head revision and SHA256 digest"
+      ],
+      "boundedLogNote": "The initial generic check-diagnostics log was tail-truncated; unit/scope evidence was obtained from the GitHub connector's complete decoded job log instead."
     }
   ],
   "expectedTargetedUnitFilesFromCandidateDiff": [
@@ -71,7 +200,7 @@
     "packages/alchemion/src/viewer/runtime/__tests__/controller.test.ts"
   ],
   "scopeNote": "The expected five-file route was inspected against the candidate diff. The failed first run did not reach its selection output or execute the expected 35 Windows-validated cases. Unchanged M3 data group closure and M4 format/runtime suites were not run.",
-  "pendingCorrection": {
+  "correction": {
     "implementation": "Root package script ci:m5 invokes the helper; workflow uses pnpm ci:m5 for scope/unit/checks. A CI harness change selects the complete candidate PR diff through M5_PR_BASE, because the initial platform gate executed no validation. Ordinary source/document increments retain M5_BASE filtering.",
     "scopeReason": "CI harness changed; first/affected platform gate must cover the candidate delivery",
     "localReadOnlyProbe": {
@@ -82,7 +211,7 @@
       "changedFiles": 76,
       "testsExecuted": 0
     },
-    "linuxResult": "not yet run"
+    "linuxResult": "Passed on correction revision 623534ac5ab39ab2302030b42bdc0ee5c4e114a0 in run 40908739503."
   },
   "localTestsRunDuringCiDiagnosis": false,
   "ciRerunRequestedByDiagnostician": false,

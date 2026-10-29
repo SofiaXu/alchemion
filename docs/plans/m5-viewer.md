@@ -1,6 +1,6 @@
 # M5：单后端 viewer 与完整三维交互
 
-状态：进行中。
+状态：完成。
 需求：R-007–R-019、R-021、R-023。
 测试：T-DOM-04、T-DOM-05、T-DOM-06、T-RUN-01、T-EDIT-01、T-VIEW-01、T-VIEW-02、T-VIEW-03、T-PERF-01、T-PKG-01。
 
@@ -11,7 +11,7 @@ SDK 消费者通过 `alchemion/viewer` 创建独立 viewer，显示全部目标�
 ## 上下文与入口条件
 
 - M2 完成、[ADR 0002](../decisions/0002-renderer-selection.md) 已 Accepted；M3 科学核心及 M4 格式/运行时/编辑控制器完成其验收。读取 [架构](../architecture.md)、[领域规范](../domain.md)、[产品矩阵](../product.md)、[质量规范](../quality.md) 及 [M4](m4-formats-runtime.md)。
-- 当前旧编辑器是集中式 Babylon.js 实现，不能复制其坐标算法、对象身份判断或异步完成方式作为新版契约。
+- 入口时旧编辑器为集中式 Babylon.js 实现，本阶段已替换，不能复制其坐标算法、对象身份判断或异步完成方式作为新版契约。
 - **渲染定案关卡已满足**：Three.js 0.186.1（类型 0.186.0），依据 [M2 实测](../evidence/m2-renderer-selection.md)。M3/M4 的正式模型、算法和运行时仍是 M5 的必要前置，不能把比较原型当作完整 viewer。
 - M4接入入口已落地：core的`createDocumentStore`，viewer的`createEditorController/createComputationRuntime`；完整帧提交通过controller的异步`commit(derived,context,signal)`，辅助倒易/BZ任务共享controller.compute。不要复制其事务队列、历史或Worker协议；验证状态见M4计划与交接。
 - M1 已建立工程命令；以下命令不是 M5 已经运行的结果。历史 Babylon 7.23.0 viewer/demo 按用户确认保留至 M5/M6，由本阶段按 M2 选型迁移，M6 清理剩余历史路径。
@@ -44,7 +44,7 @@ M2 已固定的后端调用约束：使用 BufferGeometry/InstancedMesh 和 Dyna
 
 按改动运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`、`pnpm test:browser`、`pnpm build`、`pnpm test:package` 和 `pnpm bench`；`pnpm test` 为 M1 建立的单次模式。测试过滤参数以实际配置为准，精确命令、环境、退出码和未运行项写入报告。
 
-证据报告为[当前M5记录](../evidence/m5-viewer.md)，目前功能已通过、硬件性能进行中；附模式截图、交互断言、修订日志、销毁计数及性能原始数据。阶段完成需本表所有必需场景满足，公共声明无引擎类型、正式依赖仅一个后端、产品矩阵全部 viewer 行可追溯到证据。编译成功或截图存在均不足以单独完成阶段。
+证据报告为[当前M5记录](../evidence/m5-viewer.md)，Windows/Ubuntu功能及六轮硬件性能均已通过；附模式截图、交互断言、修订日志、销毁计数及性能原始数据。阶段完成需本表所有必需场景满足，公共声明无引擎类型、正式依赖仅一个后端、产品矩阵全部 viewer 行可追溯到证据。编译成功或截图存在均不足以单独完成阶段。
 
 ## 中断与恢复
 
@@ -58,8 +58,8 @@ M2 已固定的后端调用约束：使用 BufferGeometry/InstancedMesh 和 Dyna
 - [x] 门面、快照提交、状态/事件与多实例资源边界完成；24个浏览器独立场景均取得通过证据。
 - [x] 全部显示、拾取、坐标与测量能力有浏览器证据，12张现成截图已归档并视检。
 - [x] 编辑/撤销重做与异步协议接入并验证，含纯视觉失败无假ready的审查反例。
-- [ ] 生命周期、性能、公开类型及打包消费者通过。
-- [ ] 文档、结果与 M6 接管入口同步。
+- [x] 生命周期、性能、公开类型及打包消费者通过：三浏览器各20轮，正式tarball 1/1，10k/20k两模式各三轮全部达标。
+- [x] 文档、结果与M6接管入口同步；归档和合并以PR #8及Git HEAD为准。
 
 ## 发现（Surprises & Discoveries）
 
@@ -71,7 +71,7 @@ M2 已固定的后端调用约束：使用 BufferGeometry/InstancedMesh 和 Dyna
 
 ## 结果与回顾（Outcomes & Retrospective）
 
-已实现正式Three viewer及全部目标三维交互；35单元、24个三浏览器独立场景、真实tarball1/1、构建/类型/demo启动已通过。硬件六轮基准正在运行，Ubuntu CI/合并待执行；这些关卡未取得证据前不标记阶段完成。完整失败、修复和报告原始JSON限制见M5记录。
+已实现正式Three viewer及全部目标三维交互；35单元、24个三浏览器独立场景、真实tarball1/1、构建/类型/demo启动已通过。硬件六轮基准全部达标，Ubuntu在623534a上完成35单元/24浏览器/真实tarball和工程检查。全部关卡证据已齐，归档/合并见PR #8及Git HEAD。完整失败、修复和报告原始JSON限制见M5记录。
 
 ## 本会话批准的工作包与验证约束
 
@@ -88,3 +88,5 @@ M2 已固定的后端调用约束：使用 BufferGeometry/InstancedMesh 和 Dyna
 2026-10-29执行决定：正式源码/夹具冻结，Windows功能、包消费者和启动检查通过后先提交为草稿PR，使Ubuntu针对同一源码的平台验证与本地六轮硬件采样并行。这样可尽早发现平台差异并减少采样后改源造成的重复；不提前标完成或合并。
 
 Ubuntu首轮run40907714527在scope辅助启动失败（pnpm exec不提供npm_execpath），所有业务检查尚未运行。改为新增真实ci:m5脚本入口并由pnpm run调用；CI harness改变时回看完整PR diff以完成首次平台关卡，纯文档归档仍只检查文档。原始失败见m5-ci-summary.json，不记为业务测试失败或通过。
+
+2026-10-30最终结果：pnpm bench -- --phase=m5 --prepared退出0；六轮全部门槛通过。最差首帧91.9ms、median FPS59.88、frame p95 16.9ms、拾取p95 10.24ms、renderer更新p95 32.4ms；120轮大结构销毁自有资源归零。端到端编辑p95最差4275.2ms单独披露，静态O(E\*N)端点解析/整源复制只是成本候选，未额外profile或改源扩大复验。源散列最终核对一致，原始六份JSON无损gzip归档并逐份验证解压一致。M6仍未实施。
