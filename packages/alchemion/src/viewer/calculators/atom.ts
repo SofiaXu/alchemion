@@ -1,7 +1,7 @@
 import { compile } from 'mathjs'
 
 import { IAtomExtend } from './atom-extend'
-import { ILattice } from '../../core/structure'
+import { ILattice } from '../../internal/legacy/structure'
 
 const workers = new Array<Worker>()
 let timeout: ReturnType<typeof setTimeout> | null = null

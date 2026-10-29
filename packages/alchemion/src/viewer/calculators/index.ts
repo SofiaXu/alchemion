@@ -1,6 +1,6 @@
 export { calculateAtomCopy } from './atom'
 import { calculateAtomCopy } from './atom'
-import { IAtom, IBond, IStructure } from '../../core/structure'
+import { IAtom, IBond, IStructure } from '../../internal/legacy/structure'
 import { IEditorOptions } from '../contracts'
 import { computeBonds, computeNewBonds } from './bond'
 import { IAtomExtend } from './atom-extend'

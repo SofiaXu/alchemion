@@ -1,4 +1,4 @@
-import { IAtom, IStructure, IWriter } from '../../core'
+import { IAtom, IStructure, IWriter } from '../../internal/legacy'
 
 export class PoscarWriter implements IWriter {
   write(structure: IStructure): string {

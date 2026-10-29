@@ -7,8 +7,8 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3
-} from '@babylonjs/core'
-import { IStructure } from '../../core'
+} from '@babylonjs/internal/legacy'
+import { IStructure } from '../../internal/legacy'
 import { IRenderer } from '../contracts'
 
 export class BrillouinZoneRenderer implements IRenderer {

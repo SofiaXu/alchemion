@@ -1,6 +1,6 @@
-import { AtomColorMap, IColorMap } from '../../core/colors'
+import { AtomColorMap, IColorMap } from '../../internal/legacy/colors'
 import { IDifferentRenderer } from '../contracts'
-import { IAtom, IStructure } from '../../core/structure'
+import { IAtom, IStructure } from '../../internal/legacy/structure'
 import {
   Color3,
   MeshBuilder,
@@ -8,7 +8,7 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3
-} from '@babylonjs/core'
+} from '@babylonjs/internal/legacy'
 
 export class SpaceFillingRenderer implements IDifferentRenderer {
   private _scene: Scene

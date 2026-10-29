@@ -1,6 +1,6 @@
-import { IParser } from '../../core/utils'
-import { IAtom, IBond, IStructure } from '../../core/structure'
-import { elementsMap } from '../../core/elements'
+import { IParser } from '../../internal/legacy/utils'
+import { IAtom, IBond, IStructure } from '../../internal/legacy/structure'
+import { elementsMap } from '../../internal/legacy/elements'
 import { TokenStream } from './common/token-stream'
 
 export class MolParser implements IParser {

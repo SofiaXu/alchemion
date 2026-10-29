@@ -1,4 +1,4 @@
-import { IAtom, IBond } from '../../core/structure'
+import { IAtom, IBond } from '../../internal/legacy/structure'
 import { IAtomExtend } from './atom-extend'
 
 export const computeBonds = async (atoms: Array<IAtomExtend | IAtom>): Promise<IBond[]> => {
