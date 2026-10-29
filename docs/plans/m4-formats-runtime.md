@@ -1,6 +1,6 @@
 # M4：格式、编辑事务与浏览器运行时
 
-状态：进行中（实现和Windows本地关卡已通过，Ubuntu定向CI待运行）。入口基准 `master@560e41e`，实施分支 `codex/m4-formats-runtime`。
+状态：完成。入口基准`master@560e41e`，实现/Ubuntu CI提交`d7f14e7`；归档与主分支合并见[PR #7](https://github.com/SofiaXu/alchemion/pull/7)。
 需求：R-002、R-003、R-004、R-005、R-006、R-017、R-018、R-019；承接 R-001/R-022，为 R-020/R-023 提供接口。
 测试：T-FMT-01、T-FMT-02、T-FMT-03、T-FMT-04、T-RUN-01、T-EDIT-01、T-DATA-01；T-DOM-06/T-PKG-01 辅助验证身份和模块边界，viewer 集成由 M5 完成。
 
@@ -14,9 +14,9 @@ SDK 消费者能够读取/输出声明范围内的 CIF1/CIF2、MOL V2000/V3000 �
 
 - 依赖 M3 完成：稳定身份、结构校验、坐标、对称、成键、测量及倒易/BZ 接口已通过科学关卡；M1 的目标命令已经建立，M2 的模块/公开 API 决策已定案。
 - 必读 [产品规范](../product.md) 的字段支持矩阵、[领域规范](../domain.md)、[架构规范](../architecture.md)、[质量规范](../quality.md)、[数据来源台账](../data-sources.md) 及根 [执行计划规则](../../PLANS.md)。阶段状态以本计划和 [交接记录](../handoff.md) 为准。
-- 当前旧实现的 CIF 文档 parser 具有部分 CIF2 语法，结构 parser 强制 CIF1；MOL 为 V2000 风格固定列读取，writer 只输出 CIF/POSCAR。相关文件、风险和 fixture 见 [现状审计](../baseline.md)。这些是可评估资产，不是允许保留的兼容接口或正确性基准。
-- 本计划在 M0 创建，下列目标模块和证据文件尚未实施；不能把计划中的命令执行或独立工具验证写成已经通过。
-- M3 交付入口为 `alchemion/core`：`StructureSnapshot`、`ScientificValue`、`Diagnostic`、`createStructureSnapshot/validateStructure`、唯一晶胞转换、setting 解析、派生和测量/BZ。接口见 [架构](../architecture.md#m3-科学接口) 与 [ADR 0003](../decisions/0003-scientific-core.md)。旧格式当前只改为引用 `internal/legacy`，没有通过新版格式验收。M4 映射时自行分配并持久化稳定 ID，不使用标签/数组位置作为身份；源快照工厂不替调用者重编号。
+- 接管时旧CIF结构parser强制CIF1，MOL为V2000固定列读取，writer仅CIF/POSCAR；历史风险见[现状审计](../baseline.md)。本阶段已替换并移除旧实现，不提供兼容接口，也不把旧断言当正确性基准。
+- 本计划在M0创建，实施结果仅以下文Progress和实际证据为准；目标步骤本身不构成验证通过。
+- M3交付入口为`alchemion/core`：StructureSnapshot、ScientificValue、Diagnostic、快照工厂/校验及唯一晶胞/对称/派生/测量/BZ；见[架构](../architecture.md#m3-科学接口)和[ADR0003](../decisions/0003-scientific-core.md)。M4格式映射独立分配并持久化稳定ID，不以标签/当前位置作身份；源快照工厂不替调用者重编号。
 
 ## 实施步骤
 
@@ -60,7 +60,7 @@ SDK 消费者能够读取/输出声明范围内的 CIF1/CIF2、MOL V2000/V3000 �
 - [x] MOL V2000/V3000、周期 POSCAR 与损失控制通过。
 - [x] 编辑事务、稳定身份、undo/redo 与 load 行为通过。
 - [x] 同步/worker 一致性及全部异步终结路径通过。
-- [ ] 独立格式证据、必需检查及 M5 交接完成。
+- [x] 独立格式证据、必需检查及 M5 交接完成。
 
 ## 发现（Surprises & Discoveries）
 
@@ -72,13 +72,13 @@ SDK 消费者能够读取/输出声明范围内的 CIF1/CIF2、MOL V2000/V3000 �
 
 - 2026-10-29：执行产品已确定的 CIF1/CIF2、MOL 双版本及周期 POSCAR 范围；MOL 默认 V3000，周期转 MOL 要求有限快照与损失诊断，POSCAR 拒绝无晶胞和部分占位。
 - 2026-10-29：命令/历史在 M4 实现、M5 接入交互；事务成功才更新历史，load 清历史，undo/redo 不倒退 revision。同类派生任务 latest-wins，结构命令保持顺序。
-- 上述为 M0 目标决策，尚无实现证据；后续跨阶段变更须进入正式决策记录并同步相关规范。
+- 上述两项为M0已确定约定，实际实现与验证见下文；后续跨阶段变更仍须同步正式决策及相关规范。
 - 2026-10-29：用户授权完整 M4、提交并合并 master。固定三个不再拆分的工作包：CIF；MOL/POSCAR/有限范围；编辑/运行时。主会话统一共享类型、入口、构建、消费者、CI与文档。
 - 2026-10-29：格式损失清单随快照元数据保留；默认100事务、30秒超时、独占单Worker；controller提供异步commit边界供M5复用。验证仅M4及直接受影响场景，默认4进程、无重试；不默认运行完整科学/渲染测试。
 - 2026-10-29：实际接口/来源/提交边界归[ADR0004](../decisions/0004-formats-runtime.md)。完整字段验收和独立工具结果见M4证据，后续只做CI及归档，不自动进入M5。
 
 ## 结果与回顾（Outcomes & Retrospective）
 
-三个工作包直接完成，没有二次委派或建立第二套正式实现。Windows本地实现、科学格式和运行时关卡已通过，详情见M4证据；Ubuntu定向CI、PR合并和最终交接尚待完成。
+三个工作包直接完成，没有二次委派或建立第二套正式实现。Windows本地和Ubuntu定向CI关卡均已通过，源码`d7f14e7`保持不变；后续只归档文档，不重复业务测试。精确命令、独立输入散列、首次失败/修复与结果见M4证据，主分支合并以PR #7为准。
 
 M5接入`createEditorController`的commit回调及辅助compute；选择/测量、Three完整帧和GPU资源仍由M5验收。查询/反应/Sgroup/增强立体、完整CIF字典映射等超出既定范围的构造明确诊断；不新增产品能力或声称完整原文无损。

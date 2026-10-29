@@ -1,6 +1,6 @@
 # 目标架构与接口边界
 
-状态：2026-10-29。M1建立SDK/demo workspace；M3科学模型已通过本地/Ubuntu验证；M4格式、事务和独立运行时已实现并通过Windows定向关卡，Ubuntu状态见当前交接。正式三维Viewer仍由M5实现。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
+状态：2026-10-29。M1建立SDK/demo workspace，M3科学模型和M4格式/事务/独立运行时已通过Windows及Ubuntu定向验证；证据见当前交接。正式三维Viewer仍由M5实现。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
@@ -20,7 +20,7 @@
 
 M4的纯命令/历史状态机从`core`的`createDocumentStore`公开；`viewer`公开`createComputationRuntime`和`createEditorController`。导入没有创建Worker/canvas的副作用，首次计算才创建自有执行器。正式viewer组合相同控制器，不另建第二套编辑规则。具体决策见[ADR0004](decisions/0004-formats-runtime.md)。
 
-M2 已实测选定 Three.js 0.186.1（类型 0.186.0），依据见 [Accepted ADR 0002](decisions/0002-renderer-selection.md)。新版正式 viewer 只使用该后端，不建设通用双引擎框架。M2 的 `RenderSnapshot`/adapter 仅是比较契约，M3/M4 仍须建立正式领域类型和运行时。
+M2已实测选定Three.js0.186.1（类型0.186.0），依据见[Accepted ADR0002](decisions/0002-renderer-selection.md)。新版正式viewer只使用该后端，不建设通用双引擎框架。M2的RenderSnapshot/adapter仅是比较契约；正式领域与运行时接口已经由M3/M4建立，见下文。
 
 M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29 用户确认，历史 Babylon 7.23.0 viewer/demo 保留至 M5/M6 迁移；定案时收束新候选，不在 M2 为删除历史依赖而提前重写完整 viewer。
 

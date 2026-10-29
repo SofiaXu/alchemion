@@ -1,6 +1,6 @@
 # M4格式、编辑与计算运行时验证
 
-日期：2026-10-29，Asia/Hong_Kong。工作目录`D:\source\alchemion`；入口`master@560e41e`，分支`codex/m4-formats-runtime`。源码提交及主分支合并记录在本阶段PR归档后补充。
+日期：2026-10-29，Asia/Hong_Kong。工作目录`D:\source\alchemion`；入口`master@560e41e`，实现/CI源码提交`d7f14e7899bdb5dcaa145378be04ad1d61c082a3`。后续归档只改文档，主分支合并见[PR #7](https://github.com/SofiaXu/alchemion/pull/7)。
 
 ## 实际交付与边界
 
@@ -57,6 +57,8 @@ SDK构建验证每个静态Worker URL指向本包真实资产，不再硬编码�
 
 ## Ubuntu关卡与交接
 
-Ubuntu定向CI在PR创建后运行；此处尚未记录通过。它复验本交付的路径/换行及真实tarball/Worker跨平台行为，不重复M2；后续纯文档归档只查格式/链接。完成后补充Actions URL、源码SHA和结果。
+[Ubuntu Actions run40858487156](https://github.com/SofiaXu/alchemion/actions/runs/40858487156)首轮通过，源码d7f14e7，job123395402304，2026-10-29 18:33:28–18:35:48（Asia/Hong_Kong）。Ubuntu24.04.5、runner镜像20261025.353.1、Node24.22.1/pnpm9.7.0、Chromium153.0.8010.12，详细摘要见[CI JSON](m4-ci-summary.json)。
+
+实际10文件/99单元通过（4进程、3.16秒）；SDK/demo构建、纯core/formats与消费类型、改动lint/格式、29文档链接通过。Linux真实tarball场景1/1通过，8.0秒。软件图形只提供功能证据；未触发M2或其他M3科学测试。后续纯文档归档只查格式/链接，保持已测源码不变。
 
 M5从`createEditorController`与commit回调接入Three完整帧、选择/测量失效与资源归属；无需补写M4格式/history或另建Worker池。M4不自动实施M5。

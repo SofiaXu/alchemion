@@ -4,7 +4,7 @@ Alchemion 面向晶体和分子结构的浏览器 TypeScript SDK，交付一个 
 
 ## 当前状态
 
-M1工程基线和M3科学核心已完成。M4正在交付新版CIF/MOL/POSCAR、编辑事务/历史和独立计算运行时；实际验证状态见[当前计划](docs/plans/m4-formats-runtime.md)。正式Three viewer与完整demo仍由M5/M6完成。
+M1工程基线、M3科学核心和M4格式/编辑/计算运行时已完成；Windows定向验证及Ubuntu CI通过，实际证据见[当前计划](docs/plans/m4-formats-runtime.md)和[M4报告](docs/evidence/m4-formats-runtime.md)。正式Three viewer与完整demo仍由M5/M6完成。
 
 M2 已完成并选定 Three.js 0.186.1，Windows 与 Ubuntu 定向验证通过；现有 SDK viewer 仍为历史 Babylon 路径，M5/M6 迁移。实际进展见 [交接](docs/handoff.md)、[M2 计划](docs/plans/m2-renderer-selection.md) 和 [M2 证据](docs/evidence/m2-renderer-selection.md)。历史代码基准为 06784cf。
 
