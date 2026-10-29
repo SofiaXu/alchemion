@@ -1,6 +1,6 @@
 # M1：可重复的工程基线与 SDK / demo 边界
 
-状态：进行中；本地工程验收已通过，等待远端 CI 与交付。
+状态：完成。Windows 干净环境与 Ubuntu CI 均通过；实现已合并并推送 master。
 需求：R-001、R-023、R-024。
 测试：T-PKG-01、T-DOC-01；仅建立后续业务测试的工程入口。
 
@@ -49,7 +49,7 @@
 - [x] 建立目标脚本、定向浏览器/消费者/bench harness 和 CI 配置。
 - [x] 最终三浏览器和真实消费者通过。
 - [x] 干净 checkout 冻结安装、无 dist 的 dev、check:m1 和 bench 冒烟。
-- [ ] 完成证据/交接、合并并推送 origin/master。
+- [x] 完成证据/交接、合并并推送 origin/master；Linux CI 通过。
 
 ## 发现（Surprises & Discoveries）
 
@@ -64,4 +64,4 @@
 
 ## 结果与回顾（Outcomes & Retrospective）
 
-本地工程关卡均已通过；生产环境下消费者工具隔离也已修复并定向复验通过。远端 CI 与交付进行中。全部通过后更新本段与 [handoff](../handoff.md)，下一关卡为 [M2](m2-renderer-selection.md)。
+M1 已完成：唯一 SDK/demo workspace、三个 ESM 子路径、声明、两层模块 Worker、可复现的开发/构建/测试/打包消费者入口及 CI 均有运行证据。实现提交 163da34 已快进合并并推送 master；Ubuntu CI run 40824931331 全部通过。Windows 两个 CIF 文件 20/20、workspace 三浏览器 3/3、tarball 三浏览器 3/3；生产环境工具隔离也已定向复验。最终只更新文档，不重复业务测试。完整科学/格式/历史和引擎选型仍未实施，下一关卡为 [M2](m2-renderer-selection.md)，接管见 [handoff](../handoff.md)。

@@ -1,6 +1,6 @@
 # 目标架构与接口边界
 
-状态：2026-10-29 的新版目标，由 [ADR 0001](decisions/0001-project-foundation.md) 批准方向。M1 已建立 SDK/demo workspace 与公开子路径，正在最终验收；以下科学模型和最终 API 仍为 M3–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
+状态：2026-10-29 的新版目标，由 [ADR 0001](decisions/0001-project-foundation.md) 批准方向。M1 已建立 SDK/demo workspace 与公开子路径，并通过工程验收；以下科学模型和最终 API 仍为 M3–M5 目标。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 

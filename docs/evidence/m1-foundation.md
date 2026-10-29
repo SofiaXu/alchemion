@@ -39,7 +39,7 @@
 - 消费者声明验证移除 `skipLibCheck`；新导出的、依赖私有 TokenStream 的 CifDocumentParser 类撤回，避免产生不可使用的公开接口。
 - Worker 修复后两层资源均进入消费者生产构建，实际计算完成；三浏览器进一步暴露空拾取。失败截图显示球体比例畸变：Engine 在 canvas 挂入容器前创建，使用了默认画布尺寸。将挂载移到 Engine 创建前，失败仍在 catch 中清理。仅重跑受影响的 Chromium package 场景定位修复，1/1 通过；最终干净验收再执行三浏览器矩阵。
 
-后续按真实命令补充最终关卡。不将 M1 机械迁移作为 M3–M5 科学、异步或完整生命周期通过证据。
+最终关卡见下文；M1 机械迁移不作为 M3–M5 科学、异步或完整生命周期通过证据。
 
 ### Bench 采集冒烟
 
@@ -60,4 +60,17 @@
 
 复核发现：Vite 的进程环境把 NODE_ENV 设为 production，首次聚合消费者安装因而跳过开发依赖，命令从父任务 PATH 找到工具。SDK 运行依赖已独立安装，但这不能作为消费者工具隔离完成证据。修复为显式 `--prod=false`、核对消费者本地 TypeScript/Vite 精确版本，并执行其绝对二进制路径；在显式 NODE_ENV=production 的条件下只重跑 package 场景：消费者实际安装 TypeScript 5.9.3/Vite 7.3.5，声明检查与生产构建通过；三浏览器 3/3，退出 0。消费者目录为 C:\Users\aoba\AppData\Local\Temp\alchemion-m1-consumer-JXRP5x。其 SDK 与 061c62f 的 SDK 源码相同，未重复运行无关单元或 workspace 浏览器测试。
 
-CI 在 Ubuntu 24.04 的 Xvfb/Mesa 上执行同范围功能检查，明确软件渲染用途；纯文档提交通过 paths-ignore 避免重复运行相同业务测试。Linux 远端结果尚未运行，不能从 Windows 结果推断。
+CI 在 Ubuntu 24.04 的 Xvfb/Mesa 上执行同范围功能检查，明确软件渲染用途；纯文档提交通过 paths-ignore 避免重复运行相同业务测试。Linux 结果已独立核对，见下节。
+
+## Linux CI 与交付
+
+实现提交 **163da340e1192e4da2063476e83f24f227a79314** 已从 codex/m1-foundation 快进合并并推送 origin/master；推送后 git ls-remote 与本地 HEAD 一致。
+
+[GitHub Actions run 40824931331](https://github.com/SofiaXu/alchemion/actions/runs/40824931331)，job 123285684549，attempt 1，结论 **success**。2026-10-29 13:42:24–13:45:02（Asia/Hong_Kong）；runner Ubuntu 24.04.5，镜像 ubuntu-24.04/20261025.353.1，工作目录 /home/runner/work/alchemion/alchemion，Node 24.22.1、pnpm 9.7.0。
+
+- 冻结安装、Playwright 浏览器/系统依赖安装均成功。
+- xvfb-run --auto-servernum pnpm check:m1 整体成功：格式、lint、SDK/demo 构建、类型与文档检查通过；两个 CIF 文件 20/20；workspace 三浏览器 3/3（16.6 秒）；tarball 三浏览器 3/3（18.2 秒）。实际使用三个并行进程、无重试。
+- Linux 为 Xvfb/Mesa/SwiftShader 功能验收，不是 GPU 性能结论；Windows 与 Linux 均未声称真实 Safari 验证。
+- 本次没有运行无过滤的 pnpm check 或后续阶段业务套件。复测原因已逐项登记。最后的 README、计划、架构状态、证据和交接变更只运行格式/链接/差异检查；CI 对纯文档提交不重复业务测试。
+
+M1 工程完成。下一项为 M2 的同条件渲染对照；ADR 0002 仍为 Proposed，历史科学数据来源和 M3–M5 业务问题继续保留，不由本报告宣称解决。
