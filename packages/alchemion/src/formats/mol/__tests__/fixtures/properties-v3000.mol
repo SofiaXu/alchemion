@@ -1,0 +1,31 @@
+Alchemion authored CTfile subset
+  Alchemion          2D
+Synthetic geometry; no external molecule dataset.
+  0  0  0     0  0            999 V3000
+M  V30 BEGIN CTAB
+M  V30 COUNTS 12 6 0 0 1
+M  V30 BEGIN ATOM
+M  V30 41 C 0 0 0 71 CHG=1 MA-
+M  V30 SS=13 CFG=2
+M  V30 3 F 1 0 0 0
+M  V30 87 Cl 0 1 0 0
+M  V30 9 Br -1 0 0 0
+M  V30 15 H 0 -1 0 0
+M  V30 20 C 3 0 0 0 RAD=1
+M  V30 25 C 5 0 0 0 RAD=2
+M  V30 30 C 7 0 0 0 RAD=3
+M  V30 32 C 9 0 0 0
+M  V30 35 C 10 0 0 0
+M  V30 100 C 12 0 0 0
+M  V30 150 N 13 0 0 0
+M  V30 END ATOM
+M  V30 BEGIN BOND
+M  V30 3 1 41 3 CFG=1
+M  V30 6 1 41 87
+M  V30 9 1 41 9
+M  V30 12 1 41 15
+M  V30 15 2 32 35 CFG=2
+M  V30 18 3 100 150
+M  V30 END BOND
+M  V30 END CTAB
+M  END

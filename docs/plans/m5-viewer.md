@@ -13,6 +13,7 @@ SDK 消费者通过 `alchemion/viewer` 创建独立 viewer，显示全部目标�
 - M2 完成、[ADR 0002](../decisions/0002-renderer-selection.md) 已 Accepted；M3 科学核心及 M4 格式/运行时/编辑控制器完成其验收。读取 [架构](../architecture.md)、[领域规范](../domain.md)、[产品矩阵](../product.md)、[质量规范](../quality.md) 及 [M4](m4-formats-runtime.md)。
 - 当前旧编辑器是集中式 Babylon.js 实现，不能复制其坐标算法、对象身份判断或异步完成方式作为新版契约。
 - **渲染定案关卡已满足**：Three.js 0.186.1（类型 0.186.0），依据 [M2 实测](../evidence/m2-renderer-selection.md)。M3/M4 的正式模型、算法和运行时仍是 M5 的必要前置，不能把比较原型当作完整 viewer。
+- M4接入入口已落地：core的`createDocumentStore`，viewer的`createEditorController/createComputationRuntime`；完整帧提交通过controller的异步`commit(derived,context,signal)`，辅助倒易/BZ任务共享controller.compute。不要复制其事务队列、历史或Worker协议；验证状态见M4计划与交接。
 - M1 已建立工程命令；以下命令不是 M5 已经运行的结果。历史 Babylon 7.23.0 viewer/demo 按用户确认保留至 M5/M6，由本阶段按 M2 选型迁移，M6 清理剩余历史路径。
 
 ## 实施步骤
@@ -53,7 +54,7 @@ M2 已固定的后端调用约束：使用 BufferGeometry/InstancedMesh 和 Dyna
 
 ## 进展（Progress）
 
-- [ ] M2/M3/M4 完成，已补充获选引擎的具体实施细节。
+- [x] M2/M3/M4 完成，已补充获选引擎的具体实施细节；M4证据与commit接口见交接。本阶段实现仍未开始。
 - [ ] 门面、快照提交、状态/事件与多实例资源边界完成。
 - [ ] 全部显示、拾取、坐标与测量能力有浏览器证据。
 - [ ] 编辑/撤销重做与异步协议接入并验证。

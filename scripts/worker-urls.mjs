@@ -1,6 +1,6 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile, stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { join } from 'node:path'
+import { join, dirname, resolve, relative, isAbsolute } from 'node:path'
 
 const distribution = fileURLToPath(new URL('../packages/alchemion/dist', import.meta.url))
 // Vite library mode wraps worker URLs in a string concatenation. A downstream
@@ -8,6 +8,7 @@ const distribution = fileURLToPath(new URL('../packages/alchemion/dist', import.
 const wrappedURL =
   /new URL\(\s*(?:\/\*\s*@vite-ignore\s*\*\/\s*)?["']{2}\s*\+\s*new URL\((['"])([^'"]+)\1,\s*import\.meta\.url\)\.href,\s*import\.meta\.url\s*\)/g
 let normalized = 0
+const workerAssets = new Set()
 for (const name of await readdir(distribution, { recursive: true })) {
   if (!name.endsWith('.js')) continue
   const file = join(distribution, name)
@@ -17,12 +18,19 @@ for (const name of await readdir(distribution, { recursive: true })) {
     return `new URL(${JSON.stringify(asset)}, import.meta.url)`
   })
   if (output !== source) await writeFile(file, output)
+  for (const match of output.matchAll(
+    /new Worker\(\s*new URL\((['"])([^'"]+)\1,\s*import\.meta\.url\)/g
+  )) {
+    const asset = resolve(dirname(file), match[2])
+    const local = relative(distribution, asset)
+    if (local.startsWith('..') || isAbsolute(local) || !(await stat(asset)).isFile())
+      throw new Error(`Missing or nonlocal module Worker asset: ${name} -> ${match[2]}`)
+    workerAssets.add(local)
+  }
 }
-const valid = process.argv.includes('--watch')
-  ? normalized >= 1 && normalized <= 2
-  : normalized === 2
-if (!valid)
-  throw new Error(
-    `Expected two module Worker URLs (or one cached watch update), found ${normalized}.`
-  )
-console.log(`Normalized ${normalized} static module Worker URLs for downstream bundlers.`)
+if (
+  !workerAssets.size ||
+  ![...workerAssets].some((asset) => /computation-worker-.*\.js$/.test(asset))
+)
+  throw new Error('The declared computation Worker must have a static, existing module resource.')
+console.log(`Verified ${workerAssets.size} module Worker resources; normalized ${normalized} URLs.`)

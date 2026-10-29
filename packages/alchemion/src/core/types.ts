@@ -90,6 +90,11 @@ export interface AtomProperties {
   readonly oxidationState?: ScientificValue
   readonly radical?: 'singlet' | 'doublet' | 'triplet'
   readonly atomMap?: number
+  /** Explicit tetrahedral parity relative to four stable neighbours; null denotes implicit H. */
+  readonly stereoParity?: {
+    readonly parity: 'odd' | 'even' | 'either'
+    readonly referenceAtoms: readonly (AtomId | null)[]
+  }
   readonly displacementU?: ScientificValue
   readonly coordinateUncertainties?: {
     readonly frame: 'fractional' | 'cartesian'
@@ -133,6 +138,8 @@ export interface PeriodicStructureSnapshot extends StructureBase {
 export interface MolecularStructureSnapshot extends StructureBase {
   readonly kind: 'molecular'
   readonly atoms: readonly MolecularAtom[]
+  /** CTfile absolute-stereochemistry flag; this does not assert that the molecule is chiral. */
+  readonly stereoAbsolute?: boolean
 }
 export type StructureSnapshot = PeriodicStructureSnapshot | MolecularStructureSnapshot
 export interface AtomInstance extends BondEndpoint {

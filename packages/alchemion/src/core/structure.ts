@@ -68,6 +68,11 @@ export function validateStructure(input: unknown): readonly Diagnostic[] {
     error('STRUCTURE_TITLE', 'Structure title must be a string.')
   if (input.metadata !== undefined && !record(input.metadata))
     error('STRUCTURE_METADATA', 'Structure metadata must be a JSON object.')
+  if (
+    input.stereoAbsolute !== undefined &&
+    (input.kind !== 'molecular' || typeof input.stereoAbsolute !== 'boolean')
+  )
+    error('MOLECULE_STEREO_FLAG', 'Absolute stereochemistry requires a molecular boolean flag.')
   if (diagnostics.length) return diagnostics
 
   const snapshot = input as unknown as StructureSnapshot
@@ -301,6 +306,51 @@ export function validateStructure(input: unknown): readonly Diagnostic[] {
           bondId
         })
     }
+  }
+  // Parity refers to stable bonded neighbours, rather than mutable file numbering.
+  for (const item of input.atoms as unknown[]) {
+    if (!record(item) || item.stereoParity === undefined) continue
+    const atomId = String(item.id)
+    const stereo = item.stereoParity
+    if (
+      snapshot.kind !== 'molecular' ||
+      !record(stereo) ||
+      !['odd', 'even', 'either'].includes(String(stereo.parity)) ||
+      !Array.isArray(stereo.referenceAtoms) ||
+      stereo.referenceAtoms.length !== 4
+    ) {
+      error(
+        'ATOM_STEREO_PARITY',
+        'Tetrahedral parity requires four molecular neighbour references.',
+        { atomId }
+      )
+      continue
+    }
+    const refs = stereo.referenceAtoms as unknown[]
+    const explicit = refs.filter((id) => id !== null)
+    const neighbours = new Set<string>()
+    for (const bond of input.bonds as unknown[]) {
+      if (!record(bond) || !Array.isArray(bond.endpoints) || bond.endpoints.length !== 2) continue
+      const [a, b] = bond.endpoints
+      if (!record(a) || !record(b)) continue
+      if (a.sourceAtomId === atomId && typeof b.sourceAtomId === 'string')
+        neighbours.add(b.sourceAtomId)
+      if (b.sourceAtomId === atomId && typeof a.sourceAtomId === 'string')
+        neighbours.add(a.sourceAtomId)
+    }
+    if (
+      refs.filter((id) => id === null).length > 1 ||
+      new Set(explicit).size !== explicit.length ||
+      explicit.length !== neighbours.size ||
+      explicit.some(
+        (id) => !validId(id) || id === atomId || !atomIds.has(id) || !neighbours.has(id)
+      )
+    )
+      error(
+        'ATOM_STEREO_REFERENCE',
+        'Parity references must match distinct bonded neighbours and at most one implicit H.',
+        { atomId }
+      )
   }
   return diagnostics
 }

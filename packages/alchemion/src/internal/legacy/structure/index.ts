@@ -1,6 +1,6 @@
 import { IElement } from '../elements'
 import { CrystalSystem } from './space-group-settings'
-export { spaceGroupSettings, CrystalSystem } from './space-group-settings'
+export { CrystalSystem } from './space-group-settings'
 
 export interface IAtom {
   mass: number

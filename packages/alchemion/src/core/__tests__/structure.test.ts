@@ -26,6 +26,50 @@ const endpoint = (sourceAtomId: string) => ({
 })
 
 describe('T-DOM-06 snapshot identity and domain validation', () => {
+  test('M4 tetrahedral parity references stable bonded neighbours and validates the absolute flag', () => {
+    const input: MolecularStructureSnapshot = {
+      kind: 'molecular',
+      stereoAbsolute: true,
+      atoms: [
+        {
+          id: 'center',
+          element: 'C',
+          cartesian: [0, 0, 0],
+          stereoParity: { parity: 'odd', referenceAtoms: ['F', 'Cl', 'Br', null] }
+        },
+        ...['F', 'Cl', 'Br'].map((element) => ({
+          id: element,
+          element,
+          cartesian: [1, 0, 0] as const
+        }))
+      ],
+      bonds: ['F', 'Cl', 'Br'].map((id) => ({
+        id: `b-${id}`,
+        order: 'single' as const,
+        endpoints: [endpoint('center'), endpoint(id)] as const
+      }))
+    }
+    expect(createStructureSnapshot(input).ok).toBe(true)
+    for (const refs of [
+      ['F', 'Cl', 'missing', null],
+      ['F', 'F', 'Br', null],
+      ['F', 'Cl', null, null]
+    ]) {
+      const altered = {
+        ...input,
+        atoms: [
+          { ...input.atoms[0], stereoParity: { parity: 'odd', referenceAtoms: refs } },
+          ...input.atoms.slice(1)
+        ]
+      }
+      expect(validateStructure(altered).some((d) => d.code === 'ATOM_STEREO_REFERENCE')).toBe(true)
+    }
+    expect(
+      validateStructure({ ...input, stereoAbsolute: 'yes' }).some(
+        (d) => d.code === 'MOLECULE_STEREO_FLAG'
+      )
+    ).toBe(true)
+  })
   test('duplicate labels and overlapping distinct sources survive isolated serialization', () => {
     const input = molecule()
     const result = createStructureSnapshot(input)
