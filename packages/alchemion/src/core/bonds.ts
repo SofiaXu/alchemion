@@ -24,6 +24,7 @@ import type {
 } from './types'
 
 export interface DerivationOptions {
+  readonly applySymmetry?: boolean
   readonly neighborCells?: readonly Vec3[]
   readonly cutoff?:
     | { readonly kind: 'none' }
@@ -294,7 +295,8 @@ export function deriveStructure(
   if (
     !options ||
     typeof options !== 'object' ||
-    (options.inferBonds !== undefined && typeof options.inferBonds !== 'boolean')
+    (options.inferBonds !== undefined && typeof options.inferBonds !== 'boolean') ||
+    (options.applySymmetry !== undefined && typeof options.applySymmetry !== 'boolean')
   )
     return failure('DERIVATION_OPTIONS', 'Invalid structure derivation options.')
   if (
@@ -307,6 +309,7 @@ export function deriveStructure(
   if (snapshot.kind === 'molecular' && options.cutoff?.kind === 'bond')
     return failure('MOLECULAR_PERIODIC_OPTIONS', 'Bond cutoff requires a periodic structure.')
   const instances = deriveInstances(snapshot, {
+    applySymmetry: options.applySymmetry,
     neighborCells: options.neighborCells,
     cutoff: options.cutoff?.kind === 'bond' ? undefined : options.cutoff
   })

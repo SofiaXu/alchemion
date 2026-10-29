@@ -19,6 +19,8 @@ import {
 import type { AtomInstance, BondEndpoint, ScientificResult, StructureSnapshot, Vec3 } from './types'
 
 export interface InstanceOptions {
+  /** False displays only actual identity operations, without changing source symmetry. */
+  readonly applySymmetry?: boolean
   readonly neighborCells?: readonly Vec3[]
   readonly cutoff?: { readonly kind: 'none' } | { readonly kind: 'fraction'; readonly width: Vec3 }
 }
@@ -60,7 +62,11 @@ export function deriveInstances(
     return failure('STRUCTURE_KIND', 'A periodic or molecular structure is required.')
   const structureErrors = validateStructure(snapshot).filter((entry) => entry.severity === 'error')
   if (structureErrors.length) return failureFrom(structureErrors)
-  if (!options || typeof options !== 'object')
+  if (
+    !options ||
+    typeof options !== 'object' ||
+    (options.applySymmetry !== undefined && typeof options.applySymmetry !== 'boolean')
+  )
     return failure('DERIVATION_OPTIONS', 'Instance options must be an object.')
   const cells = selectedCells(options.neighborCells)
   if (!cells.ok) return cells
@@ -111,6 +117,23 @@ export function deriveInstances(
   }
   const symmetry = resolveSymmetry(snapshot.symmetry, snapshot.cell)
   if (!symmetry.ok) return symmetry
+  const operations =
+    options.applySymmetry === false
+      ? symmetry.value.filter(
+          (operation) =>
+            operation.rotation.every((column, i) =>
+              column.every((entry, j) => entry === (i === j ? 1 : 0))
+            ) &&
+            operation.translation.every(
+              ({ numerator, denominator }) => numerator % denominator === 0
+            )
+        )
+      : symmetry.value
+  if (!operations.length)
+    return failure(
+      'SYMMETRY_IDENTITY_REQUIRED',
+      'Disabling symmetry mates requires an identity operation with reversible source provenance.'
+    )
   const all: AtomInstance[] = []
   // Buckets include the source ID; distinct source sites can never be merged.
   for (const atom of [...snapshot.atoms].sort((a, b) => compareStrings(a.id, b.id))) {
@@ -119,7 +142,7 @@ export function deriveInstances(
         atomId: atom.id
       })
     const candidates: AtomInstance[] = []
-    for (const operation of symmetry.value) {
+    for (const operation of operations) {
       const raw = applySymmetry(operation, atom.fractional)
       if (!isFiniteVector(raw))
         return failure('COORDINATE_OVERFLOW', 'Symmetry operation overflowed.', { atomId: atom.id })

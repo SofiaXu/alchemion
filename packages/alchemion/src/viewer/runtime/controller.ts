@@ -1,7 +1,12 @@
 import type { DerivationOptions } from '../../core/bonds'
 import { createDocumentStore } from '../../core/editing'
 import type { DocumentChange } from '../../core/editing'
-import type { DerivedStructure, Diagnostic, ScientificResult } from '../../core/types'
+import type {
+  DerivedStructure,
+  Diagnostic,
+  ScientificResult,
+  StructureSnapshot
+} from '../../core/types'
 import { createComputationRuntime } from './runtime'
 import { abortError, ComputationError } from './types'
 import type {
@@ -57,7 +62,9 @@ export function createEditorController(options: EditorControllerOptions = {}): E
 /** Internal executor seam for fault scheduling; no injection options enter the public factory. */
 export function createControllerWithRuntime(
   options: EditorControllerOptions,
-  runtime: ComputationRuntime
+  runtime: ComputationRuntime,
+  // Internal composition seam: viewer options depend on whether the accepted source is periodic.
+  resolveDerivation?: (snapshot: StructureSnapshot) => DerivationOptions
 ): EditorController {
   const store = createDocumentStore({ historyLimit: options.historyLimit })
   const listeners = new Set<(state: EditorState) => void>()
@@ -110,7 +117,11 @@ export function createControllerWithRuntime(
         {
           documentId: source.documentId,
           revision: source.revision,
-          task: { kind: 'derive', snapshot: source.snapshot, options: derivation }
+          task: {
+            kind: 'derive',
+            snapshot: source.snapshot,
+            options: resolveDerivation ? resolveDerivation(source.snapshot) : derivation
+          }
         },
         { signal: abort.signal }
       )

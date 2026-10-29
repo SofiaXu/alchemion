@@ -15,6 +15,10 @@ export interface ElementRecord {
     readonly standardUncertainty?: number
     readonly provenance: Provenance
   }
+  readonly vanDerWaalsRadius?: {
+    readonly value: number
+    readonly provenance: Provenance
+  }
 }
 
 export interface SpaceGroupSetting {

@@ -1,0 +1,654 @@
+{
+  "timestamp": "2026-10-29T15:42:41.350Z",
+  "purpose": "One minimal create/load/dispose cycle per browser to diagnose the first-run fixed 14 listener residue; not a repeated functionality suite",
+  "sdkBuild": "Previously built SDK reused; this diagnostic rebuilt only its isolated host",
+  "classification": "Actual registration stack attributes InjectedScript/addHitTargetInterceptorListeners to Playwright and .user.js to an externally injected user script. No fixed baseline is subtracted. Every other listener remains SDK-owned and must reach zero.",
+  "runs": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "sdkCounts": {
+        "gpuObjects": 0,
+        "workers": 0,
+        "rafs": 0,
+        "observers": 0,
+        "listeners": 0,
+        "canvases": 0
+      },
+      "totalRemainingListeners": 14,
+      "externalListeners": 14,
+      "registrations": [
+        {
+          "target": "Window",
+          "type": "mousedown",
+          "capture": true,
+          "listener": "e=>{e.isTrusted&&(this.clicked=!0,clearTimeout(this.clickTimer),this.clickTimer=setTimeout((()=>{this.clicked=!1}),ka.OBSERVE_DURATION_AFTER_CLICK))}",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at new ka (AdGuard%20Popup%20Blocker.user.js:2115:310201)\n    at AdGuard%20Popup%20Blocker.user.js:2115:310854",
+          "owner": "user-script"
+        },
+        {
+          "target": "Window",
+          "type": "__playwright_global_listeners_check__",
+          "capture": false,
+          "listener": "() => seenEvent = true",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at InjectedScript._setupGlobalListenersRemovalDetection (<anonymous>:7980:17)\n    at new InjectedScript (<anonymous>:6933:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mousemove",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "pointerdown",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "pointerup",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchstart",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchend",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchcancel",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mousedown",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mouseup",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "click",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "auxclick",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "dblclick",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "contextmenu",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "Error\n    at EventTarget.addEventListener (http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564)\n    at addHitTargetInterceptorListeners (<anonymous>:8001:21)\n    at InjectedScript._setupHitTargetInterceptors (<anonymous>:8003:5)\n    at new InjectedScript (<anonymous>:6934:10)\n    at <anonymous>:8388:16\n    at <anonymous>:8389:11",
+          "owner": "playwright"
+        }
+      ],
+      "reviewedOwnership": [
+        {
+          "type": "mousedown",
+          "target": "Window",
+          "capture": true,
+          "owner": "user-script"
+        },
+        {
+          "type": "__playwright_global_listeners_check__",
+          "target": "Window",
+          "capture": false,
+          "owner": "playwright"
+        },
+        {
+          "type": "mousemove",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "pointerdown",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "pointerup",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchstart",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchend",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchcancel",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "mousedown",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "mouseup",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "click",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "auxclick",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "dblclick",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "contextmenu",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        }
+      ],
+      "reviewedSdkListenerCount": 0
+    },
+    {
+      "browser": "firefox",
+      "version": "155.0",
+      "sdkCounts": {
+        "gpuObjects": 0,
+        "workers": 0,
+        "rafs": 0,
+        "observers": 0,
+        "listeners": 1,
+        "canvases": 0
+      },
+      "totalRemainingListeners": 14,
+      "externalListeners": 13,
+      "registrations": [
+        {
+          "target": "Window",
+          "type": "mousedown",
+          "capture": true,
+          "listener": "e=>{e.isTrusted&&(this.clicked=!0,clearTimeout(this.clickTimer),this.clickTimer=setTimeout((()=>{this.clicked=!1}),ka.OBSERVE_DURATION_AFTER_CLICK))}",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\nka@http://127.0.0.1:4197/ line 2115 > injectedScript:1:147691\n@http://127.0.0.1:4197/ line 2115 > injectedScript:1:148344\nEventListener.handleEvent*_s@http://127.0.0.1:4197/ line 2115 > injectedScript:1:148302\n@http://127.0.0.1:4197/ line 2115 > injectedScript:1:149790\nanonymous/</<@AdGuard%20Popup%20Blocker.user.js:2115:312679\nanonymous/</<@AdGuard%20Popup%20Blocker.user.js:2115:312712\nanonymous/</<@AdGuard%20Popup%20Blocker.user.js:2115:312766\nanonymous/<@AdGuard%20Popup%20Blocker.user.js:2115:312778\nanonymous/<@AdGuard%20Popup%20Blocker.user.js:1343:67\nanonymous@AdGuard%20Popup%20Blocker.user.js:1343:143\n@AdGuard%20Popup%20Blocker.user.js:2:36278\no@AdGuard%20Popup%20Blocker.user.js:2:35881\n@AdGuard%20Popup%20Blocker.user.js:2:35911\n@AdGuard%20Popup%20Blocker.user.js:2:36258\n@AdGuard%20Popup%20Blocker.user.js:2118:5\n",
+          "owner": "user-script"
+        },
+        {
+          "target": "Window",
+          "type": "__playwright_global_listeners_check__",
+          "capture": false,
+          "listener": "() => seenEvent = true",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\n_setupGlobalListenersRemovalDetection@debugger eval code:7980:17\nInjectedScript@debugger eval code:6933:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "sdk"
+        },
+        {
+          "target": "Window",
+          "type": "mousemove",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "pointerdown",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "pointerup",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchstart",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchend",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchcancel",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mousedown",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mouseup",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "click",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "auxclick",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "dblclick",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "contextmenu",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "ap/EventTarget.prototype.addEventListener@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45564\naddHitTargetInterceptorListeners@debugger eval code:8001:21\n_setupHitTargetInterceptors@debugger eval code:8003:5\nInjectedScript@debugger eval code:6934:10\n@debugger eval code:8388:16\n@debugger eval code:8389:11\n",
+          "owner": "playwright"
+        }
+      ],
+      "reviewedOwnership": [
+        {
+          "type": "mousedown",
+          "target": "Window",
+          "capture": true,
+          "owner": "user-script"
+        },
+        {
+          "type": "__playwright_global_listeners_check__",
+          "target": "Window",
+          "capture": false,
+          "owner": "playwright"
+        },
+        {
+          "type": "mousemove",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "pointerdown",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "pointerup",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchstart",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchend",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchcancel",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "mousedown",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "mouseup",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "click",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "auxclick",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "dblclick",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "contextmenu",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        }
+      ],
+      "reviewedSdkListenerCount": 0
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "sdkCounts": {
+        "gpuObjects": 0,
+        "workers": 0,
+        "rafs": 0,
+        "observers": 0,
+        "listeners": 2,
+        "canvases": 0
+      },
+      "totalRemainingListeners": 14,
+      "externalListeners": 12,
+      "registrations": [
+        {
+          "target": "Window",
+          "type": "mousedown",
+          "capture": true,
+          "listener": "e=>{e.isTrusted&&(this.clicked=!0,clearTimeout(this.clickTimer),this.clickTimer=setTimeout((()=>{this.clicked=!1}),ka.OBSERVE_DURATION_AFTER_CLICK))}",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\nka@http://local.adguard.org/:2115:310217\n@http://local.adguard.org/:2115:310854",
+          "owner": "sdk"
+        },
+        {
+          "target": "Window",
+          "type": "__playwright_global_listeners_check__",
+          "capture": false,
+          "listener": "() => seenEvent = true",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\n_setupGlobalListenersRemovalDetection@\nInjectedScript@\n@\nglobal code@",
+          "owner": "sdk"
+        },
+        {
+          "target": "Window",
+          "type": "mousemove",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "pointerdown",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "pointerup",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchstart",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchend",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "touchcancel",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mousedown",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "mouseup",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "click",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "auxclick",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "dblclick",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        },
+        {
+          "target": "Window",
+          "type": "contextmenu",
+          "capture": true,
+          "listener": "(event) => {\n      var _a;\n      return (_a = this._hitTargetInterceptor) == null ? void 0 : _a.call(this, event);\n    }",
+          "stack": "@http://127.0.0.1:4197/assets/index-CBawX8-f.js:4246:45573\naddHitTargetInterceptorListeners@\n_setupHitTargetInterceptors@\nInjectedScript@\n@\nglobal code@",
+          "owner": "playwright"
+        }
+      ],
+      "reviewedOwnership": [
+        {
+          "type": "mousedown",
+          "target": "Window",
+          "capture": true,
+          "owner": "user-script"
+        },
+        {
+          "type": "__playwright_global_listeners_check__",
+          "target": "Window",
+          "capture": false,
+          "owner": "playwright"
+        },
+        {
+          "type": "mousemove",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "pointerdown",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "pointerup",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchstart",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchend",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "touchcancel",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "mousedown",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "mouseup",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "click",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "auxclick",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "dblclick",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        },
+        {
+          "type": "contextmenu",
+          "target": "Window",
+          "capture": true,
+          "owner": "playwright"
+        }
+      ],
+      "reviewedSdkListenerCount": 0
+    }
+  ],
+  "stackReview": "Firefox/WebKit omit the Chromium dotted method prefix; their _setupGlobalListenersRemovalDetection/InjectedScript frames are the same Playwright registration. WebKit identifies the same AdGuard injector as http://local.adguard.org/. The classifier was updated using these concrete recorded frames; initial diagnostic counters below are preserved, and the affected browser cases will validate the corrected classifier."
+}

@@ -1,10 +1,10 @@
 # 目标架构与接口边界
 
-状态：2026-10-29。M1建立SDK/demo workspace，M3科学模型和M4格式/事务/独立运行时已通过Windows及Ubuntu定向验证；证据见当前交接。正式三维Viewer仍由M5实现。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
+状态：2026-10-29。M1建立SDK/demo workspace，M3科学模型和M4格式/事务/独立运行时已通过Windows及Ubuntu定向验证；证据见当前交接。正式Three Viewer由M5集成；实际验收状态见当前交接。产品能力以[product.md](product.md)、科学语义以[domain.md](domain.md)、验证以[quality.md](quality.md)为准。旧代码事实见[baseline.md](baseline.md)。
 
 ## 交付与依赖方向
 
-采用pnpm workspace：一个SDK包和一个独立demo。三个子路径已由M1建立，正式core/formats和独立编辑/运行时已实现；历史viewer暂存到M5迁移。
+采用pnpm workspace：一个SDK包和一个独立demo。三个子路径已由M1建立，正式core/formats和独立编辑/运行时已实现；M5正式viewer只使用Three，历史实现已退出正式目录。
 
 | 目标位置／正式入口   | 职责与允许依赖                                                                                                                                           |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@ M2已实测选定Three.js0.186.1（类型0.186.0），依据见[Accepted ADR0002
 
 M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29 用户确认，历史 Babylon 7.23.0 viewer/demo 保留至 M5/M6 迁移；定案时收束新候选，不在 M2 为删除历史依赖而提前重写完整 viewer。
 
-正式core不再导出历史IAtom/IStructure/ILattice、事件工具或旧数据表。M3曾将旧格式/viewer依赖隔离到internal/legacy；M4已移除旧格式和历史setting数组，仅旧viewer继续使用必要历史类型/算法，不创建转换层。新core/formats均禁止导入历史目录。无消费者的旧键价数据已删除。
+正式core不再导出历史IAtom/IStructure/ILattice、事件工具或旧数据表。M3曾将旧格式/viewer依赖隔离到internal/legacy；M4已移除旧格式和历史setting数组，M5删除失去消费者的历史viewer、类型、算法和配色，不创建转换层。新core/formats均禁止导入历史目录。无消费者的旧键价数据已删除。
 
 ## M3 科学接口
 
@@ -55,92 +55,21 @@ M2 候选原型仅是开发验证资产，不进入 SDK exports。按 2026-10-29
 - **编辑与历史**：M4 的控制器拥有源快照和撤销/重做历史。原子增删、元素/坐标修改、晶胞修改均作为事务命令；一次批量命令只产生一条历史，失败不部分提交，失败/空操作不入历史。晶胞编辑保留分数坐标。新编辑清空 redo；`load`、`clear` 清空历史与选择，load 更换 `documentId`。历史默认保留 100 个事务，可配置；undo/redo 恢复稳定 ID，但修订递增。显示选项、相机和测量不进入结构编辑历史。
 - **派生实例编辑**：编辑其源原子，随后重新推导所有关联实例。派生实例不成为第二份可独立编辑的权威结构。测量可以使用显示实例的笛卡尔位置；导出使用源快照，除非产品规范明确另提供扩胞结构操作。
 
-## 公共 API 职责草案
+## 正式三维公共 API
 
-下面展示已实现的M4格式边界及M5三维门面的目标草案；格式完整声明以`formats/contracts.ts`为准，独立编辑/运行时接口见上文。`createViewer`、完整ViewerOptions/ViewerEvent仍由M5实现，不能在当前仓库调用。领域模型和格式结果的详细字段受领域/产品规范约束。
+M5提供`createViewer(container:HTMLElement, options?:ViewerCreateOptions):Viewer`。完整声明以[viewer/types.ts](../packages/alchemion/src/viewer/types.ts)为准，决策见[ADR0005](decisions/0005-formal-viewer.md)。保留M4独立controller/runtime，不再导出历史AlchemionEditor或引擎对象。
 
-```ts
-// alchemion/core：周期键最小身份契约，其他科学属性由领域规范补全。
-export interface BondEndpoint {
-  sourceAtomId: AtomId
-  symmetryOperationId: SymmetryOperationId
-  integerCellOffset: readonly [number, number, number]
-}
+`Viewer`提供异步`load/setOptions/execute/undo/redo`，同步`getSnapshot/getState/getCamera/setCamera/rotate/zoom/center/subscribe/clear/dispose`。execute接受单命令或数组，一批对应一个源事务。相机姿态为本库有限数值（位置、target、up、度制FOV、near/far）；zoom正因子乘相机距离。首次load默认适配结构，有显式相机时保留其姿态，编辑保留相机。
 
-// alchemion/core 定义通用 Diagnostic，formats/viewer 复用或重导出。
-export interface Diagnostic {
-  severity: 'error' | 'warning' | 'info'
-  code: string
-  message: string
-  sourceLocation?: { line: number; column: number; offset?: number }
-}
+`ViewerOptions`覆盖renderMode、元素样式、atomScale、球/键/缺失显示半径、晶格/倒易/BZ开关、showSymmetryMates、neighborCells、cutoff、inferBonds、interactionMode及showPerformance。默认空间填充、展开对称、仅中心晶胞、无cutoff、推断成键、交互none；辅助和性能显示关闭。元素样式输入#RRGGBB及Å半径。historyLimit/mode/timeoutMs只在创建时配置。
 
-// alchemion/formats：纯文本边界，不隐式 fetch，也不弹出文件选择框。
-export type BlockSelector = { name: string } | { index: number }
-export type ParseOptions = { format: 'cif'; block?: BlockSelector } | { format: 'mol' }
-export type WriteOptions = (
-  | { format: 'cif'; version: '1' | '2' }
-  | {
-      format: 'mol'
-      version?: 'V2000' | 'V3000'
-      finite?:
-        | { kind: 'source'; atomIds: readonly AtomId[] }
-        | { kind: 'instances'; endpoints: readonly BondEndpoint[] }
-    }
-  | { format: 'poscar' }
-) & { allowLoss?: boolean }
-export interface ParseResult {
-  structure?: StructureSnapshot
-  diagnostics: readonly Diagnostic[]
-  candidates?: readonly { name: string; index: number }[]
-}
-export interface WriteResult {
-  text?: string
-  diagnostics: readonly Diagnostic[]
-  atomMapping?: readonly { fileAtomNumber: number; exportAtomId: string; source: BondEndpoint }[]
-}
-export interface CifDocumentResult {
-  document?: CifDocument
-  diagnostics: readonly Diagnostic[]
-}
-export function parseCifDocument(text: string): CifDocumentResult
-export function parseStructure(text: string, options: ParseOptions): ParseResult
-export function writeStructure(structure: StructureSnapshot, options: WriteOptions): WriteResult
+`ViewerState`包含empty/computing/ready/error/disposed、documentId/revision、canUndo/canRedo、options、diagnostics及可选selection/measurement；快照及状态均不可变。subscribe立即返回当前state事件，返回幂等退订函数。
 
-// alchemion/viewer：以下签名中的模型/选项/事件类型均须为引擎无关类型。
-export type InteractionMode =
-  | 'none'
-  | 'select'
-  | 'pick-point'
-  | 'measure-distance'
-  | 'measure-angle'
-  | 'measure-torsion'
+事件区分state、selection、point、measurement、history和error。除state自身携带状态外，其余事件明确携带当前documentId/revision。原子selection包含完整AtomInstance；键selection包含DerivedBond及两端实例，能区分显式/推断来源。point返回Å Cartesian及周期时的fractional，surface/view-plane说明交点来源；测量含angstrom/degree单位和顺序实例，退化诊断不产生NaN。模式切换/load/clear清临时交互；结构修订保留仍有效的实例选择并清空测量。
 
-export interface Viewer {
-  load(structure: StructureSnapshot): Promise<void>
-  getSnapshot(): StructureSnapshot | undefined
-  setOptions(patch: Partial<ViewerOptions>): Promise<void>
-  execute(command: EditCommand): Promise<void>
-  undo(): Promise<void>
-  redo(): Promise<void>
-  center(): void
-  subscribe(listener: (event: ViewerEvent) => void): () => void
-  clear(): void
-  dispose(): void
-}
+controller.commit组合主派生与必需辅助几何，完整GPU帧后才ready；纯显示更新复用派生结果并受呈现版本/取消约束，不污染历史或重新推断成键。内部按已接受源类别解析派生选项，不创建第二命令队列。取消、clear、dispose和被取代的派生请求以AbortError结束。提交前校验失败保留原源/历史/显示；有效源接受后的计算或渲染失败保留新源并进入error，拒绝对应Promise，不能把旧帧误报ready。
 
-export function createViewer(container: HTMLElement, options?: Partial<ViewerOptions>): Viewer
-```
-
-`ParseOptions` 显式指定 `format: 'cif' | 'mol'`；CIF 可带 `block?: BlockSelector`，格式版本按文件识别。`WriteOptions` 显式指定 `format: 'cif' | 'mol' | 'poscar'`；CIF 明确版本 `'1' | '2'`，MOL 版本为 `'V2000' | 'V3000'`、省略时为 V3000；损失接受项为 `allowLoss?: boolean`、默认 false。`SourceLocation` 行/列从 1 开始、offset 从 0 开始，未能定位时省略；CIF block index 从 0 开始。
-
-`parseCifDocument` 读取全部 block；`parseStructure` 只映射一个结构，单 block 自动选择，多 block 未指定选择器时返回 error 和候选名称/索引，不暗取第一项。输出仅保证支持字段的科学语义，不能表达时默认 error 且没有 text；调用者显式接受可降级损失时返回 warning 和输出。V2000 超限必须拒绝；周期结构写 MOL 前要求调用者显式取得有限快照；POSCAR 无晶胞或部分占位拒绝，不能由 allowLoss 绕过硬前提。ParseResult/WriteResult 遇到 error 时不返回半成品 structure/text。详细支持字段、诊断和可接受损失以产品/领域规范为准。
-
-viewer 选项覆盖空间填充/球棍、元素颜色、晶格/倒易晶格/布里渊区、对称与邻胞、裁剪和成键、交互模式及性能显示。使用有限选项类型，不再以任意字符串暗示未实现能力。
-
-`ViewerEvent` 至少区分状态、选择、坐标拾取、测量、历史可用性与错误；事件携带当前 documentId/修订。选择区分 `atom` 与 `bond`：原子同时提供实例 ID 与源原子 ID；键提供显示键 ID、源键/推断来源及两端实例身份，不能把键事件当原子事件。测量值带明确定义的单位。当前状态为 `empty / computing / ready / error / disposed`；订阅时立即交付当前状态，错误事件包含可诊断的代码及上下文，不暴露引擎对象。取消、销毁和被取代的派生请求以 `AbortError` 结束，demo 必须处理这种正常控制流。
-
-`load`、需要重算的选项变更、编辑与历史操作返回的 Promise 在对应修订的完整显示提交后完成；仅完成 Worker 计算不算 ready。纯相机/选择操作无需重算。源快照校验通过并接受之后，后续计算或渲染失败时保留已提交的有效源与 error 状态，Promise reject，供下一次命令或重新加载恢复；不能显示旧帧并宣称新修订已 ready。该情形不同于提交前的解析/校验失败。引擎对象、材质、场景、相机类均不进入正式 API；相机操作使用库自身的数值参数和命令。
+倒易和BZ由同一Worker计算，在同canvas的独立Å⁻¹小视窗中显示并跟随主朝向；晶格和交互辅助图形不参与主原子/键拾取。所有Three类型、渲染快照和测试观测钩子留在内部。
 
 ## 异步协议与提交边界
 

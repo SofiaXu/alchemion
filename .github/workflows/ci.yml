@@ -1,49 +1,66 @@
-name: M2 engineering
+name: M5 viewer delivery
 on:
-  push:
-    paths:
-      - 'tests/renderer-selection/**'
-      - 'scripts/renderer-selection.mjs'
-      - 'scripts/renderer-resources.mjs'
-      - 'playwright.m2.config.ts'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
   pull_request:
     paths:
-      - 'tests/renderer-selection/**'
-      - 'scripts/renderer-selection.mjs'
-      - 'scripts/renderer-resources.mjs'
-      - 'playwright.m2.config.ts'
+      - 'packages/alchemion/**'
+      - 'apps/demo/**'
+      - 'tests/**'
+      - 'scripts/tasks.mjs'
+      - 'scripts/m5-*'
+      - '*config*'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'docs/**'
+      - 'README.md'
+      - '.github/workflows/**'
   workflow_dispatch:
 jobs:
-  renderer-harness:
+  formal-viewer:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
+      TEST_WORKERS: '4'
       LIBGL_ALWAYS_SOFTWARE: '1'
-      # Four concurrent 10k-instance software viewers exhausted the first run;
-      # keep the full fixture and reduce CPU contention on this runner.
-      TEST_WORKERS: '2'
+      M5_BASE: ${{ github.event.action == 'synchronize' && github.event.before || github.event.pull_request.base.sha || 'HEAD^' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24.22.1
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: pnpm build
-      - run: pnpm exec tsc -p tsconfig.json
-      - run: pnpm exec eslint scripts/tasks.mjs scripts/renderer-selection.mjs scripts/renderer-resources.mjs playwright.m2.config.ts eslint.config.mjs tests/renderer-selection
-      - run: pnpm docs:check
-      - run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m2
-      - run: xvfb-run --auto-servernum pnpm test:package -- --prepared
+      - name: Select this delivery's actual changes
+        id: scope
+        run: pnpm exec node scripts/m5-ci.mjs --scope
+      - name: Targeted unit cases
+        if: steps.scope.outputs.code == 'true'
+        run: pnpm exec node scripts/m5-ci.mjs --unit
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm build
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec tsc -p packages/alchemion/tsconfig.core.json
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec tsc -p tsconfig.json
+      - name: Changed lint, formatting and document links
+        run: pnpm exec node scripts/m5-ci.mjs --checks
+      - if: steps.scope.outputs.code == 'true'
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Linux software-driver viewer functionality
+        if: steps.scope.outputs.code == 'true'
+        # Platform/driver coverage; hardware performance is measured separately.
+        run: xvfb-run --auto-servernum pnpm test:browser -- --phase=m5 --prepared
+      - name: Linux production tarball and module computation Worker
+        if: steps.scope.outputs.code == 'true'
+        run: xvfb-run --auto-servernum pnpm test:package -- --phase=m5 --prepared --project=chromium
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: m2-diagnostics
+          name: m5-viewer-evidence
+          if-no-files-found: ignore
           path: |
+            .tmp/m5-browser.json
             playwright-report
             test-results

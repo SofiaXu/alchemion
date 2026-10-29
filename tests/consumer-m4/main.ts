@@ -1,6 +1,6 @@
 import { createDocumentStore } from 'alchemion/core'
 import { parseStructure, writeStructure } from 'alchemion/formats'
-import { AlchemionEditor, createComputationRuntime, createEditorController } from 'alchemion/viewer'
+import { createViewer, createComputationRuntime, createEditorController } from 'alchemion/viewer'
 
 const cif = `data_consumer
 _cell_length_a 2
@@ -60,40 +60,13 @@ async function run() {
   controller.dispose()
   const noCanvasBeforeLegacy = document.querySelectorAll('canvas').length === 0
 
-  // The changed historical demo input is checked once in this same tarball consumer.
-  const editor = new AlchemionEditor('#editor')
-  const ready = new Promise<void>((done) =>
-    editor.status.subscribe((status) => {
-      if (status === 'completed') done()
-    })
-  )
-  editor.loadStructure({
-    atoms: [
-      {
-        name: 'C1',
-        x: 0,
-        y: 0,
-        z: 0,
-        mass: 12.011,
-        valence: 4,
-        metadata: {},
-        element: {
-          id: 6,
-          symbol: 'C',
-          block: 'p',
-          isMetal: false,
-          valence: 4,
-          mass: 12.011,
-          radius: 0.76,
-          electronegativity: 2.55,
-          bondElements: [1, 6, 7, 8]
-        }
-      }
-    ],
-    bonds: [],
-    metadata: {}
+  // This earlier phase consumer now uses the sole formal viewer API.
+  const editor = createViewer(document.querySelector<HTMLElement>('#editor')!)
+  await editor.load({
+    kind: 'molecular',
+    atoms: [{ id: 'C1', element: 'C', cartesian: [0, 0, 0] }],
+    bonds: []
   })
-  await ready
   editor.dispose()
   editor.dispose()
   document.querySelector('output')!.value = 'passed'

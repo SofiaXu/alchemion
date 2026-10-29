@@ -1,0 +1,58 @@
+{
+  "generatedBy": "scripts/m5-vdw-data.mjs",
+  "dataset": "mendeleev-data 1.1.0 Alvarez/Vogt",
+  "revision": "67e08702c5e9e8541d9944824b10edfb718d61e8",
+  "field": "vdw_radius_alvarez",
+  "transformation": "pm / 100 -> angstrom; null remains missing; no covalent/mass/setting changes",
+  "license": "MIT; Copyright (c) 2024 Lukasz Mentel",
+  "references": ["10.1039/C3DT50599E", "10.1021/ic501364h", "10.1021/ic502140y"],
+  "sources": {
+    "data/json/elements.json": {
+      "url": "https://raw.githubusercontent.com/lmmentel/mendeleev-data/67e08702c5e9e8541d9944824b10edfb718d61e8/data/json/elements.json",
+      "sha256": "8ea60a0afe8ba3a0d23af9220968e3d08c988d3d6d773cf032fe6a34c125ee95"
+    },
+    "data/json/propertymetadata.json": {
+      "url": "https://raw.githubusercontent.com/lmmentel/mendeleev-data/67e08702c5e9e8541d9944824b10edfb718d61e8/data/json/propertymetadata.json",
+      "sha256": "31f9e11a9381ddc2ec30ea0e1d60e6b8a6f48a9a5bb8c9dbad021a0b5d79a588"
+    },
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/lmmentel/mendeleev-data/67e08702c5e9e8541d9944824b10edfb718d61e8/LICENSE",
+      "sha256": "bcbc87d5f4ce66074a3a51d84a44df0de94d0f1a4cc794e4c17bc497b226e5eb"
+    }
+  },
+  "outputs": {
+    "packages/alchemion/src/core/data/vdw-radii.ts": "64ecb76bc4f6c8510d74099eb62278e3d3ff36ff03930a8c4ffa9ae20640a23a"
+  },
+  "counts": {
+    "elements": 118,
+    "present": 94,
+    "missing": 24
+  },
+  "missing": [
+    "Pm",
+    "Po",
+    "At",
+    "Fr",
+    "Ra",
+    "Fm",
+    "Md",
+    "No",
+    "Lr",
+    "Rf",
+    "Db",
+    "Sg",
+    "Bh",
+    "Hs",
+    "Mt",
+    "Ds",
+    "Rg",
+    "Cn",
+    "Nh",
+    "Fl",
+    "Mc",
+    "Lv",
+    "Ts",
+    "Og"
+  ],
+  "limitation": "A compiled radius convention including estimates, not 94 independently measured constants."
+}

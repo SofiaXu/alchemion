@@ -7,7 +7,8 @@
     "dist",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
-    "SCIENTIFIC_DATA_MANIFEST.json"
+    "SCIENTIFIC_DATA_MANIFEST.json",
+    "VDW_DATA_MANIFEST.json"
   ],
   "exports": {
     "./core": {
@@ -27,11 +28,6 @@
     "build:source": "tsc -p tsconfig.json && vite build && tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
-    "@babylonjs/core": "7.23.0",
-    "@babylonjs/gui": "7.23.0",
-    "deep-object-diff": "1.1.9",
-    "earcut": "2.2.4",
-    "mathjs": "12.4.3",
-    "rxjs": "7.8.1"
+    "three": "0.186.1"
   }
 }

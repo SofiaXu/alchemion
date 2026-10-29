@@ -1,21 +1,7 @@
 name: M4 formats and runtime
 on:
-  pull_request:
-    paths:
-      - 'packages/alchemion/**'
-      - 'apps/demo/**'
-      - 'tests/consumer-m4/**'
-      - 'tests/m4/**'
-      - 'tests/*m4.spec.ts'
-      - 'tests/host/**'
-      - 'scripts/tasks.mjs'
-      - 'scripts/worker-urls.mjs'
-      - 'scripts/format-data.mjs'
-      - 'scripts/m4-*'
-      - '*config*'
-      - 'docs/**'
-      - 'README.md'
-      - '.github/workflows/m4.yml'
+  # Full M4 reproduction remains explicitly callable; ordinary PRs use the
+  # current delivery's targeted CI instead of repeating all format tests.
   workflow_dispatch:
 jobs:
   formats-runtime:

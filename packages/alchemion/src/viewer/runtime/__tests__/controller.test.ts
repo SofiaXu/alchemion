@@ -13,6 +13,38 @@ const molecule = (id = 'a'): MolecularStructureSnapshot => ({
 afterEach(() => vi.useRealTimers())
 
 describe('headless editor state machine', () => {
+  it('resolves viewer derivation options from the accepted source without a second command queue', async () => {
+    const { createComputationRuntime } = await import('../runtime')
+    const seen: string[] = []
+    const controller = createControllerWithRuntime(
+      {},
+      createComputationRuntime({ mode: 'sync' }),
+      (snapshot) => {
+        seen.push(snapshot.kind)
+        return {
+          inferBonds: false,
+          ...(snapshot.kind === 'periodic' ? { neighborCells: [[1, 0, 0] as const] } : {})
+        }
+      }
+    )
+    await controller.load({
+      kind: 'periodic',
+      cell: {
+        basis: [
+          [4, 0, 0],
+          [0, 4, 0],
+          [0, 0, 4]
+        ]
+      },
+      atoms: [{ id: 'p', element: 'C', fractional: [0, 0, 0] }],
+      bonds: []
+    })
+    expect(controller.getState().derived!.atoms).toHaveLength(2)
+    await controller.load(molecule())
+    expect(controller.getState().derived!.atoms).toHaveLength(1)
+    expect(seen).toEqual(['periodic', 'molecular'])
+    controller.dispose()
+  })
   it('publishes immediately and keeps the old source/history after pre-commit validation failure', async () => {
     const controller = createEditorController({ mode: 'sync' })
     const observations: EditorState['status'][] = []

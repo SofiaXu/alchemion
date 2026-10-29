@@ -4,23 +4,24 @@
 
 ## 当前入口
 
-- **M4格式、编辑与计算运行时已完成。** 实现/Ubuntu CI提交`d7f14e7`，归档与主分支合并见[PR #7](https://github.com/SofiaXu/alchemion/pull/7)和Git HEAD；详细入口为[M4计划](plans/m4-formats-runtime.md)。
-- 正式formats一次替换为CIF1/2文档及晶体、MOL两版、周期POSCAR；core提供createDocumentStore，viewer提供createComputationRuntime/createEditorController。契约见[架构](architecture.md)和[ADR0004](decisions/0004-formats-runtime.md)。
-- 新运行时显式创建、独占一个Worker，无canvas。历史Babylon viewer/demo暂用自产旧模型输入，Three正式viewer留M5，不建新旧适配层。
+- **M5正式Three viewer实现已落地，验收进行中。** 分支`codex/m5-viewer`，起点`master@c361469`，执行入口为[M5计划](plans/m5-viewer.md)，实际记录为[M5证据](evidence/m5-viewer.md)。本阶段尚未标完成。
+- 新公开`createViewer`接M4 controller唯一源/历史/单模块Worker；两模式、晶格/倒易/BZ独立视窗、真实拾取、点坐标、三种测量、编辑历史、取消和context恢复已实现。接口/语义见[ADR0005](decisions/0005-formal-viewer.md)。
+- 历史Babylon viewer/Worker/旧模型及无来源配色已移除，Three0.186.1是唯一正式后端。demo仅迁新API并验证启动，完整工作流留M6。
 
-## 完成证据
+## 已取得的证据
 
-- [M4证据](evidence/m4-formats-runtime.md)：Windows首轮96单元91通过/5失败；仅六个受影响文件复验78/78（含3个审查新反例），共99个独立场景通过；4进程、无重试。
-- 三浏览器运行时12/12、真实tarball Chromium1/1、SDK/demo构建、无DOM core/formats和消费类型、改动lint/格式及29文档链接通过。独立格式[17/17](evidence/m4-independent-reference.json)，固定工具/输入输出SHA及参考限制均保留。
-- [Ubuntu CI](https://github.com/SofiaXu/alchemion/actions/runs/40858487156)首轮success：d7f14e7，10文件/99项、4进程；构建/类型/改动检查及真实tarball1/1通过，见[摘要](evidence/m4-ci-summary.json)。归档仅改文档，不重复业务测试。
-- 官方Unicode16与固定RDKit参考质量数的来源/散列/许可随SDK分发。历史废弃样例/旧格式/schema及setting操作数组已移除，来源台账保留处置记录。
-- [M3科学证据](evidence/m3-scientific-core.md)、[M2证据](evidence/m2-renderer-selection.md)继续有效，本次未重复其余科学、渲染或硬件性能。
+- Windows定向5文件35单元首轮全部通过，4进程、无重试；新增vdW/对称开关/门面和内部源类别组合有具体测试理由，没有运行完整科学/格式/传输套件。
+- 三浏览器首轮15通过/9失败，失败仅定向复验9/9通过：24个独立场景均有通过证据。context恢复、各浏览器20轮自有资源归零及多实例隔离通过；[摘要](evidence/m5-browser-summary.json)、[监听归属原始记录](evidence/m5-listener-ownership.json)、[现成截图](evidence/m5/screenshots.json)。
+- 14条首轮剩余监听逐条确认为Playwright/AdGuard外部注册，SDK按所有权严格归零。纯视觉失败假ready审查反例已修复并在同一待复验场景验证。
+- 复验原始JSON被后续package覆盖，附件未归档；摘要如实保留已观察CLI/统计/严格断言结果，未为补报告重跑。workspace/package报告现分名。
+- SDK/demo构建、core/formats无DOM与根类型、改动lint/格式、真实tarball Chromium1/1、demo dev真实Worker启动通过。31份文档links通过；数据来源/许可随包可追溯。
 
-## 尚待处理
+## 尚待完成
 
-- M4没有未解决关卡。OpenBabel的token内部续行限制仅影响独立spin参考传输，已按标准展开物理续行；RDKit仍验证原文件，未降低支持范围。
-- 正式Three显示/选择/测量、GPU资源和10k性能仍由M5验收；完整demo/最终分发由M6完成。历史元素/配色仍按来源台账由M5/M6替换/核验。
+- `pnpm bench -- --phase=m5 --prepared`正在独占GPU运行，输出`.tmp/bench/m5`，锁`.tmp/bench/m5.lock`；固定10k/20k、两模式各三轮，当前没有完整性能通过结论。不要在采样中修改生产源码、tests/m5、bench脚本或lockfile。
+- 源码拟先提交为草稿PR，使Ubuntu定向CI与Windows硬件采样并行，尽早发现平台差异，减少全部采样后改代码引起的复验。性能和CI关卡均通过才合并master。
+- M3/M4先前证据继续有效。M5硬件原始数据、Ubuntu CI、最终源SHA及merge结果取得后写入报告并更新阶段完成状态。
 
 ## 下一项可执行任务
 
-接管[M5计划](plans/m5-viewer.md)：从`createEditorController`的异步commit回调接Three完整帧，以documentId/revision/AbortSignal约束渲染提交；辅助倒易/BZ使用controller.compute共享已有Worker。复用M4的源事务/history/状态机，不建立第二套编辑或调度规则。选择与测量失效、正式三维交互和资源释放由M5连接验证；本会话不自动开始M5。
+续接当前基准进程与`.tmp/bench/m5`，按固定协议收齐六轮，检查首帧/交互/点击/局部更新/20轮资源和raw/gzip；失败保留原始数据，仅有技术理由地修复/复验受影响范围。通过后归档证据、等待针对同一源码的Ubuntu CI，更新M5计划与交接，提交文档，确认PR head SHA后merge到master。本会话已获提交、推送及合并授权；完成后M6入口是完整demo和最终分发验收。
