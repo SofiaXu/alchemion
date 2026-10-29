@@ -1,0 +1,146 @@
+# 目标架构与接口边界
+
+状态：2026-10-29 的新版目标，由 [ADR 0001](decisions/0001-project-foundation.md) 批准方向；当前代码尚未按此重构。产品能力以 [product.md](product.md)、科学语义以 [domain.md](domain.md)、验证以 [quality.md](quality.md) 为准。旧代码事实见 [baseline.md](baseline.md)。
+
+## 交付与依赖方向
+
+采用 pnpm workspace：一个 SDK 包和一个独立 demo。以下是 M1–M5 将建立的**目标目录**，不是当前可用的源码位置。
+
+| 目标位置／正式入口 | 职责与允许依赖 |
+|---|---|
+| `packages/alchemion` | 唯一 SDK 包，包名 `alchemion`；发布 ESM 和声明文件。 |
+| `alchemion/core` | 结构模型、通用诊断、晶胞与坐标、对称/扩胞、成键、倒易与第一布里渊区、测量、无界面编辑事务与历史（M4 实现）；只依赖无浏览器副作用的数学实现和经核实数据。 |
+| `alchemion/formats` | CIF1/CIF2、MOL V2000/V3000 的结构读写和周期结构 POSCAR 输出；只依赖 core；接收文本/结构并返回结果与诊断。 |
+| `alchemion/viewer` | 浏览器门面、编辑控制器、显式创建的计算运行时、Worker 入口、所选渲染后端及交互；组合 core，按需要使用 formats。 |
+| `apps/demo` | SDK 的真实消费者，负责文件选择/下载、控件、错误展示和示例；不得导入 SDK 内部源码。 |
+
+依赖只沿 `demo → viewer → core` 与 `demo/viewer → formats → core` 方向。core 和 formats 不导入 DOM、渲染引擎、Worker、`?worker` 等构建器语法；浏览器运行时才创建 Worker、canvas 和渲染器。用独立 TypeScript 配置和导入边界检查验证该约束。
+
+正式公共入口为上述三个子路径，使用显式 `exports`；不开放任意内部深层导入，也不保留旧全量入口的兼容实现。`core`/`formats` 导入必须无启动场景、注册全局处理器或创建 Worker 的副作用。Node.js 用于工具链和无浏览器检查，不构成 SDK 的 Node.js 运行时支持承诺。
+
+M4 的纯命令/历史状态机从 `core` 公开，能够在不创建 viewer 的情况下验证事务和历史；浏览器计算运行时从 `viewer` 子路径以显式工厂公开，只有调用该工厂才创建 Worker，独立使用时不创建 canvas 或 WebGL。正式 viewer 组合这两者，不另建私有的第二套编辑规则。具体函数声明在 M4 实施前根据 M3 的模型补全到本文件和消费者编译用例。
+
+M2 在 Three.js 与 Babylon.js 间实测择一；正式 SDK 只维护一个渲染后端。渲染隔离用于维持领域边界，不建设两个完整后端或通用引擎框架。引擎专属组织方式在 M2 定案后写回本文与 [ADR 0002](decisions/0002-renderer-selection.md)。
+
+## 数据、状态与编辑
+
+- **输入与源模型**：`load` 取得独立快照；周期结构保存显式分数坐标，非周期结构保存 Å 制笛卡尔坐标。解析或结构校验在提交前失败时，保留原文档、历史和显示；源快照通过校验后才接受新 documentId 并清历史/选择。调用者后续修改输入不影响 viewer；读取快照也不能修改内部权威状态。
+- **身份与派生显示**：原子和键使用稳定 ID。计算输出的每个显示实例包含实例 ID、源原子 ID、对称操作/晶胞偏移及笛卡尔位置；显示键引用显示实例。选择和编辑通过映射回到源对象，不能通过 mesh 名称、坐标相等或对象引用猜测身份。
+- **周期键端点**：源结构的每个键端点都包含 `sourceAtomId`、`symmetryOperationId`、`integerCellOffset`；非周期端点使用恒等操作和零偏移。两个端点都能表达非恒等对称影像，不能仅保存 AtomId 或单一相对 shift。键去重按规范端点及物理实例映射处理，科学规范决定操作规范化方式。
+- **计算与渲染**：core 产生与引擎无关的 `RenderSnapshot`；后端只将它变成图形并返回实例拾取 ID。坐标转换、成键、倒易和布里渊区不在 renderer 内再实现一份。
+- **编辑与历史**：M4 的控制器拥有源快照和撤销/重做历史。原子增删、元素/坐标修改、晶胞修改均作为事务命令；一次批量命令只产生一条历史，失败不部分提交，失败/空操作不入历史。晶胞编辑保留分数坐标。新编辑清空 redo；`load`、`clear` 清空历史与选择，load 更换 `documentId`。历史默认保留 100 个事务，可配置；undo/redo 恢复稳定 ID，但修订递增。显示选项、相机和测量不进入结构编辑历史。
+- **派生实例编辑**：编辑其源原子，随后重新推导所有关联实例。派生实例不成为第二份可独立编辑的权威结构。测量可以使用显示实例的笛卡尔位置；导出使用源快照，除非产品规范明确另提供扩胞结构操作。
+
+## 公共 API 职责草案
+
+下面是 M1–M5 的**目标 TypeScript 契约草案**；相关类型尚未建立，不能在当前仓库导入或执行。领域模型和格式结果的详细字段由领域/产品规范约束；M4 建立具体声明与编译用例，M5 实现浏览器门面。
+
+```ts
+// alchemion/core：周期键最小身份契约，其他科学属性由领域规范补全。
+export interface BondEndpoint {
+  sourceAtomId: AtomId
+  symmetryOperationId: SymmetryOperationId
+  integerCellOffset: readonly [number, number, number]
+}
+
+// alchemion/core 定义通用 Diagnostic，formats/viewer 复用或重导出。
+export interface Diagnostic {
+  severity: 'error' | 'warning' | 'info'
+  code: string
+  message: string
+  sourceLocation?: { line: number; column: number; offset?: number }
+}
+
+// alchemion/formats：纯文本边界，不隐式 fetch，也不弹出文件选择框。
+export type BlockSelector = { name: string } | { index: number }
+export type ParseOptions =
+  | { format: 'cif'; block?: BlockSelector }
+  | { format: 'mol' }
+export type WriteOptions = (
+  | { format: 'cif'; version: '1' | '2' }
+  | { format: 'mol'; version?: 'V2000' | 'V3000' }
+  | { format: 'poscar' }
+) & { allowLoss?: boolean }
+export interface ParseResult {
+  structure?: StructureSnapshot
+  diagnostics: readonly Diagnostic[]
+  candidates?: readonly { name: string; index: number }[]
+}
+export interface WriteResult {
+  text?: string
+  diagnostics: readonly Diagnostic[]
+}
+export interface CifDocumentResult {
+  document?: CifDocument
+  diagnostics: readonly Diagnostic[]
+}
+export function parseCifDocument(text: string): CifDocumentResult
+export function parseStructure(text: string, options: ParseOptions): ParseResult
+export function writeStructure(
+  structure: StructureSnapshot,
+  options: WriteOptions
+): WriteResult
+
+// alchemion/viewer：以下签名中的模型/选项/事件类型均须为引擎无关类型。
+export type InteractionMode =
+  | 'none' | 'select' | 'pick-point'
+  | 'measure-distance' | 'measure-angle' | 'measure-torsion'
+
+export interface Viewer {
+  load(structure: StructureSnapshot): Promise<void>
+  getSnapshot(): StructureSnapshot | undefined
+  setOptions(patch: Partial<ViewerOptions>): Promise<void>
+  execute(command: EditCommand): Promise<void>
+  undo(): Promise<void>
+  redo(): Promise<void>
+  center(): void
+  subscribe(listener: (event: ViewerEvent) => void): () => void
+  clear(): void
+  dispose(): void
+}
+
+export function createViewer(
+  container: HTMLElement,
+  options?: Partial<ViewerOptions>
+): Viewer
+```
+
+`ParseOptions` 显式指定 `format: 'cif' | 'mol'`；CIF 可带 `block?: BlockSelector`，格式版本按文件识别。`WriteOptions` 显式指定 `format: 'cif' | 'mol' | 'poscar'`；CIF 明确版本 `'1' | '2'`，MOL 版本为 `'V2000' | 'V3000'`、省略时为 V3000；损失接受项为 `allowLoss?: boolean`、默认 false。`SourceLocation` 行/列从 1 开始、offset 从 0 开始，未能定位时省略；CIF block index 从 0 开始。
+
+`parseCifDocument` 读取全部 block；`parseStructure` 只映射一个结构，单 block 自动选择，多 block 未指定选择器时返回 error 和候选名称/索引，不暗取第一项。输出仅保证支持字段的科学语义，不能表达时默认 error 且没有 text；调用者显式接受可降级损失时返回 warning 和输出。V2000 超限必须拒绝；周期结构写 MOL 前要求调用者显式取得有限快照；POSCAR 无晶胞或部分占位拒绝，不能由 allowLoss 绕过硬前提。ParseResult/WriteResult 遇到 error 时不返回半成品 structure/text。详细支持字段、诊断和可接受损失以产品/领域规范为准。
+
+viewer 选项覆盖空间填充/球棍、元素颜色、晶格/倒易晶格/布里渊区、对称与邻胞、裁剪和成键、交互模式及性能显示。使用有限选项类型，不再以任意字符串暗示未实现能力。
+
+`ViewerEvent` 至少区分状态、选择、坐标拾取、测量、历史可用性与错误；事件携带当前 documentId/修订。选择区分 `atom` 与 `bond`：原子同时提供实例 ID 与源原子 ID；键提供显示键 ID、源键/推断来源及两端实例身份，不能把键事件当原子事件。测量值带明确定义的单位。当前状态为 `empty / computing / ready / error / disposed`；订阅时立即交付当前状态，错误事件包含可诊断的代码及上下文，不暴露引擎对象。取消、销毁和被取代的派生请求以 `AbortError` 结束，demo 必须处理这种正常控制流。
+
+`load`、需要重算的选项变更、编辑与历史操作返回的 Promise 在对应修订的完整显示提交后完成；仅完成 Worker 计算不算 ready。纯相机/选择操作无需重算。源快照校验通过并接受之后，后续计算或渲染失败时保留已提交的有效源与 error 状态，Promise reject，供下一次命令或重新加载恢复；不能显示旧帧并宣称新修订已 ready。该情形不同于提交前的解析/校验失败。引擎对象、材质、场景、相机类均不进入正式 API；相机操作使用库自身的数值参数和命令。
+
+## 异步协议与提交边界
+
+M4 建立一个独立计算 Worker／viewer，由运行时拥有；不沿用嵌套 Worker 池或进程级共享可变结构。Worker 调用同一 core 算法，浏览器线程不复制科学公式。Worker 实现可使用内部构建机制，但产物须让普通 ESM 消费者加载，无需消费者识别 SDK 的源码查询后缀。
+
+每个计算请求和响应携带 `requestId`、`documentId`、文档内单调递增的结构 `revision` 和消息种类；消息包括计算、取消、结果、错误。源结构提交或历史变化产生新修订；计算相关显示选项变化产生新请求 ID 并失效同类旧请求，不写入结构历史。load 更换文档身份，防止新旧文档相同数值修订混淆。控制器仅提交同时匹配当前文档/修订与有效请求的结果。`clear`/`dispose` 立即失效所有请求和待渲染帧；即使取消未能抢占同步计算，过期响应也不得提交，其待决 Promise 必须结束。
+
+同类派生计算采用 latest-wins；结构命令串行执行，不丢弃用户已接受的事务，也不能用 latest-wins 吞掉编辑。Worker 超时默认 30 秒、可配置；超时、Worker 错误、消息反序列化错误与计算异常必须结束对应请求并进入可观察错误状态，不能永久停留 computing。取消为尽力而为，正确性依靠身份/版本检查。渲染分帧任务同样携带文档/修订与取消令牌；提交完整新帧后才发 ready，旧任务不能在 clear 或 dispose 后继续创建资源。
+
+源模型、历史与当前修订由编辑控制器唯一拥有；Worker 只持有某次请求的输入与中间结果，renderer 只持有显示资源。来源元数据和元素记录不以跨线程对象引用建立身份。
+
+## 资源所有权与失效规则
+
+| 资源 | 所有者及释放规则 |
+|---|---|
+| 宿主容器 | 调用者拥有；SDK 不删除容器。SDK 创建并拥有 canvas，dispose 时从容器移除。 |
+| 引擎上下文、场景、mesh、几何、材质、拾取映射 | 所选后端拥有；clear 释放结构相关资源，允许有界共享基础几何缓存；dispose 释放该 viewer 的全部资源。 |
+| RAF／渲染循环、分帧队列、指针/键盘监听、尺寸观察器 | viewer 拥有；观察容器尺寸而非只观察 window；clear 取消结构任务，dispose 全部取消并移除监听。 |
+| Worker、消息监听、待决 Promise | 运行时拥有；请求结束后移除对应记录，dispose 终止 Worker 并以取消结束待决调用。 |
+| 事件订阅、选择、测量辅助图形 | 控制器/交互层拥有；clear 重置结构关联状态，dispose 发出一次 disposed 后清理订阅。返回的退订函数可重复调用。 |
+| demo 文件控件、下载对象 URL、页面订阅 | demo 拥有，卸载时自行释放，不依赖全局重载清理。 |
+
+`dispose` 幂等；销毁后的状态读取/退订安全，新的修改操作返回明确 disposed 错误。多个 viewer 的状态、相机、任务和清理互不影响。WebGL2 不可用或上下文丢失时发出可操作诊断；上下文恢复需要重建资源并重绘当前有效快照，失败时允许宿主销毁并创建新 viewer，禁止悄悄回退到未验收后端。
+
+## 阶段落实
+
+- M1 建立 workspace、子路径导出、构建与打包消费者检查；不在此时声称新功能可用。
+- M2 按 [选型执行计划](plans/m2-renderer-selection.md) 取得同条件实测并接受 ADR 0002；候选原型不扩展为两个正式后端。
+- M3 建立科学模型和算法；M4 建立格式、编辑历史和异步协议；M5 按 [viewer 执行计划](plans/m5-viewer.md) 完成单后端与全部交互；M6 完成真实 demo 和整体分发验收。
+- 每次正式接口改变同步本文、消费示例和测试；测试映射与数值门槛只以质量规范为准。
