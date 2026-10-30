@@ -28,3 +28,5 @@
 - 未运行：完整测试套件、六轮性能关卡、macOS 和真实 Safari。下一步：检查最终 diff/文档格式，提交并推送本分支，创建一个 PR；CI 通过后完成计划清理并合并 master。
 
 采样后另修正 clear/dispose 首个状态事件携带旧选择/配位的时序；仅定向复验资源场景及重新打包消费者，各三浏览器 3/3 通过。当前消费者包散列见 `.tmp/package-inspection.json`；未重复不受影响的性能采样。
+
+PR #10 首轮 Ubuntu CI 的相关单元、静态检查、runtime 和 viewer 均通过；demo 的 Linux WebKit 加载时报 U+1C89 裸标识符语法错误。已定位 Unicode 16 JSON 表被构建器发射成裸对象键，SDK 改为 JSON.parse 字符串表达，不改科学数据；真实消费者补 CIF 新字母折叠及 Br 同位素参考断言。修复后本地 WebKit demo 2/2、真实包三浏览器 3/3、构建/类型/相关 lint 通过。新增消费者探针首次夹具列宽错误已修正，失败日志独立保留。因 SDK JSON 发射与 CI 路由覆盖范围变化，下一轮 CI 将复验相关五项公开能力，仍不执行全套。

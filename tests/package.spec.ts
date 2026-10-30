@@ -23,6 +23,8 @@ test('@package @features new scientific, format and viewer APIs work from the in
     width: 96,
     height: 64,
     mime: 'image/png',
+    unicodeFold: true,
+    bromineIsotope: 81,
     imports: zero,
     released: zero
   })

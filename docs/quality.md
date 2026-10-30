@@ -78,6 +78,8 @@ Windows 读取 expected JSON 和文本均显式使用 UTF-8。Open Babel 的参�
 
 POSCAR 导入参考使用 `format-poscar-fixtures.mjs` 的自产算术输入及独立 ASE：非正交 Direct、正 Cartesian、负目标体积和三分量缩放的 Direct/Cartesian，共五组输入及对应输出。`--poscar-imports-only` 只加载这组预期，同时把 SDK 读取的基矢、分数坐标与元素直接对照 ASE；不以单纯自往返代替独立验证，也不顺带运行 CIF/MOL 参考。
 
+真实产物消费者另检查 Unicode 16 新增字母的 CIF 大小写重复标签，以及 Br 的 V2000 质量差参考。这覆盖 JSON 表的打包发射：字符必须留在字符串键中，不能因浏览器的 JavaScript 标识符版本较旧而使整个模块无法解析；构建修正不修改数据或要求重生成科学参考。
+
 ## 一万实例性能口径
 
 规模按最终派生显示实例计数。正式采集器使用真实 tarball，固定 10,000 原子/20,000 键、1920×1080、DPR 1，空间填充与球棍各三轮。当前夹具为合法 10k 源分子的 identity-only 显示，不宣称由 500 个源原子真实扩胞；周期/对称、晶格/倒易/BZ 和实例回源另由功能场景证明。

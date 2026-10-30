@@ -17,6 +17,8 @@ Linux 安装浏览器使用 `pnpm exec playwright install --with-deps chromium f
 
 当前编译器为 TypeScript 7.0.2，通过 `@typescript/native` 别名提供原生 `tsc`。`typescript` 指向官方 `@typescript/typescript6` 6.0.2 API 包，供 typescript-eslint 使用受支持的 API 版本，不忽略不兼容 peer。Vite 8.3.5、Vitest 5.0.5、ESLint 10.13.0、Playwright 1.64.1、Prettier 3.9.10 和 Three 0.186.1 均精确固定；完整依赖以 package manifest 和锁文件为准。仓库外消费者使用根 manifest 中相同的编译器/Vite 版本。
 
+SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/格式 JSON 表以 `JSON.parse` 字符串表达，不把新版 Unicode 数据键改成 JavaScript 标识符。某些 WebKit 的标识符 Unicode 表早于数据版本；仅 ASCII 转义仍可能产生不支持的标识符。真实产物消费者检查 Unicode 16 CIF 名称大小写折叠及 MOL 同位素参考，数据表本身不降级或修改。该配置使用 [Vite JSON 选项](https://vite.dev/config/shared-options.html#json-stringify)。
+
 ## 当前命令
 
 | 命令                                                  | 行为                                                                                                                      |

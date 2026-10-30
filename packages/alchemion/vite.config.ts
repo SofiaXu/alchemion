@@ -3,6 +3,9 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 
 export default defineConfig({
+  // JSON keys can belong to a newer Unicode version than a browser's JS
+  // identifier table. Keep them in JSON.parse strings through consumer builds.
+  json: { stringify: true, namedExports: false },
   plugins: [
     {
       name: 'portable-module-workers',

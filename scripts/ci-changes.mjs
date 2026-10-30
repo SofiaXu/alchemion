@@ -50,10 +50,10 @@ const shared = tasks || tooling || harness || has(/^tests\/shared\//)
 const featureDelivery =
   !tooling &&
   has(
-    /^packages\/alchemion\/src\/(core\/(supercell|coordination)\.ts|formats\/poscar\/reader\.ts|viewer\/backend\/capture\.ts)$/
+    /^packages\/alchemion\/(?:vite\.config\.ts|src\/(core\/(supercell|coordination)\.ts|formats\/poscar\/reader\.ts|viewer\/backend\/capture\.ts))$/
   ) &&
   changed.every((file) =>
-    /^(docs\/|README\.md$|packages\/alchemion\/src\/(core\/(supercell|coordination|derivation|structure|symmetry|bonds|index)\.ts$|core\/editing\/|core\/__tests__\/|formats\/(contracts|index)\.ts$|formats\/poscar\/|viewer\/)|apps\/demo\/|tests\/(viewer|runtime|consumer|shared)\/|tests\/(viewer|runtime|demo|package)\.spec\.ts$|scripts\/(ci-changes|tasks|viewer-bench|source-edit-profile|format-reference|format-mol-fixtures|format-poscar-fixtures)\.(mjs|py)$|\.github\/workflows\/ci\.yml$)/.test(
+    /^(docs\/|README\.md$|packages\/alchemion\/vite\.config\.ts$|packages\/alchemion\/src\/(core\/(supercell|coordination|derivation|structure|symmetry|bonds|index)\.ts$|core\/editing\/|core\/__tests__\/|formats\/(contracts|index)\.ts$|formats\/poscar\/|viewer\/)|apps\/demo\/|tests\/(viewer|runtime|consumer|shared)\/|tests\/(viewer|runtime|demo|package)\.spec\.ts$|scripts\/(ci-changes|tasks|viewer-bench|source-edit-profile|format-reference|format-mol-fixtures|format-poscar-fixtures)\.(mjs|py)$|\.github\/workflows\/ci\.yml$)/.test(
       file
     )
   )
