@@ -10,7 +10,7 @@
 | -------------------- | ---------------------------------------------------------------------------------------------------- |
 | `packages/alchemion` | 唯一 SDK 包 `alchemion`，交付 ESM、声明文件和模块 Worker。                                           |
 | `alchemion/core`     | 科学模型、诊断、晶胞/坐标、对称/邻胞、成键、倒易/BZ、测量、纯编辑事务与历史；不依赖浏览器运行时。    |
-| `alchemion/formats`  | CIF1/2 文档及结构读写、MOL V2000/V3000 读写、周期 POSCAR 输出；只依赖 core。                         |
+| `alchemion/formats`  | CIF1/2 文档及结构读写、MOL V2000/V3000 读写、周期 POSCAR 几何读写；只依赖 core。                     |
 | `alchemion/viewer`   | 浏览器 viewer、独立编辑控制器、计算运行时、Worker、Three 后端与交互；组合 core，按需要使用 formats。 |
 | `apps/demo`          | 通过三个公开子路径消费 SDK，拥有文件选择/下载、界面、状态与诊断展示。                                |
 
@@ -40,7 +40,7 @@ SDK 以显式 `exports` 开放三个子路径，不提供根入口、CJS、内�
 
 一次批量命令是一个原子事务，失败不部分提交，失败/空操作不入历史。历史默认 100 个事务，可配置；undo/redo 恢复稳定 ID，但 revision 递增。新编辑截断 redo；新 load 更换 documentId 并清空历史、选择和测量。相机、显示选项和测量不写入结构历史。
 
-`createComputationRuntime({ mode?, timeoutMs? })` 显式创建计算运行时，提供 `compute/invalidate/dispose`；默认 worker 模式和 30 秒超时，sync 模式使用同一 core 任务分派。首次计算才创建自有执行器；worker 模式下每个 runtime 独占一个模块 Worker，sync 模式不创建 Worker，不建设共享可变结构或嵌套 Worker 池。任务包括 derive、reciprocal、brillouin-zone，响应携带 requestId/documentId/revision/category、结果和诊断。
+`createComputationRuntime({ mode?, timeoutMs? })` 显式创建计算运行时，提供 `compute/invalidate/dispose`；默认 worker 模式和 30 秒超时，sync 模式使用同一 core 任务分派。首次计算才创建自有执行器；worker 模式下每个 runtime 独占一个模块 Worker，sync 模式不创建 Worker，不建设共享可变结构或嵌套 Worker 池。任务包括 derive、reciprocal、brillouin-zone、coordination，响应携带 requestId/documentId/revision/category、结果和诊断。
 
 `createEditorController({ historyLimit?, mode?, timeoutMs?, derivation?, commit? })` 组合唯一 store 和 runtime，提供异步 `load/execute/undo/redo/recompute/compute`、同步 `cancel/clear/dispose/subscribe/getState`。辅助 `compute` 仅接受倒易/BZ 任务，与主派生共享 Worker，不改变主状态或历史。默认 `commit` 立即完成；宿主可传入接收派生结果、请求上下文和 AbortSignal 的回调，回调完成后才发布 ready。接口声明见[运行时类型](../packages/alchemion/src/viewer/runtime/types.ts)。
 
@@ -66,6 +66,10 @@ selection 返回完整原子实例，或派生键和两个端点实例，能区�
 load、clear 和模式切换清理临时交互；结构修订保留仍有效的实例选择并清空测量。倒易/BZ 由同一 Worker 计算，按文档/修订缓存，在同 canvas 的独立 Å⁻¹ 小视窗中显示并跟随主朝向；晶格、倒易/BZ 和交互辅助图形不参与原子/键拾取。
 
 controller 的 commit 组合主派生、必要辅助几何、资源准备、原子切换和 GPU 完成边界，完整帧后才 ready。配色、尺寸、相机、交互模式和性能显示复用科学派生；纯显示更新仍受呈现版本和取消约束，不重新推断成键或写入历史。不能把旧画面短暂报告成新修订 ready。
+
+源选择集合与活动拾取分开：`selectedSourceAtomIds` 属于 viewer，本库派生全部可见同源高亮；活动实例仍保留完整来源。配位通过现有 Worker 调用纯 core，并按文档、结构、规则和中心集合失效；核心返回凸包数据，后端只装配图形。超胞则是唯一核心构建器生成的新 P1 源，文档命令分配历史内不重用 ID，一次提交进入原有历史。
+
+PNG 使用同一 Three renderer/scene 的临时 RGBA 目标，屏幕与导出共享标签投影；编码画布、GPU 目标和取消监听均有明确清理。可移植视图只含相机和选项，由 `validateViewState` 统一校验。JSON、命名槽、持久化降级和文件读取代次属于 demo，不向 SDK 引入全局浏览器存储。
 
 ## 异步失效与错误恢复
 

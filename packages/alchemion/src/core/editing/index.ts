@@ -2,6 +2,7 @@ import { cartesianToFractional } from '../cell'
 import { sourcePositionFromInstance } from '../derivation'
 import { failure, failureFrom, success } from '../result'
 import { createStructureSnapshot } from '../structure'
+import { buildSupercell } from '../supercell'
 import type {
   AtomId,
   AtomInstance,
@@ -19,6 +20,7 @@ import type {
 } from '../types'
 
 export type EditCommand =
+  | { readonly type: 'build-supercell'; readonly repetitions: Vec3 }
   | { readonly type: 'add-atom'; readonly atom: PeriodicAtom | MolecularAtom }
   | { readonly type: 'remove-atom'; readonly atomId: AtomId }
   | { readonly type: 'set-element'; readonly atomId: AtomId; readonly element: string }
@@ -123,6 +125,9 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
   const past: StructureSnapshot[] = []
   const future: StructureSnapshot[] = []
   let usedAtomIds = new Set<string>()
+  let usedBondIds = new Set<string>()
+  let generatedAtomSequence = 0
+  let generatedBondSequence = 0
   const state = (): DocumentState =>
     Object.freeze({
       ...(documentId ? { documentId } : {}),
@@ -160,10 +165,33 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
     draft: Draft,
     command: EditCommand,
     diagnostics: Diagnostic[],
-    added: Set<string>
+    added: Set<string>,
+    addedBonds: Set<string>
   ): ScientificResult<undefined> {
     if (!command || typeof command !== 'object')
       return failure('EDIT_COMMAND', 'An edit command is required.')
+    if (command.type === 'build-supercell') {
+      const nextId = (kind: 'atom' | 'bond'): string => {
+        const used = kind === 'atom' ? usedAtomIds : usedBondIds
+        const pending = kind === 'atom' ? added : addedBonds
+        let id: string
+        do {
+          const sequence = kind === 'atom' ? ++generatedAtomSequence : ++generatedBondSequence
+          if (!Number.isSafeInteger(sequence))
+            throw new Error('The document exhausted its generated ID range.')
+          id = `supercell:${kind}:${sequence}`
+        } while (used.has(id) || pending.has(id))
+        pending.add(id)
+        return id
+      }
+      const built = buildSupercell(draft, command.repetitions, {
+        atom: () => nextId('atom'),
+        bond: () => nextId('bond')
+      })
+      if (!built.ok) return built
+      Object.assign(draft, copy(built.value.snapshot))
+      return success(undefined, built.diagnostics)
+    }
     if (command.type === 'add-atom') {
       const atom = command.atom
       if (!atom || typeof atom.id !== 'string' || !atom.id.trim())
@@ -283,6 +311,8 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
       revision = 0
       past.length = future.length = 0
       usedAtomIds = new Set(snapshot.atoms.map((atom) => atom.id))
+      usedBondIds = new Set(snapshot.bonds.map((bond) => bond.id))
+      generatedAtomSequence = generatedBondSequence = 0
       return success(change(true), result.diagnostics)
     },
     execute(input) {
@@ -290,11 +320,12 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
       const commands = Array.isArray(input) ? input : [input]
       const diagnostics: Diagnostic[] = []
       const added = new Set<string>()
+      const addedBonds = new Set<string>()
       let draft: Draft
       try {
         draft = copy(snapshot) as Draft
         for (const command of commands) {
-          const result = apply(draft, command, diagnostics, added)
+          const result = apply(draft, command, diagnostics, added, addedBonds)
           diagnostics.push(...result.diagnostics)
           if (!result.ok) return failureFrom(diagnostics)
         }
@@ -317,6 +348,7 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
       future.length = 0
       snapshot = checked.value
       for (const id of added) usedAtomIds.add(id)
+      for (const id of addedBonds) usedBondIds.add(id)
       revision++
       return success(change(true), diagnostics)
     },
@@ -345,6 +377,8 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
       revision = 0
       past.length = future.length = 0
       usedAtomIds.clear()
+      usedBondIds.clear()
+      generatedAtomSequence = generatedBondSequence = 0
       return change(changed)
     }
   }

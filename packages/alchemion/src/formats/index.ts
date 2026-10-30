@@ -1,7 +1,7 @@
 import { validateStructure } from '../core/structure'
 import { parseCifStructure, writeCifStructure } from './cif'
 import { parseMolStructure, writeMolStructure } from './mol'
-import { writePoscarStructure } from './poscar'
+import { parsePoscarStructure, writePoscarStructure } from './poscar'
 import { hasErrors } from './loss'
 import type { StructureSnapshot } from '../core/types'
 import type { ParseOptions, ParseResult, WriteOptions, WriteResult } from './contracts'
@@ -11,19 +11,19 @@ export { parseCifDocument, writeCifDocument } from './cif'
 export type * from './cif/types'
 
 export function parseStructure(text: string, options: ParseOptions): ParseResult {
-  if (typeof text !== 'string' || !options || !['cif', 'mol'].includes(options.format))
+  if (typeof text !== 'string' || !options || !['cif', 'mol', 'poscar'].includes(options.format))
     return {
       diagnostics: [
         {
           severity: 'error',
           code: 'FORMAT_PARSE_OPTIONS',
-          message: 'Provide text and an explicit cif or mol format.'
+          message: 'Provide text and an explicit cif, mol or poscar format.'
         }
       ]
     }
-  return options.format === 'cif'
-    ? parseCifStructure(text, options)
-    : parseMolStructure(text, options)
+  if (options.format === 'cif') return parseCifStructure(text, options)
+  if (options.format === 'mol') return parseMolStructure(text, options)
+  return parsePoscarStructure(text)
 }
 
 export function writeStructure(snapshot: StructureSnapshot, options: WriteOptions): WriteResult {

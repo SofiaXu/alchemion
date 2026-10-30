@@ -1,5 +1,6 @@
 import { deriveStructure } from '../../core/bonds'
 import { computeBrillouinZone } from '../../core/brillouin-zone'
+import { analyzeCoordination } from '../../core/coordination'
 import { reciprocalLattice } from '../../core/reciprocal'
 import { failure } from '../../core/result'
 import type { ScientificResult } from '../../core/types'
@@ -10,6 +11,8 @@ export function runComputationTask(
   task: ComputationTask
 ): ScientificResult<ComputationResult['value']> {
   switch (task?.kind) {
+    case 'coordination':
+      return analyzeCoordination(task.snapshot, task.options)
     case 'derive':
       return deriveStructure(task.snapshot, task.options)
     case 'reciprocal':

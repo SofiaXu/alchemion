@@ -3,6 +3,8 @@ import type { Diagnostic, StructureSnapshot } from '../../core/types'
 import type { PoscarWriteOptions, WriteResult } from '../contracts'
 import { hasErrors, inheritedLossDiagnostics, lossDiagnostic } from '../loss'
 
+export { parsePoscarStructure } from './reader'
+
 export function writePoscarStructure(
   snapshot: StructureSnapshot,
   options: PoscarWriteOptions

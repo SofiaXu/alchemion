@@ -1,4 +1,5 @@
 export { createViewer } from './viewer'
+export { validateViewState } from './view-state'
 export type {
   Viewer,
   ViewerOptions,
@@ -11,7 +12,9 @@ export type {
   ViewerPoint,
   CameraPose,
   InteractionMode,
-  ElementStyle
+  ElementStyle,
+  PngExportOptions,
+  ViewerViewState
 } from './types'
 export { createComputationRuntime, createEditorController, ComputationError } from './runtime'
 export type {

@@ -18,6 +18,47 @@ const request = (documentId = 'a', revision = 0): ComputationRequest => ({
 afterEach(() => vi.useRealTimers())
 
 describe('computation request lifecycle', () => {
+  it('dispatches coordination through the shared executor and isolates its latest-wins category', async () => {
+    const task: ComputationRequest['task'] = {
+      kind: 'coordination',
+      snapshot: {
+        kind: 'molecular',
+        atoms: [
+          { id: 'c', element: 'C', cartesian: [0, 0, 0] },
+          { id: 'o', element: 'O', cartesian: [1, 0, 0] }
+        ],
+        bonds: []
+      },
+      options: { centerAtomIds: ['c'], rules: [{ elements: ['C', 'O'], maxDistance: 1 }] }
+    }
+    const synchronous = createComputationRuntime({ mode: 'sync' })
+    const result = await synchronous.compute({ documentId: 'a', revision: 0, task })
+    expect(result.category).toBe('coordination')
+    if (result.category === 'coordination')
+      expect(result.value.centers[0].coordinationNumber).toBe(1)
+    synchronous.dispose()
+    const transport = new ControlledTransport()
+    const runtime = createRuntimeWithTransport({}, () => transport)
+    const first = runtime
+      .compute({ documentId: 'a', revision: 0, task })
+      .catch((error: Error) => error.name)
+    const second = runtime.compute({ documentId: 'a', revision: 0, task })
+    expect(await first).toBe('AbortError')
+    const current = transport.messages.at(-1)!
+    transport.reply(current, { documentId: 'old', value: { centers: [], unit: 'angstrom' } })
+    transport.reply(current, { value: { centers: [], unit: 'angstrom' } })
+    expect((await second).category).toBe('coordination')
+    const stale = runtime
+      .compute({ documentId: 'a', revision: 0, task })
+      .catch((error: Error) => error.name)
+    const derived = runtime.compute(request('a', 1))
+    expect(await stale).toBe('AbortError')
+    transport.reply(transport.messages.at(-1)!)
+    await derived
+    runtime.dispose()
+    expect(transport.listeners.size).toBe(0)
+  })
+
   it('uses latest-wins per category and rejects stale identity/revision responses', async () => {
     const transport = new ControlledTransport()
     const runtime = createRuntimeWithTransport({}, () => transport)

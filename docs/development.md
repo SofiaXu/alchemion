@@ -35,6 +35,7 @@ Linux 安装浏览器使用 `pnpm exec playwright install --with-deps chromium f
 | `pnpm bench`                                          | 唯一正式包 10k原子/20k键基准，两模式各三轮，GPU 独占串行。                                                                |
 | `pnpm bench -- --artifacts-only`                      | 只构建/检查真实包与 raw/minified/gzip、引擎/Worker 分项，不运行硬件性能关卡。                                             |
 | `pnpm ci:changes --scope`                             | 按提交 diff（含删除）选择受影响关卡。                                                                                     |
+| `pnpm ci:changes --scope --worktree`                  | 只读检查当前已跟踪与新增工作区文件的关卡/功能过滤。                                                                       |
 | `pnpm ci:changes --unit` / `pnpm ci:changes --checks` | 分别运行受影响单元或现存改动文件的 lint/格式/文档检查，每次只传一种模式。                                                 |
 | `pnpm docs:check`                                     | 检查仓库 Markdown 本地链接及 Markdown 标题锚点。                                                                          |
 | `pnpm check`                                          | 人工显式全量入口，依次格式/lint/构建/类型/单元/浏览器/消费者，不包含硬件基准，不作为普通任务默认验证。                    |
@@ -42,6 +43,8 @@ Linux 安装浏览器使用 `pnpm exec playwright install --with-deps chromium f
 `--prepared` 只复用本轮已构建且输入匹配的 SDK；不能依赖上个会话的 dist。`--project=chromium|firefox|webkit` 和 `--grep=<正则>` 定向选择浏览器或场景，不能用子集宣称完整集合通过。普通场景默认4进程，可配置 `TEST_WORKERS`，无自动重试。
 
 `--phase`、`check:m1` 和 `bench --smoke` 已删除，调用时明确报错，不兼容转发到其他 suite。按功能选择 runtime/viewer/demo，包消费者和正式基准各只有一个入口。
+
+五项结构工作台能力使用 `@features` 浏览器标签，viewer 另保留直接受影响的派生编辑/历史回归。CI 在已知功能实现与入口增量的 diff 内输出对应 `*_grep`，本地通过同一 `--grep` 选择；未知共享修改保留保守路由。只检查 POSCAR 时不因新增 `ParseOptions` 联合而默认执行全部 CIF/MOL 用例。单元可显式 `--maxWorkers=8`，浏览器 `TEST_WORKERS=4`；不为凑并行复制单场景。
 
 开发 watcher 会改写 SDK dist。需要开发冒烟与生产消费者/基准时，先开发冒烟，再生产构建，然后用 `--prepared` 复用同轮生产产物；不能把开发产物误当最终生产包。独立命令自行准备前置产物，聚合任务可复用一次构建，SDK 源类型检查不依赖 demo。
 
@@ -82,6 +85,20 @@ Linux 安装浏览器使用 `pnpm exec playwright install --with-deps chromium f
 
 ## 独立参考与数据工具
 
+### 源编辑定向归因
+
+现有 `bench` 采集器提供独立诊断入口，复用真实 tarball、固定 10k 原子/20k 键及正式源/相机配置，仅执行源编辑归因所需的更新，不运行完整性能关卡：
+
+```sh
+pnpm bench --prepared --profile-source-edit --profile-label=final
+```
+
+`--prepared` 仅使用本轮匹配构建；缺省为球棍、3 次确定的百原子更新。`--profile-consumer=<package.json记录路径>` 可使用已经冻结的真实消费者，防止并行开发改变 baseline。采集前后核对源码、包、夹具与选项 SHA，保留 main/Worker CPU profile、互斥分类、Worker 往返、完整帧和 wall 窗口对应，结果在 `.tmp/feature-directions/profile`（标签形成子目录）。每个标签的失败记录应另存后再修复复验，不覆盖已认可 baseline。
+
+该入口用于定位与改动复核，含 profiler 开销；采样 CPU 不是精确函数计时，main/Worker CPU 不能相加当 wall。copy 分类仅覆盖已识别的复制/快照帧，其他克隆可能归入 other；Worker 往返含传递和排队。三次诊断不构成 p95、完整 T-PERF-01 或跨设备倍速承诺。GPU 采样独占串行。
+
+### 独立科学与格式参考
+
 这些工具供有意更新科学数据或验证语义时使用，不属于普通安装/文档检查，也不把开发 Python 包加入 SDK 运行依赖。科学方法、容差和固定版本详见[质量规范](quality.md#独立科学参考)。
 
 科学环境使用 Python 3.12.10，并按[requirements](../scripts/scientific-data/requirements.txt)建立专用 venv，例如 `.tmp/scientific-reference-env`。设置 `OPENBLAS_NUM_THREADS=1`、`OMP_NUM_THREADS=1` 后执行：
@@ -102,6 +119,15 @@ python scripts/format-reference.py
 ```
 
 所有输入/输出在 `.tmp/format-reference`；核验器支持 `--file=<相对文件>` 与 `--report=<文件名>`，用于有具体原因的定向复验与分开保留结果。工具不会上传用户文件。Windows expected JSON 显式 UTF-8，Open Babel 的有限参考适配规则见[质量规范](quality.md#独立格式核验)。
+
+POSCAR 导入有独立的最小参考入口，使用同一固定 Python 环境：
+
+```sh
+node scripts/format-poscar-fixtures.mjs
+python scripts/format-reference.py --poscar-imports-only --report=poscar-import-results.json
+```
+
+它只生成并核对新增 POSCAR 的五组算术输入、SDK 读取结果及对应导出，不加载 CIF/MOL 预期或执行无关格式核验。实际工具、逐文件 SHA 与结果由报告记录。
 
 | 数据工具                                                              | 维护对象与约束                                                                                                                                                      |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

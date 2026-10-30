@@ -307,6 +307,10 @@ td button {
   padding: 3px 5px !important;
   margin: 0 !important;
 }
+td button[aria-pressed='true'] {
+  background: #deefee;
+  border-color: #237a83;
+}
 td:last-child {
   font-size: 10px;
 }

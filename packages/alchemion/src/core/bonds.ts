@@ -4,12 +4,11 @@ import { invertMatrix, isFiniteVector, isIntegerVector, norm, subtract } from '.
 import { failure, failureFrom, success } from './result'
 import { validateStructure } from './structure'
 import {
-  canonicalizeEndpoint,
+  createEndpointResolver,
   endpointKey,
   fractionalReach,
   resolveSymmetry,
-  SPECIAL_POSITION_TOLERANCE,
-  transformBondEndpoint
+  SPECIAL_POSITION_TOLERANCE
 } from './symmetry'
 import type {
   AtomInstance,
@@ -117,17 +116,18 @@ function projectExplicitBonds(
   }
   const bonds = new Map<string, DerivedBond>()
   const diagnostics: Diagnostic[] = []
+  const endpointResolver = createEndpointResolver(snapshot, operations)
   for (const bond of [...snapshot.bonds].sort((a, b) => compareStrings(a.id, b.id))) {
     if (!Array.isArray(bond.endpoints) || bond.endpoints.length !== 2)
       return failure('BOND_ENDPOINTS', 'Explicit bonds require two endpoints.')
     const orbit = snapshot.kind === 'periodic' ? operations! : [undefined]
     for (const operation of orbit) {
       const a = operation
-        ? transformBondEndpoint(snapshot, bond.endpoints[0], operation, operations!)
-        : canonicalizeEndpoint(snapshot, bond.endpoints[0], operations)
+        ? endpointResolver.transform(bond.endpoints[0], operation)
+        : endpointResolver.canonicalize(bond.endpoints[0])
       const b = operation
-        ? transformBondEndpoint(snapshot, bond.endpoints[1], operation, operations!)
-        : canonicalizeEndpoint(snapshot, bond.endpoints[1], operations)
+        ? endpointResolver.transform(bond.endpoints[1], operation)
+        : endpointResolver.canonicalize(bond.endpoints[1])
       if (!a.ok) return a
       if (!b.ok) return b
       const canonicalEndpoints = canonicalizeBondEndpoints(a.value, b.value)

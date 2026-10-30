@@ -31,7 +31,7 @@ const messages = {
     'Project-authored teaching geometry, MIT. These are not experimental structures. Bundled samples need no external database.',
     '项目自产教学几何，MIT 许可，并非实验结构。样例随应用打包，无需外部数据库。'
   ],
-  file: ['Local CIF or MOL file', '本地 CIF 或 MOL 文件'],
+  file: ['Local CIF, MOL or POSCAR file', '本地 CIF、MOL 或 POSCAR 文件'],
   format: ['Format', '格式'],
   input: ['File contents', '文件内容'],
   importText: ['Read / import', '读取 / 导入'],
@@ -39,8 +39,8 @@ const messages = {
   chooseBlock: ['Select a block explicitly', '请显式选择一个 block'],
   version: ['Detected version', '识别版本'],
   importHelp: [
-    'Automatically detects CIF 1/2 and MOL V2000/V3000. POSCAR is export only. Failed parsing keeps the current document.',
-    '自动识别 CIF1/2 和 MOL V2000/V3000；POSCAR 仅导出。解析失败保留当前文档。'
+    'Reads CIF 1/2, MOL V2000/V3000 and VASP5 POSCAR. Unsupported constraints or velocities are rejected. Failed parsing keeps the current document.',
+    '读取 CIF1/2、MOL V2000/V3000 和 VASP5 POSCAR；不支持的约束或速度明确拒绝。解析失败保留当前文档。'
   ],
   renderMode: ['Render mode', '显示模式'],
   spaceFilling: ['Space filling', '空间填充'],
@@ -78,6 +78,63 @@ const messages = {
   zoomOut: ['Zoom out', '缩小'],
   interaction: ['Interaction tool', '交互工具'],
   select: ['Select atom or bond', '选择原子或键'],
+  boxSelect: ['Box select source atoms', '框选源原子'],
+  batch: ['Multiple selection and batch edits', '多选与批量编辑'],
+  selectElement: ['Select this element', '选择此元素'],
+  selectAll: ['Select all source atoms', '选择全部源原子'],
+  clearSelection: ['Clear selection', '清空选择'],
+  selectedCount: ['Selected source atoms', '已选源原子'],
+  batchHelp: [
+    'Box selection passes through occlusion. Shift adds; Ctrl/Meta toggles. All copies of one source are edited once.',
+    '框选贯穿遮挡；Shift 增选，Ctrl/Meta 切换。同源副本一起高亮，每个源只编辑一次。'
+  ],
+  translation: ['Translation x y z', '平移 x y z'],
+  translateSelected: ['Translate selected atoms', '平移所选原子'],
+  replaceSelected: ['Replace selected elements', '替换所选元素'],
+  deleteSelected: ['Delete selected atoms', '删除所选原子'],
+  supercell: ['Supercell and defects', '超胞与缺陷'],
+  repetitions: ['Repetitions along a b c', '沿 a b c 的整数倍数'],
+  buildSupercell: ['Build supercell', '生成超胞'],
+  supercellHelp: [
+    'Expands symmetry into an editable P1 source in one undoable operation. Select atoms afterwards to create vacancies or substitutions.',
+    '完整展开对称，生成可独立编辑的 P1 源，一次撤销可恢复。随后选择原子删除或替换以构建空位、替位。'
+  ],
+  coordination: ['Coordination and polyhedra', '配位分析与多面体'],
+  coordinationRules: ['Element-pair distance rules (Å)', '元素对距离规则（Å）'],
+  coordinationHelp: [
+    'One rule per line: C O 2.5 or C O 0.5 2.5. Analyze selected source centers; periodic neighbors are independent of the display. Counts are geometric, without occupancy weighting.',
+    '每行一条：C O 2.5 或 C O 0.5 2.5。分析所选源中心的完整周期邻域，不依赖显示邻胞。配位数为几何计数，不按占位加权。'
+  ],
+  showPolyhedra: ['Show coordination polyhedra', '显示配位多面体'],
+  analyze: ['Analyze selected centers', '分析所选中心'],
+  noCoordination: ['Select centers and apply distance rules.', '请选择中心并应用距离规则。'],
+  image: ['PNG image', 'PNG 图片'],
+  imageWidth: ['Image width (pixels)', '图片宽度（像素）'],
+  imageHeight: ['Image height (pixels)', '图片高度（像素）'],
+  transparent: ['Transparent background', '透明背景'],
+  exportPng: ['Download PNG', '下载 PNG'],
+  views: ['Saved views', '保存视图'],
+  viewHelp: [
+    'Saves camera, display and coordination settings. Structures, history, selection and measurements stay separate.',
+    '保存相机、显示和配位配置；结构、历史、选择与瞬时测量单独管理。'
+  ],
+  viewName: ['View name', '视图名称'],
+  viewSlot: ['Named view', '命名视图'],
+  saveView: ['Save / overwrite named view', '保存 / 覆盖命名视图'],
+  restoreView: ['Restore named view', '恢复命名视图'],
+  renameView: ['Rename view', '重命名视图'],
+  deleteView: ['Delete saved view', '删除保存视图'],
+  downloadView: ['Download view JSON', '下载视图 JSON'],
+  importView: ['Import view JSON', '导入视图 JSON'],
+  persistentViews: ['Named views are saved in this browser.', '命名视图保存在当前浏览器。'],
+  sessionViews: [
+    'Storage unavailable: named views last for this page only. JSON remains available.',
+    '存储不可用：命名视图仅保留本页会话，仍可使用 JSON。'
+  ],
+  damagedViews: [
+    'Stored views could not be read. Existing data is preserved; new views use this page only.',
+    '无法读取保存视图。已有数据保留，新视图仅在本页保存。'
+  ],
   point: ['Pick a surface / view-plane point', '拾取表面 / 视平面点'],
   distance: ['Distance · 2 atoms', '距离：2 个原子'],
   angle: ['Angle · 3 atoms', '角度：3 个原子'],
@@ -138,8 +195,8 @@ const messages = {
   collectInstance: ['Add selected instance', '加入所选实例'],
   clearInstances: ['Clear collected instances', '清空实例集合'],
   exportHelp: [
-    'Check scientific losses first, then explicitly accept the listed losses for this revision and these options. Hard limits still apply. POSCAR cannot be re-imported.',
-    '先检查科学损失，再显式接受当前修订及选项的已列损失；硬性格式限制仍有效。POSCAR 不支持重新导入。'
+    'Check scientific losses first, then explicitly accept the listed losses for this revision and these options. Hard limits still apply.',
+    '先检查科学损失，再显式接受当前修订及选项的已列损失；硬性格式限制仍有效。'
   ],
   preview: ['Check export', '检查导出'],
   acceptLoss: ['Accept these reported losses', '接受本次已列出的损失'],

@@ -13,12 +13,30 @@ const changedSince = (base) =>
     .trim()
     .split('\n')
     .filter(Boolean)
-const incremental = changedSince(incrementalBase)
+const worktree = process.argv.includes('--worktree')
+const incremental = worktree
+  ? [
+      ...new Set(
+        [
+          ...execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMRD', 'HEAD'], {
+            encoding: 'utf8'
+          })
+            .trim()
+            .split('\n'),
+          ...execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
+            encoding: 'utf8'
+          })
+            .trim()
+            .split('\n')
+        ].filter(Boolean)
+      )
+    ]
+  : changedSince(incrementalBase)
 const harness = incremental.some((file) =>
   ['scripts/ci-changes.mjs', 'scripts/pnpm.mjs', '.github/workflows/ci.yml'].includes(file)
 )
-const base = harness ? deliveryBase : incrementalBase
-const changed = harness ? changedSince(base) : incremental
+const base = worktree ? 'WORKTREE' : harness ? deliveryBase : incrementalBase
+const changed = worktree ? incremental : harness ? changedSince(base) : incremental
 const has = (pattern) => changed.some((file) => pattern.test(file))
 const sdk = has(/^packages\/alchemion\//) || has(/^scripts\/(worker-urls|format-data)\.mjs$/)
 const tasks = has(/^scripts\/(tasks|pnpm)\.mjs$/)
@@ -26,6 +44,19 @@ const tooling = has(
   /^(package\.json|pnpm-(lock|workspace)\.yaml|\.node-version|tsconfig.*|eslint\.config\.mjs|vitest\.config\.ts)$/
 )
 const shared = tasks || tooling || harness || has(/^tests\/shared\//)
+// A known feature delivery gets explicit cases; unknown/shared scientific edits
+// retain the existing conservative routing. Entry-only additions follow the
+// implementation files in the same delivery rather than every format suite.
+const featureDelivery =
+  !tooling &&
+  has(
+    /^packages\/alchemion\/src\/(core\/(supercell|coordination)\.ts|formats\/poscar\/reader\.ts|viewer\/backend\/capture\.ts)$/
+  ) &&
+  changed.every((file) =>
+    /^(docs\/|README\.md$|packages\/alchemion\/src\/(core\/(supercell|coordination|derivation|structure|symmetry|bonds|index)\.ts$|core\/editing\/|core\/__tests__\/|formats\/(contracts|index)\.ts$|formats\/poscar\/|viewer\/)|apps\/demo\/|tests\/(viewer|runtime|consumer|shared)\/|tests\/(viewer|runtime|demo|package)\.spec\.ts$|scripts\/(ci-changes|tasks|viewer-bench|source-edit-profile|format-reference|format-mol-fixtures|format-poscar-fixtures)\.(mjs|py)$|\.github\/workflows\/ci\.yml$)/.test(
+      file
+    )
+  )
 const runtime =
   shared ||
   has(/^packages\/alchemion\/src\/(core|formats|viewer\/runtime)\//) ||
@@ -65,6 +96,13 @@ if (process.argv.includes('--scope')) {
     demo,
     package: pkg,
     viewer,
+    runtime_grep: featureDelivery ? '@features' : '@workspace',
+    viewer_grep: featureDelivery
+      ? '@features|derived-instance edits, selection retention'
+      : '@workspace',
+    demo_grep: featureDelivery ? '@features' : '@demo',
+    package_grep: featureDelivery ? '@features' : '@package',
+    dev_smoke: demo && !featureDelivery,
     base
   }
   if (process.env.GITHUB_OUTPUT)
@@ -86,13 +124,24 @@ if (process.argv.includes('--scope')) {
     if (file.startsWith('packages/alchemion/src/formats/')) {
       const section = file.split('/')[4]
       addDirectory(
-        section.includes('.')
-          ? 'packages/alchemion/src/formats'
-          : `packages/alchemion/src/formats/${section}`
+        featureDelivery && section.includes('.')
+          ? 'packages/alchemion/src/formats/poscar'
+          : section.includes('.')
+            ? 'packages/alchemion/src/formats'
+            : `packages/alchemion/src/formats/${section}`
       )
     }
-    if (file === `${core}derivation.ts` || file === `${core}bonds.ts`) {
-      for (const name of ['derivation', 'bonds']) tests.add(`${core}__tests__/${name}.test.ts`)
+    if (
+      file === `${core}derivation.ts` ||
+      file === `${core}bonds.ts` ||
+      file === `${core}symmetry.ts`
+    ) {
+      for (const name of [
+        'derivation',
+        'bonds',
+        ...(file.endsWith('symmetry.ts') ? ['structure'] : [])
+      ])
+        tests.add(`${core}__tests__/${name}.test.ts`)
     } else if (
       file.startsWith(`${core}data/vdw`) ||
       file === `${core}data/VDW_LICENSE.txt` ||

@@ -201,23 +201,34 @@ def poscar(case):
     close(structure.cell.array, case["basis"], "POSCAR:basis")
     close(structure.get_scaled_positions(wrap=False), case["fractional"], "POSCAR:Direct")
     assert structure.get_chemical_symbols() == case["species"]
-    return {"atoms": len(structure), "species": structure.get_chemical_symbols(), "volume": structure.get_volume()}
+    if "sdkParsed" in case:
+        parsed = case["sdkParsed"]
+        close(parsed["basis"], structure.cell.array, "POSCAR SDK import:basis")
+        close(parsed["fractional"], structure.get_scaled_positions(wrap=False), "POSCAR SDK import:fractional")
+        assert parsed["species"] == structure.get_chemical_symbols()
+    return {"atoms": len(structure), "species": structure.get_chemical_symbols(), "volume": structure.get_volume(), "sdkImportChecked": "sdkParsed" in case}
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", action="append", help="Only recheck explicitly affected files after a correction.")
     parser.add_argument("--report", default="results.json")
+    parser.add_argument("--poscar-imports-only", action="store_true", help="Check only the authored POSCAR import inputs and their outputs; do not require unrelated CIF/MOL artifacts.")
     args = parser.parse_args()
-    expected_cif = json.loads((ARTIFACTS / "cif-expected.json").read_text(encoding="utf-8"))
-    expected_mol = json.loads((ARTIFACTS / "expected.json").read_text(encoding="utf-8"))
     jobs = []
-    for case in expected_cif["cases"]:
-        jobs.extend((file, cif_crystal, case["expected"]) for file in [case["inputFile"], *case["outputFiles"]])
-    document = expected_cif["document"]
-    jobs.extend((document[key], cif_document, document["expected"]) for key in ("inputFile", "outputFile"))
-    jobs.extend((case["file"], lambda _file, entry: molecule(entry), case) for case in expected_mol["molecules"])
-    jobs.append((expected_mol["poscar"]["file"], lambda _file, entry: poscar(entry), expected_mol["poscar"]))
+    if not args.poscar_imports_only:
+        expected_cif = json.loads((ARTIFACTS / "cif-expected.json").read_text(encoding="utf-8"))
+        expected_mol = json.loads((ARTIFACTS / "expected.json").read_text(encoding="utf-8"))
+        for case in expected_cif["cases"]:
+            jobs.extend((file, cif_crystal, case["expected"]) for file in [case["inputFile"], *case["outputFiles"]])
+        document = expected_cif["document"]
+        jobs.extend((document[key], cif_document, document["expected"]) for key in ("inputFile", "outputFile"))
+        jobs.extend((case["file"], lambda _file, entry: molecule(entry), case) for case in expected_mol["molecules"])
+        jobs.append((expected_mol["poscar"]["file"], lambda _file, entry: poscar(entry), expected_mol["poscar"]))
+    imports_path = ARTIFACTS / "poscar-import-expected.json"
+    if args.poscar_imports_only or imports_path.exists():
+        imports = json.loads(imports_path.read_text(encoding="utf-8"))
+        jobs.extend((case["file"], lambda _file, entry: poscar(entry), case) for case in imports["cases"])
     selected = set(args.file or [])
     results = []
     for file, check, expected in jobs:

@@ -5,6 +5,21 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => Boolean(window.runtimeHarness))
 })
 
+test('@workspace @features coordination uses the real Worker, agrees with sync and drops the old revision', async ({
+  page
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  const result = await page.evaluate(() => window.runtimeHarness.coordinationTask())
+  expect(result.old).toBe('AbortError')
+  expect(result.revision).toBe(1)
+  expect(result.equal).toBe(true)
+  expect(result.count).toBe(6)
+  expect(result.volume).toBeCloseTo(32 / 3, 8)
+  expect(result.canvases).toBe(0)
+  expect(errors).toEqual([])
+})
+
 test('@workspace public sync/worker scientific tasks agree without WebGL', async ({
   page,
   browser

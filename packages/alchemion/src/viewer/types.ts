@@ -1,5 +1,6 @@
 import type { DerivationOptions } from '../core/bonds'
 import type { EditCommand } from '../core/editing'
+import type { CoordinationResult, CoordinationRule } from '../core/coordination'
 import type { Measurement } from '../core/measurements'
 import type { AtomInstance, DerivedBond, Diagnostic, StructureSnapshot, Vec3 } from '../core/types'
 import type { ComputationRuntimeOptions, EditorState } from './runtime/types'
@@ -7,6 +8,7 @@ import type { ComputationRuntimeOptions, EditorState } from './runtime/types'
 export type InteractionMode =
   | 'none'
   | 'select'
+  | 'box-select'
   | 'pick-point'
   | 'measure-distance'
   | 'measure-angle'
@@ -41,6 +43,21 @@ export interface ViewerOptions {
   readonly inferBonds: boolean
   readonly interactionMode: InteractionMode
   readonly showPerformance: boolean
+  readonly coordination: {
+    readonly rules: readonly CoordinationRule[]
+    readonly showPolyhedra: boolean
+  }
+}
+export interface PngExportOptions {
+  /** Output pixels; omitted dimensions use the current canvas dimensions. */
+  readonly width?: number
+  readonly height?: number
+  readonly transparent?: boolean
+}
+export interface ViewerViewState {
+  readonly version: 1
+  readonly camera: CameraPose
+  readonly options: ViewerOptions
 }
 export type ViewerCreateOptions = Partial<ViewerOptions> &
   ComputationRuntimeOptions & {
@@ -73,7 +90,9 @@ export interface ViewerState {
   readonly diagnostics: readonly Diagnostic[]
   readonly options: ViewerOptions
   readonly selection?: ViewerSelection
+  readonly selectedSourceAtomIds: readonly string[]
   readonly measurement?: ViewerMeasurement
+  readonly coordination?: CoordinationResult
 }
 export interface ViewerEventContext {
   readonly documentId?: string
@@ -81,7 +100,11 @@ export interface ViewerEventContext {
 }
 export type ViewerEvent =
   | { readonly type: 'state'; readonly state: ViewerState }
-  | (ViewerEventContext & { readonly type: 'selection'; readonly selection?: ViewerSelection })
+  | (ViewerEventContext & {
+      readonly type: 'selection'
+      readonly selection?: ViewerSelection
+      readonly selectedSourceAtomIds: readonly string[]
+    })
   | (ViewerEventContext & { readonly type: 'point'; readonly point: ViewerPoint })
   | (ViewerEventContext & {
       readonly type: 'measurement'
@@ -98,6 +121,7 @@ export interface Viewer {
   load(snapshot: StructureSnapshot): Promise<void>
   getSnapshot(): StructureSnapshot | undefined
   getState(): ViewerState
+  setSelectedSourceAtomIds(ids: readonly string[]): void
   setOptions(patch: Partial<ViewerOptions>): Promise<void>
   execute(command: EditCommand | readonly EditCommand[]): Promise<void>
   undo(): Promise<void>
@@ -111,6 +135,9 @@ export interface Viewer {
   rotate(azimuthDegrees: number, elevationDegrees: number): void
   zoom(factor: number): void
   center(): void
+  exportPng(options?: PngExportOptions): Promise<Blob>
+  getViewState(): ViewerViewState
+  restoreViewState(state: ViewerViewState): Promise<void>
   subscribe(listener: (event: ViewerEvent) => void): () => void
   clear(): void
   dispose(): void

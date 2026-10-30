@@ -34,6 +34,21 @@ function validResultValue(category: ComputationContext['category'], input: unkno
   if (!input || typeof input !== 'object') return false
   const value = input as Record<string, unknown>
   if (category === 'derive') return Array.isArray(value.atoms) && Array.isArray(value.bonds)
+  if (category === 'coordination')
+    return (
+      value.unit === 'angstrom' &&
+      Array.isArray(value.centers) &&
+      value.centers.every((inputCenter) => {
+        if (!inputCenter || typeof inputCenter !== 'object') return false
+        const center = inputCenter as Record<string, unknown>
+        return (
+          Boolean(center.center) &&
+          Array.isArray(center.neighbors) &&
+          Number.isSafeInteger(center.coordinationNumber) &&
+          center.coordinationNumber === center.neighbors.length
+        )
+      })
+    )
   if (category === 'reciprocal')
     return (
       Array.isArray(value.basis) &&
@@ -276,7 +291,7 @@ export function createRuntimeWithTransport(
         !input.documentId.trim() ||
         !Number.isSafeInteger(input.revision) ||
         input.revision < 0 ||
-        !['derive', 'reciprocal', 'brillouin-zone'].includes(input.task?.kind)
+        !['derive', 'reciprocal', 'brillouin-zone', 'coordination'].includes(input.task?.kind)
       )
         return Promise.reject(
           new ComputationError(

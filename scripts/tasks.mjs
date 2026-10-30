@@ -396,10 +396,20 @@ try {
       await check()
       break
     case 'bench': {
-      if (!isPrepared) await sdk()
-      const consumer = await packaged(true)
-      const { measure } = await import('./viewer-bench.mjs')
-      await host(consumer.output, (url) => measure(url, consumer), 4177)
+      const frozenManifest = args
+        .find((arg) => arg.startsWith('--profile-consumer='))
+        ?.slice('--profile-consumer='.length)
+      if (frozenManifest && !args.includes('--profile-source-edit'))
+        throw new Error('--profile-consumer requires --profile-source-edit.')
+      if (!isPrepared && !frozenManifest) await sdk()
+      const consumer = frozenManifest
+        ? JSON.parse(await readFile(resolve(root, frozenManifest), 'utf8'))
+        : await packaged(true)
+      const collector = await import('./viewer-bench.mjs')
+      if (args.includes('--profile-source-edit')) {
+        const directory = await collector.prepareSourceEditProfile(consumer)
+        await host(directory, (url) => collector.profileSourceEdit(url, consumer), 4177)
+      } else await host(consumer.output, (url) => collector.measure(url, consumer), 4177)
       break
     }
     default:

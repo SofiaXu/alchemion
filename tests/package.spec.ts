@@ -1,6 +1,35 @@
 import { expect, test } from '@playwright/test'
 
 const zero = { gpuObjects: 0, workers: 0, rafs: 0, observers: 0, listeners: 0, canvases: 0 }
+test('@package @features new scientific, format and viewer APIs work from the installed tarball', async ({
+  page
+}) => {
+  const errors: string[] = [],
+    workers: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  page.on('worker', (worker) => workers.push(worker.url()))
+  await page.goto('./')
+  await page.waitForFunction(() => !!window.consumerHarness, undefined, { polling: 50 })
+  const result = await page.evaluate(() => window.consumerHarness.features())
+  expect(result).toMatchObject({
+    sourceCount: 2,
+    sourceCountPure: 2,
+    mapped: 2,
+    selected: 2,
+    coordination: 6,
+    workerCounts: [6, 6],
+    restored: true,
+    revisionUnchanged: true,
+    width: 96,
+    height: 64,
+    mime: 'image/png',
+    imports: zero,
+    released: zero
+  })
+  expect(workers).toHaveLength(1)
+  expect(new URL(workers[0]).pathname).toMatch(/^\/installed\/nested\/assets\/computation-worker-/)
+  expect(errors).toEqual([])
+})
 test('@package headless public APIs, transactions, Worker equivalence and periodic exports', async ({
   page,
   browser

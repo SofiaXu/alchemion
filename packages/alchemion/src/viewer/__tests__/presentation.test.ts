@@ -3,11 +3,45 @@ import { deriveStructure } from '../../core/bonds'
 import type { ScientificResult, StructureSnapshot } from '../../core/types'
 import { createRenderFrame } from '../frame'
 import { DEFAULT_OPTIONS, derivationOptions, mergeOptions, validateCamera } from '../options'
+import { pngOptions, validateViewState } from '../view-state'
 const value = <T>(result: ScientificResult<T>): T => {
   if (!result.ok) throw new Error(result.diagnostics[0].message)
   return result.value
 }
 describe('M5 presentation logic', () => {
+  it('validates portable views and export dimensions before changing presentation', () => {
+    const input = {
+      version: 1 as const,
+      camera: {
+        position: [0, 0, 10] as const,
+        target: [0, 0, 0] as const,
+        up: [0, 1, 0] as const,
+        fovYDegrees: 45,
+        near: 0.1,
+        far: 100
+      },
+      options: structuredClone(DEFAULT_OPTIONS)
+    }
+    const result = validateViewState(input)
+    expect(result).toEqual(input)
+    expect(result.options).not.toBe(input.options)
+    expect(() => validateViewState({ ...input, version: 2 } as never)).toThrow('VIEW_STATE')
+    expect(() =>
+      validateViewState({ ...input, options: { renderMode: 'ball-and-stick' } } as never)
+    ).toThrow('VIEW_STATE')
+    expect(() =>
+      mergeOptions(DEFAULT_OPTIONS, {
+        coordination: { rules: [{ elements: ['C', 'O'], maxDistance: -1 }], showPolyhedra: true }
+      })
+    ).toThrow()
+    expect(pngOptions({ width: 3840, height: 2160, transparent: true }, 900, 700)).toEqual({
+      width: 3840,
+      height: 2160,
+      transparent: true
+    })
+    expect(() => pngOptions({ width: 0 }, 900, 700)).toThrow('PNG_SIZE')
+    expect(() => pngOptions({ width: 100000, height: 100000 }, 900, 700)).toThrow('PNG_SIZE')
+  })
   it('isolates validated options and rejects invalid numeric/color/camera input before display mutation', () => {
     const patch = { elementStyles: { C: { color: '#ff0000', spaceFillingRadius: 2 } } }
     const options = mergeOptions(DEFAULT_OPTIONS, patch)
@@ -18,7 +52,9 @@ describe('M5 presentation logic', () => {
       { cutoff: { kind: 'fraction', width: [-1, 0, 0] } },
       { elementStyles: { C: { color: 'red' } } },
       { neighborCells: [[0.5, 0, 0]] },
-      { unknown: true }
+      { unknown: true },
+      { constructor: true },
+      JSON.parse('{"__proto__": {}}')
     ])
       expect(() => mergeOptions(options, invalid as never)).toThrow()
     expect(() =>
