@@ -62,7 +62,7 @@ const outputs = {}
 for (const file of ['notices.txt', 'data-manifests.json'])
   outputs[`apps/demo/public/generated/${file}`] = sha256(await readFile(join(output, file)))
 await writeFile(
-  join(root, '.tmp/m6-demo-assets.json'),
+  join(root, '.tmp/demo-assets.json'),
   `${JSON.stringify({ inputs, outputs }, null, 2)}\n`
 )
 console.log('Verified scientific data hashes and generated offline demo notices/manifests.')

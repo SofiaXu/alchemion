@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url'
 import { join, dirname, resolve, relative, isAbsolute } from 'node:path'
 
 const distribution = fileURLToPath(new URL('../packages/alchemion/dist', import.meta.url))
-// Vite library mode wraps worker URLs in a string concatenation. A downstream
+// Vite library mode wraps worker URLs in another URL and string coercion. A downstream
 // bundler needs the native static constructor to discover nested Worker assets.
 const wrappedURL =
-  /new URL\(\s*(?:\/\*\s*@vite-ignore\s*\*\/\s*)?["']{2}\s*\+\s*new URL\((['"])([^'"]+)\1,\s*import\.meta\.url\)\.href,\s*import\.meta\.url\s*\)/g
+  /new URL\(\s*(?:\/\*\s*@vite-ignore\s*\*\/\s*)?(?:["']{2}\s*\+\s*)?new URL\((['"])([^'"]+)\1,\s*import\.meta\.url\)\.href,\s*(?:["']{2}\s*\+\s*)?import\.meta\.url\s*\)/g
 let normalized = 0
 const workerAssets = new Set()
 for (const name of await readdir(distribution, { recursive: true })) {

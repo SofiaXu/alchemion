@@ -1,9 +1,8 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { appendFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { pnpmCommand } from './pnpm.mjs'
 
-const pnpm = process.env.npm_execpath
-if (!pnpm) throw new Error('Invoke through pnpm')
 const incrementalBase = process.env.CHANGE_BASE || 'HEAD^'
 const deliveryBase = process.env.PR_BASE || incrementalBase
 // Deleted files affect routing even though they cannot be passed to lint.
@@ -16,45 +15,38 @@ const changedSince = (base) =>
     .filter(Boolean)
 const incremental = changedSince(incrementalBase)
 const harness = incremental.some((file) =>
-  ['scripts/ci-changes.mjs', '.github/workflows/ci.yml'].includes(file)
+  ['scripts/ci-changes.mjs', 'scripts/pnpm.mjs', '.github/workflows/ci.yml'].includes(file)
 )
 const base = harness ? deliveryBase : incrementalBase
 const changed = harness ? changedSince(base) : incremental
 const has = (pattern) => changed.some((file) => pattern.test(file))
-const sdk = has(/^packages\/alchemion\//)
-const tasks = has(/^scripts\/tasks\.mjs$/)
-const tooling = has(/^(package\.json|pnpm-lock\.yaml|tsconfig.*|eslint\.config\.mjs)$/)
-const viewer =
-  has(/^packages\/alchemion\/src\/(viewer|core)\//) ||
-  has(/^(tests\/m5|tests\/m5\.spec|playwright\.m5\.config)/)
-const addedRuntimeCase = /^\+test\([^\n]*@m6-runtime/m.test(
-  execFileSync('git', ['diff', base, 'HEAD', '--', 'tests/m5.spec.ts'], { encoding: 'utf8' })
+const sdk = has(/^packages\/alchemion\//) || has(/^scripts\/(worker-urls|format-data)\.mjs$/)
+const tasks = has(/^scripts\/(tasks|pnpm)\.mjs$/)
+const tooling = has(
+  /^(package\.json|pnpm-(lock|workspace)\.yaml|\.node-version|tsconfig.*|eslint\.config\.mjs|vitest\.config\.ts)$/
 )
-const runtimeOnly =
-  addedRuntimeCase &&
-  changed
-    .filter((file) => /^packages\/alchemion\/src\/(viewer|core)\//.test(file))
-    .every((file) =>
-      /^packages\/alchemion\/src\/viewer\/(types\.ts|viewer\.ts|runtime\/)/.test(file)
-    )
-const viewerGrep = runtimeOnly ? '@m6-runtime' : '@workspace'
+const shared = tasks || tooling || harness || has(/^tests\/shared\//)
+const runtime =
+  shared ||
+  has(/^packages\/alchemion\/src\/(core|formats|viewer\/runtime)\//) ||
+  has(/^(tests\/runtime\/|tests\/runtime\.spec\.ts|playwright\.runtime\.config\.ts$)/)
+const viewer =
+  shared ||
+  has(/^packages\/alchemion\/src\/(viewer|core)\//) ||
+  has(/^(tests\/viewer\/|tests\/viewer\.spec\.ts|playwright\.viewer\.config\.ts$)/)
 const demo =
   sdk ||
-  tasks ||
-  tooling ||
-  has(/^(apps\/demo\/|scripts\/demo-assets\.mjs|tests\/m6\.spec|playwright\.m6\.config)/)
+  shared ||
+  has(/^(apps\/demo\/|scripts\/demo-assets\.mjs|tests\/demo\.spec\.ts|playwright\.config\.ts$)/)
 const pkg =
   sdk ||
-  tasks ||
-  tooling ||
-  has(
-    /^(tests\/consumer-m6\/|tests\/package-m6\.spec|tests\/m5\/resources\.ts|playwright\.m6\.config|tests\/renderer-selection\/)/
-  )
+  shared ||
+  has(/^(tests\/consumer\/|tests\/package\.spec\.ts|playwright\.package\.config\.ts$)/)
 const reason = harness
   ? 'Changed CI routing requires checking the delivery diff rather than only its harness fix.'
-  : 'Tests selected from changed subsystems; historical full-stage suites remain opt-in.'
+  : 'Tests selected from changed subsystems, including deleted paths.'
 const run = (command) => {
-  const result = spawnSync(process.execPath, [pnpm, ...command], { stdio: 'inherit' })
+  const result = spawnSync(...pnpmCommand(command), { stdio: 'inherit' })
   if (result.status !== 0)
     throw new Error(`pnpm ${command.join(' ')} failed (${result.status ?? result.signal})`)
 }
@@ -68,11 +60,11 @@ const walk = (directory) =>
     : []
 if (process.argv.includes('--scope')) {
   const outputs = {
-    sdk: sdk || demo || pkg || viewer,
+    sdk: sdk || demo || pkg || viewer || runtime,
+    runtime,
     demo,
     package: pkg,
     viewer,
-    viewer_grep: viewerGrep,
     base
   }
   if (process.env.GITHUB_OUTPUT)
@@ -89,6 +81,7 @@ if (process.argv.includes('--scope')) {
     for (const file of walk(directory)) if (file.endsWith('.test.ts')) tests.add(file)
   }
   const core = 'packages/alchemion/src/core/'
+  if (tooling) addDirectory('packages/alchemion/src')
   for (const file of changed) {
     if (file.startsWith('packages/alchemion/src/formats/')) {
       const section = file.split('/')[4]
@@ -124,7 +117,7 @@ if (process.argv.includes('--scope')) {
       )
     )
       addDirectory('packages/alchemion/src/viewer/runtime/__tests__')
-    else if (!runtimeOnly && /^packages\/alchemion\/src\/viewer\//.test(file))
+    else if (/^packages\/alchemion\/src\/viewer\//.test(file))
       addDirectory('packages/alchemion/src/viewer/__tests__')
   }
   const selected = [...tests].filter((file) => existsSync(file)).sort()

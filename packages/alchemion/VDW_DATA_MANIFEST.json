@@ -1,5 +1,5 @@
 {
-  "generatedBy": "scripts/m5-vdw-data.mjs",
+  "generatedBy": "scripts/generate-vdw-data.mjs",
   "dataset": "mendeleev-data 1.1.0 Alvarez/Vogt",
   "revision": "67e08702c5e9e8541d9944824b10edfb718d61e8",
   "field": "vdw_radius_alvarez",
@@ -21,7 +21,7 @@
     }
   },
   "outputs": {
-    "packages/alchemion/src/core/data/vdw-radii.ts": "64ecb76bc4f6c8510d74099eb62278e3d3ff36ff03930a8c4ffa9ae20640a23a"
+    "packages/alchemion/src/core/data/vdw-radii.ts": "4827b47d8a624a35fe480de33e26a4dae28bddb19ca7f6553e54aa9a9a80fbb3"
   },
   "counts": {
     "elements": 118,

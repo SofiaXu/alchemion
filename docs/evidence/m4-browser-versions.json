@@ -1,9 +1,0 @@
-{
-  "purpose": "Read exact binary versions after existing functional runs; no scenarios repeated.",
-  "playwright": "1.63.0",
-  "versions": {
-    "chromium": "153.0.8010.12",
-    "firefox": "155.0",
-    "webkit": "26.6"
-  }
-}

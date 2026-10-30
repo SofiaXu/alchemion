@@ -2,9 +2,9 @@
   "name": "alchemion-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.7.0+sha512.dc09430156b427f5ecfc79888899e1c39d2d690f004be70e05230b72cb173d96839587545d09429b55ac3c429c801b4dc3c0e002f653830a420fa2dd4e3cf9cf",
+  "packageManager": "pnpm@12.16.1+sha512.091d1dee7927575661b25dab3c2ae31cafc1c54d6b71ed6a6600cf0c1cb10434a447eae14015f1b23e2e6bedeed79df94a932e2164d2832280dce3fb32f656d1",
   "engines": {
-    "node": "24.22.1"
+    "node": "26.13.0"
   },
   "scripts": {
     "dev": "node scripts/tasks.mjs dev",
@@ -18,24 +18,24 @@
     "test:browser": "node scripts/tasks.mjs browser",
     "test:package": "node scripts/tasks.mjs package",
     "check": "node scripts/tasks.mjs check",
-    "check:m1": "node scripts/tasks.mjs check:m1",
     "bench": "node scripts/tasks.mjs bench",
     "docs:check": "node scripts/docs-check.mjs",
     "ci:changes": "node scripts/ci-changes.mjs"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.1",
-    "@playwright/test": "1.63.0",
-    "@types/node": "24.10.1",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.6",
     "@types/three": "0.186.0",
+    "@typescript/native": "npm:typescript@7.0.2",
     "alchemion": "workspace:*",
-    "eslint": "9.39.1",
+    "eslint": "10.13.0",
     "eslint-config-prettier": "10.1.8",
-    "prettier": "3.3.3",
+    "prettier": "3.9.10",
     "three": "0.186.1",
-    "typescript": "5.9.3",
-    "typescript-eslint": "8.50.0",
-    "vite": "7.3.5",
-    "vitest": "4.0.18"
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
   }
 }

@@ -93,7 +93,7 @@ describe('CIF losses and source measurement anchors', () => {
     const edited: StructureSnapshot = {
       ...original,
       atoms: original.atoms.map((atom, index) =>
-        index === 0 ? { ...atom, fractional: [0.5, 0.5, 0.75] } : atom
+        index === 0 ? { ...atom, fractional: [0.5, 0.5, 0.75] as const } : atom
       )
     }
     expect(writeCifStructure(edited, { format: 'cif', version: '1' }).text).toBeUndefined()

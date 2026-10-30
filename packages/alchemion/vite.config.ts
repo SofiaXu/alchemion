@@ -37,7 +37,7 @@ export default defineConfig({
       formats: ['es'],
       fileName: (_format, entry) => `${entry}.js`
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: (id) => /^three(?:\/|$)/.test(id)
     }
   },
