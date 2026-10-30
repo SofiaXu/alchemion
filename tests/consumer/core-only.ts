@@ -2,6 +2,8 @@ import {
   createCell,
   createDocumentStore,
   createStructureSnapshot,
+  createSupercell,
+  analyzeCoordination,
   fractionalToCartesian,
   getElement,
   type ScientificResult,
@@ -16,6 +18,10 @@ export const store = createDocumentStore({ historyLimit: 3 })
 export const document = parseCifDocument('data_empty\n')
 export const parse = (text: string) => parseStructure(text, { format: 'cif' })
 export const encode = (source: StructureSnapshot) => writeStructure(source, { format: 'mol' })
+export const parsePoscar = (text: string) => parseStructure(text, { format: 'poscar' })
+export const supercell = (source: StructureSnapshot) => createSupercell(source, [2, 1, 1])
+export const coordination = (source: StructureSnapshot) =>
+  analyzeCoordination(source, { centerAtomIds: [], rules: [] })
 export const snapshot: ScientificResult<StructureSnapshot> = createStructureSnapshot({
   kind: 'molecular',
   atoms: [{ id: 'consumer-C', element: 'C', cartesian: [0, 0, 0] }],

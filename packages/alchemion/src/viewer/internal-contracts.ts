@@ -1,6 +1,7 @@
 /** Private renderer boundary. This module is never exported from alchemion/viewer. */
 import type { BrillouinZone } from '../core/brillouin-zone'
 import type { ReciprocalLattice } from '../core/reciprocal'
+import type { CoordinationResult } from '../core/coordination'
 import type { AtomInstance, Cell, DerivedBond, Vec3 } from '../core/types'
 import type { ComputationContext } from './runtime/types'
 import type { CameraPose, ViewerOptions } from './types'
@@ -39,8 +40,28 @@ export interface InteractionOverlay {
   readonly points: readonly Vec3[]
   readonly label?: string
 }
+export interface PointerModifiers {
+  readonly shiftKey: boolean
+  readonly ctrlKey: boolean
+  readonly metaKey: boolean
+  readonly altKey: boolean
+}
+/** Coordinates and dimensions are relative to the canvas in CSS pixels. */
+export interface ScreenRectangle {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+export interface BackendPngOptions {
+  readonly width: number
+  readonly height: number
+  readonly transparent: boolean
+}
 export interface BackendCallbacks {
-  readonly click: (x: number, y: number) => void
+  readonly click: (x: number, y: number, modifiers: PointerModifiers) => void
+  readonly boxSelect: (rectangle: ScreenRectangle, modifiers: PointerModifiers) => void
+  readonly changed: () => void
   readonly contextLost: () => void
   readonly contextRestored: () => void
   readonly error: (error: Error) => void
@@ -50,6 +71,8 @@ export interface ViewerBackend {
   commit(frame: RenderFrame, context: RenderContext, signal: AbortSignal): Promise<void>
   resize(width: number, height: number, dpr: number): void
   pick(x: number, y: number): BackendPick | undefined
+  selectBox(rectangle: ScreenRectangle): readonly string[]
+  exportPng(options: BackendPngOptions, signal: AbortSignal): Promise<Blob>
   point(
     x: number,
     y: number
@@ -60,6 +83,7 @@ export interface ViewerBackend {
   zoom(factor: number): void
   center(): void
   setOverlay(overlay: InteractionOverlay): void
+  setCoordination(result: CoordinationResult | undefined, showPolyhedra: boolean): void
   clear(): void
   dispose(): void
 }

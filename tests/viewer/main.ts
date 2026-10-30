@@ -709,6 +709,414 @@ async function updateProbe() {
     sourceId: atom.id
   }
 }
+
+const settleFeature = (promise: Promise<unknown>) =>
+  promise.then(
+    () => 'resolved',
+    (error: Error) => error.name
+  )
+
+async function decodedPng(blob: Blob, labelPoint?: Vec3) {
+  const bitmap = await createImageBitmap(blob)
+  const canvas = document.createElement('canvas')
+  canvas.width = bitmap.width
+  canvas.height = bitmap.height
+  try {
+    const context = canvas.getContext('2d')!
+    context.drawImage(bitmap, 0, 0)
+    const image = context.getImageData(0, 0, canvas.width, canvas.height)
+    const pixel = (x: number, y: number) => {
+      const index = (Math.floor(y) * image.width + Math.floor(x)) * 4
+      return [...image.data.subarray(index, index + 4)]
+    }
+    let polyhedronPixels = 0
+    for (let i = 0; i < image.data.length; i += 4)
+      if (image.data[i + 1] > image.data[i] + 8 && image.data[i + 2] > image.data[i] + 8)
+        polyhedronPixels++
+    let textPixels = 0
+    if (labelPoint) {
+      const position = project(labelPoint, current().getCamera(), canvas.width, canvas.height)
+      const scale = Math.min(
+        canvas.width / container.clientWidth,
+        canvas.height / container.clientHeight
+      )
+      // Exclude the horizontal measurement line. Red pixels above/below it
+      // can only come from actual exported glyphs in this project-authored scene.
+      for (
+        let y = Math.max(0, Math.floor(position.y - 12 * scale));
+        y < Math.min(canvas.height, position.y + 12 * scale);
+        y++
+      )
+        for (
+          let x = Math.max(0, Math.floor(position.x - 75 * scale));
+          x < Math.min(canvas.width, position.x + 75 * scale);
+          x++
+        ) {
+          if (Math.abs(y - position.y) <= 2 * scale) continue
+          const [r, g, b, a] = pixel(x, y)
+          if (a > 128 && r > 80 && r > g * 2 && r > b * 2) textPixels++
+        }
+    }
+    const atom = project([-3, 0, 0], current().getCamera(), canvas.width, canvas.height)
+    return {
+      width: bitmap.width,
+      height: bitmap.height,
+      type: blob.type,
+      bytes: blob.size,
+      corner: pixel(0, 0),
+      atom: pixel(atom.x, atom.y),
+      textPixels,
+      polyhedronPixels
+    }
+  } finally {
+    bitmap.close()
+    canvas.width = 0
+    canvas.height = 0
+  }
+}
+
+const features = {
+  select(ids: string[]) {
+    current().setSelectedSourceAtomIds(ids)
+    return inspect()
+  },
+  selectionValidation() {
+    const instance = current()
+    const input = ['q', 'p', 'q']
+    instance.setSelectedSourceAtomIds(input)
+    input.length = 0
+    const accepted = instance.getState().selectedSourceAtomIds
+    let rejected = false
+    try {
+      instance.setSelectedSourceAtomIds(['p', 'missing'])
+    } catch {
+      rejected = true
+    }
+    return { accepted, rejected, retained: instance.getState().selectedSourceAtomIds }
+  },
+  async translateSelected(delta: Vec3) {
+    const instance = current()
+    const source = instance.getSnapshot()!
+    const selected = new Set(instance.getState().selectedSourceAtomIds)
+    const commands: EditCommand[] = source.atoms
+      .filter((atom) => selected.has(atom.id))
+      .map((atom) => ({
+        type: 'set-position',
+        atomId: atom.id,
+        position:
+          'fractional' in atom
+            ? {
+                frame: 'fractional',
+                value: atom.fractional.map((value, axis) => value + delta[axis]) as unknown as Vec3
+              }
+            : {
+                frame: 'cartesian',
+                value: atom.cartesian.map((value, axis) => value + delta[axis]) as unknown as Vec3
+              }
+      }))
+    await instance.execute(commands)
+    return inspect()
+  },
+  async supercellDefects() {
+    await open('orthogonal', { showSymmetryMates: true })
+    const instance = current()
+    const original = instance.getSnapshot()!
+    const documentId = instance.getState().documentId
+    await instance.execute({ type: 'build-supercell', repetitions: [2, 1, 1] })
+    const constructed = instance.getSnapshot()!
+    const constructionRevision = instance.getState().revision
+    const [vacancy, substitution] = constructed.atoms
+    instance.setSelectedSourceAtomIds([vacancy.id, substitution.id])
+    await instance.execute([
+      { type: 'remove-atom', atomId: vacancy.id },
+      { type: 'set-element', atomId: substitution.id, element: 'F' }
+    ])
+    const defect = { snapshot: instance.getSnapshot(), state: instance.getState() }
+    await instance.undo()
+    const restored = instance.getSnapshot()
+    await instance.undo()
+    const originalRestored = JSON.stringify(instance.getSnapshot()) === JSON.stringify(original)
+    await instance.redo()
+    return {
+      documentId,
+      constructed,
+      constructionRevision,
+      defect,
+      restored,
+      originalRestored,
+      redone: instance.getSnapshot(),
+      finalState: instance.getState()
+    }
+  },
+  async coordination() {
+    await open('molecule', { ballRadius: 0.18 })
+    const instance = current()
+    const atoms: { id: string; element: string; cartesian: Vec3 }[] = []
+    const directions: Vec3[] = [
+      [1, 0, 0],
+      [-1, 0, 0],
+      [0, 1, 0],
+      [0, -1, 0],
+      [0, 0, 1],
+      [0, 0, -1]
+    ]
+    for (const [name, x] of [
+      ['left', -3],
+      ['right', 3]
+    ] as const) {
+      atoms.push({ id: name, element: 'C', cartesian: [x, 0, 0] })
+      directions.forEach((direction, index) =>
+        atoms.push({
+          id: `${name}-${index}`,
+          element: 'O',
+          cartesian: [x + direction[0], direction[1], direction[2]]
+        })
+      )
+    }
+    await instance.load({ kind: 'molecular', atoms, bonds: [] })
+    instance.setCamera({ ...SMALL_CAMERA, position: [0, 0, 18], target: [0, 0, 0] })
+    instance.setSelectedSourceAtomIds(['left', 'right'])
+    const rules = [{ elements: ['C', 'O'] as const, maxDistance: 1.1 }]
+    await instance.setOptions({ coordination: { rules, showPolyhedra: true } })
+    const initial = instance.getState().coordination
+    const visible = await decodedPng(await instance.exportPng({ width: 450, height: 350 }))
+    await instance.setOptions({ coordination: { rules, showPolyhedra: false } })
+    const hidden = await decodedPng(await instance.exportPng({ width: 450, height: 350 }))
+    ledger.delayNextPost(120, 'coordination')
+    instance.setSelectedSourceAtomIds(['left'])
+    await until(
+      () => ledger.hasDelayedPost('coordination'),
+      'The old coordination request was not sent'
+    )
+    instance.setSelectedSourceAtomIds(['right'])
+    await until(
+      () =>
+        instance.getState().status === 'ready' &&
+        instance.getState().coordination?.centers[0]?.center.sourceAtomId === 'right',
+      'Latest coordination selection was not committed'
+    )
+    await pause(160)
+    const latest = { state: instance.getState(), source: instance.getSnapshot() }
+    ledger.delayNextPost(120, 'coordination')
+    const computing = settleFeature(
+      instance.setOptions({
+        coordination: {
+          rules: [{ elements: ['C', 'O'], maxDistance: 1.2 }],
+          showPolyhedra: true
+        }
+      })
+    )
+    await until(
+      () => ledger.hasDelayedPost('coordination'),
+      'The cancelled coordination request was not sent'
+    )
+    instance.cancel()
+    const cancelled = await computing
+    await pause(160)
+    const cancelledState = instance.getState()
+    await instance.recompute()
+    instance.setSelectedSourceAtomIds(['right'])
+    await until(() => instance.getState().status === 'ready', 'Selection did not recover')
+    let reentered = false
+    const stopReentry = instance.subscribe((event) => {
+      if (!reentered && event.type === 'selection' && instance.getState().status === 'computing') {
+        reentered = true
+        instance.setSelectedSourceAtomIds(['left'])
+      }
+    })
+    await instance.setOptions({
+      coordination: { rules: [{ elements: ['C', 'O'], maxDistance: 1.15 }], showPolyhedra: true }
+    })
+    stopReentry()
+    return {
+      initial,
+      visible,
+      hidden,
+      latest,
+      cancelled,
+      cancelledState,
+      reentered,
+      reentrantCenter: instance.getState().coordination?.centers[0]?.center.sourceAtomId,
+      recovered: instance.getState()
+    }
+  },
+  async pngAndView() {
+    const instance = current()
+    if (!instance.getState().measurement) throw new Error('A real measurement is required')
+    const source = JSON.stringify(instance.getSnapshot())
+    const revision = instance.getState().revision
+    const camera = instance.getCamera()
+    const annotated = await decodedPng(
+      await instance.exportPng({ width: 3840, height: 2160, transparent: true }),
+      [-1.5, 0, 0]
+    )
+    const exportUnchanged =
+      JSON.stringify(camera) === JSON.stringify(instance.getCamera()) &&
+      source === JSON.stringify(instance.getSnapshot()) &&
+      revision === instance.getState().revision
+    await instance.setOptions({ interactionMode: 'select' })
+    const white = await decodedPng(
+      await instance.exportPng({ width: 3840, height: 2160 }),
+      [-1.5, 0, 0]
+    )
+    await instance.setOptions({
+      renderMode: 'space-filling',
+      elementStyles: { C: { color: '#309050' } },
+      coordination: { rules: [{ elements: ['C', 'O'], maxDistance: 3.1 }], showPolyhedra: true }
+    })
+    instance.rotate(25, 10)
+    const saved = instance.getViewState()
+    const beforeInvalid = JSON.stringify(saved)
+    const invalid = await settleFeature(
+      instance.restoreViewState({ ...saved, version: 2 } as never)
+    )
+    const invalidCamera = await settleFeature(
+      instance.restoreViewState({ ...saved, camera: { ...saved.camera, far: -1 } })
+    )
+    const invalidUnchanged = beforeInvalid === JSON.stringify(instance.getViewState())
+    await instance.setOptions({
+      renderMode: 'ball-and-stick',
+      elementStyles: {},
+      coordination: { rules: [], showPolyhedra: false }
+    })
+    instance.zoom(0.7)
+    await instance.restoreViewState(JSON.parse(JSON.stringify(saved)))
+    return {
+      annotated,
+      white,
+      exportUnchanged,
+      invalid,
+      invalidCamera,
+      invalidUnchanged,
+      restored: JSON.stringify(instance.getViewState()) === JSON.stringify(saved),
+      sourceUnchanged: source === JSON.stringify(instance.getSnapshot()),
+      revisionUnchanged: revision === instance.getState().revision,
+      state: instance.getState(),
+      saved
+    }
+  },
+  async pngResources() {
+    await open()
+    const instance = current()
+    const quiet = async () => {
+      await until(() => ledger.snapshot().rafs === 0, 'A viewer RAF did not settle')
+      return ledger.snapshot()
+    }
+    const baseline = await quiet()
+    await instance.exportPng({ width: 256, height: 128, transparent: true })
+    const success = await quiet()
+    const original = HTMLCanvasElement.prototype.toBlob
+    let failure: string
+    try {
+      HTMLCanvasElement.prototype.toBlob = function (callback) {
+        callback(null)
+      }
+      failure = await settleFeature(instance.exportPng({ width: 256, height: 128 }))
+    } finally {
+      HTMLCanvasElement.prototype.toBlob = original
+    }
+    const failed = await quiet()
+    const holdEncoding = () => {
+      let callback: BlobCallback | undefined
+      HTMLCanvasElement.prototype.toBlob = function (next) {
+        callback = next
+      }
+      return {
+        wait: () => until(() => Boolean(callback), 'PNG encoding was not entered'),
+        restore: () => {
+          HTMLCanvasElement.prototype.toBlob = original
+        },
+        finish: () => {
+          HTMLCanvasElement.prototype.toBlob = original
+          callback?.(null)
+        }
+      }
+    }
+    let hold = holdEncoding()
+    const cameraPending = settleFeature(instance.exportPng({ width: 256, height: 128 }))
+    await hold.wait()
+    instance.rotate(5, 0)
+    const cameraCancel = await cameraPending
+    hold.finish()
+    const cameraReleased = await quiet()
+    hold = holdEncoding()
+    const replacedPending = settleFeature(instance.exportPng({ width: 256, height: 128 }))
+    await hold.wait()
+    hold.restore()
+    await instance.exportPng({ width: 256, height: 128 })
+    const superseded = await replacedPending
+    hold.finish()
+    const supersededReleased = await quiet()
+    second = createViewer(document.querySelector<HTMLElement>('#second')!, {
+      inferBonds: false,
+      camera: SMALL_CAMERA
+    })
+    await second.load(molecule())
+    instance.setSelectedSourceAtomIds(['a'])
+    second.setSelectedSourceAtomIds(['b'])
+    const secondCamera = JSON.stringify(second.getCamera())
+    hold = holdEncoding()
+    const firstPending = settleFeature(instance.exportPng({ width: 256, height: 128 }))
+    await hold.wait()
+    hold.restore()
+    const secondPending = second.exportPng({ width: 128, height: 128 })
+    instance.rotate(5, 0)
+    const independent = {
+      first: await firstPending,
+      second: await decodedPng(await secondPending),
+      secondCamera: secondCamera === JSON.stringify(second.getCamera()),
+      firstSelection: instance.getState().selectedSourceAtomIds,
+      secondSelection: second.getState().selectedSourceAtomIds
+    }
+    hold.finish()
+    second.dispose()
+    hold = holdEncoding()
+    const clearedPending = settleFeature(instance.exportPng({ width: 256, height: 128 }))
+    await hold.wait()
+    const emptyEvents: {
+      selected: readonly string[]
+      coordination: boolean
+      selection: boolean
+    }[] = []
+    const stopEmptyEvents = instance.subscribe((event) => {
+      if (event.type === 'state' && event.state.status === 'empty')
+        emptyEvents.push({
+          selected: event.state.selectedSourceAtomIds,
+          coordination: Boolean(event.state.coordination),
+          selection: Boolean(event.state.selection)
+        })
+    })
+    instance.clear()
+    stopEmptyEvents()
+    const cleared = await clearedPending
+    hold.finish()
+    await instance.load(molecule())
+    hold = holdEncoding()
+    const disposedPending = settleFeature(instance.exportPng({ width: 256, height: 128 }))
+    await hold.wait()
+    instance.dispose()
+    const disposed = await disposedPending
+    hold.finish()
+    release?.()
+    await pause(20)
+    return {
+      baseline,
+      success,
+      failure: failure!,
+      failed,
+      cameraCancel,
+      cameraReleased,
+      superseded,
+      supersededReleased,
+      independent,
+      cleared,
+      emptyEvents,
+      disposed,
+      resources: ledger.snapshot()
+    }
+  }
+}
+
 async function dispose() {
   current().dispose()
   current().dispose()
@@ -738,6 +1146,7 @@ window.viewerHarness = {
   interact,
   updates,
   updateProbe,
+  features,
   dispose,
   clear: () => {
     current().clear()
@@ -770,6 +1179,7 @@ declare global {
       interact: typeof interact
       updates: typeof updates
       updateProbe: typeof updateProbe
+      features: typeof features
       dispose: typeof dispose
       clear: () => ReturnType<typeof inspect>
       resourceDetails: () => ReturnType<typeof ledger.listenerDetails>

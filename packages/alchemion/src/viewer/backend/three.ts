@@ -26,22 +26,28 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer
+  Vector4,
+  WebGLRenderer,
+  WebGLRenderTarget
 } from 'three'
+import type { CoordinationResult } from '../../core/coordination'
 import type { Matrix3, Vec3 } from '../../core/types'
 import type {
   BackendCallbacks,
   BackendPick,
+  BackendPngOptions,
   InteractionOverlay,
   RenderAtom,
   RenderBond,
   RenderContext,
   RenderFrame,
+  ScreenRectangle,
   ViewerBackend
 } from '../internal-contracts'
 import type { CameraPose } from '../types'
 import { attachPointerInteraction } from '../interaction/pointer'
 import { cylinderGeometry, instanceMaterial, sphereGeometry } from './geometry'
+import { encodePng, type CaptureText } from './capture'
 
 interface InstanceLayer {
   readonly group: Group
@@ -56,6 +62,8 @@ interface InstanceLayer {
 interface Label {
   readonly node: HTMLElement
   readonly position: Vector3
+  readonly text: string
+  readonly color: string
 }
 interface Inset {
   readonly scene: Scene
@@ -295,11 +303,15 @@ class ThreeBackend implements ViewerBackend {
   private readonly color = new Color()
   private readonly labelsRoot: HTMLDivElement
   private readonly performanceLabel: HTMLOutputElement
-  private readonly detachPointer: () => void
+  private readonly pointerInteraction: ReturnType<typeof attachPointerInteraction>
   private layer?: InstanceLayer
   private auxiliary?: AuxiliaryLayer
   private interactionGroup?: Group
+  private selectionGroup?: Group
   private interactionLabel?: Label
+  private coordinationGroup?: Group
+  private coordinationResult?: CoordinationResult
+  private showPolyhedra = false
   private interaction: InteractionOverlay = EMPTY_OVERLAY
   private frame?: RenderFrame
   private pose: CameraPose = {
@@ -376,11 +388,13 @@ class ThreeBackend implements ViewerBackend {
       display: 'none'
     })
     this.labelsRoot.appendChild(this.performanceLabel)
-    this.detachPointer = attachPointerInteraction(canvas, {
-      active: () => !this.disposed && !this.lost,
+    this.pointerInteraction = attachPointerInteraction(canvas, {
+      active: () => !this.disposed && !this.lost && Boolean(this.frame),
+      boxSelecting: () => this.frame?.options.interactionMode === 'box-select',
       rotate: (azimuth, elevation) => this.rotate(azimuth, elevation),
       zoom: (factor) => this.zoom(factor),
-      click: (x, y) => this.callbacks.click(x, y),
+      click: (x, y, modifiers) => this.callbacks.click(x, y, modifiers),
+      boxSelect: (rectangle, modifiers) => this.callbacks.boxSelect(rectangle, modifiers),
       error: (error) => this.callbacks.error(error)
     })
     canvas.addEventListener('webglcontextlost', this.onContextLost)
@@ -507,11 +521,22 @@ class ThreeBackend implements ViewerBackend {
         'VIEWER_SIZE',
         'Viewer dimensions must be nonnegative and pixel ratio positive.'
       )
-    this.width = Math.max(1, width)
-    this.height = Math.max(1, height)
+    const nextWidth = Math.max(1, width)
+    const nextHeight = Math.max(1, height)
+    if (
+      nextWidth === this.width &&
+      nextHeight === this.height &&
+      dpr === this.renderer.getPixelRatio() &&
+      this.canvas.width === Math.floor(nextWidth * dpr) &&
+      this.canvas.height === Math.floor(nextHeight * dpr)
+    )
+      return
+    this.width = nextWidth
+    this.height = nextHeight
     this.renderer.setPixelRatio(dpr)
     this.renderer.setSize(this.width, this.height, false)
     this.applyCamera()
+    this.callbacks.changed()
     this.schedule()
   }
 
@@ -524,6 +549,130 @@ class ThreeBackend implements ViewerBackend {
       instanceId: (atom ? this.layer.atomIds : this.layer.bondIds)[hit.instanceId],
       cartesian: xyz(hit.point)
     }
+  }
+
+  selectBox(rectangle: ScreenRectangle): readonly string[] {
+    this.assertActive()
+    const { x, y, width, height } = rectangle
+    if (![x, y, width, height].every(Number.isFinite) || width < 0 || height < 0)
+      throw failure('SELECTION_RECTANGLE', 'Selection requires a finite, nonnegative rectangle.')
+    if (!this.frame || this.lost) return []
+    const result: string[] = []
+    for (const { instance } of this.frame.atoms) {
+      const point = new Vector3(...instance.cartesian).project(this.camera)
+      if (point.z < -1 || point.z > 1) continue
+      const px = ((point.x + 1) / 2) * this.width
+      const py = ((1 - point.y) / 2) * this.height
+      if (px >= x && px <= x + width && py >= y && py <= y + height && this.mainPoint(px, py))
+        result.push(instance.id)
+    }
+    return result
+  }
+
+  async exportPng(options: BackendPngOptions, signal: AbortSignal): Promise<Blob> {
+    this.assertActive()
+    if (signal.aborted) throw aborted()
+    if (!this.frame || this.lost)
+      throw failure(
+        'PNG_FRAME_UNAVAILABLE',
+        'A complete displayed frame is required for PNG export.'
+      )
+    const { width, height, transparent } = options
+    const limit = Math.min(
+      this.renderer.capabilities.maxTextureSize,
+      this.gl.getParameter(this.gl.MAX_RENDERBUFFER_SIZE) as number
+    )
+    if (
+      !Number.isSafeInteger(width) ||
+      !Number.isSafeInteger(height) ||
+      width <= 0 ||
+      height <= 0 ||
+      width > limit ||
+      height > limit
+    )
+      throw failure('PNG_SIZE', 'PNG dimensions exceed the supported positive pixel dimensions.')
+    const renderer = this.renderer
+    const previousTarget = renderer.getRenderTarget()
+    const previousViewport = renderer.getViewport(new Vector4())
+    const previousScissor = renderer.getScissor(new Vector4())
+    const previousScissorTest = renderer.getScissorTest()
+    const previousColor = renderer.getClearColor(new Color())
+    const previousAlpha = renderer.getClearAlpha()
+    const selection = this.selectionGroup
+    const previousSelectionVisibility = selection?.visible
+    const target = new WebGLRenderTarget(width, height, {
+      depthBuffer: true,
+      stencilBuffer: false,
+      samples: Math.min(4, renderer.capabilities.maxSamples)
+    })
+    const pixels = new Uint8Array(width * height * 4)
+    const texts: CaptureText[] = []
+    try {
+      if (selection) selection.visible = false
+      const camera = this.camera.clone()
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+      const scale = Math.min(width / this.width, height / this.height)
+      const fullRect = { x: 0, y: 0, width, height }
+      target.viewport.set(0, 0, width, height)
+      target.scissorTest = false
+      renderer.setRenderTarget(target)
+      if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE)
+        throw failure('PNG_ALLOCATION_FAILED', 'The GPU could not allocate the PNG render target.')
+      renderer.setClearColor(transparent ? 0x000000 : 0xffffff, transparent ? 0 : 1)
+      renderer.clear(true, true, true)
+      renderer.render(this.scene, camera)
+      for (const label of this.auxiliary?.labels ?? [])
+        this.captureLabel(texts, label, camera, fullRect, scale)
+      if (this.interactionLabel)
+        this.captureLabel(texts, this.interactionLabel, camera, fullRect, scale)
+      const insets = this.auxiliary?.insets ?? []
+      for (let index = 0; index < insets.length; index++) {
+        const inset = insets[index]
+        const rect = this.insetRectangle(width, height, index, insets.length, scale)
+        const insetCamera = inset.camera.clone()
+        this.configureInsetCamera(inset, insetCamera)
+        target.viewport.set(rect.x, height - rect.y - rect.height, rect.width, rect.height)
+        target.scissor.copy(target.viewport)
+        target.scissorTest = true
+        renderer.setRenderTarget(target)
+        renderer.setClearColor(
+          transparent ? 0x000000 : new Color().setRGB(0.965, 0.972, 0.99),
+          transparent ? 0 : 1
+        )
+        renderer.clear(true, true, true)
+        renderer.render(inset.scene, insetCamera)
+        texts.push({
+          text: inset.title.textContent ?? '',
+          color: '#172033',
+          x: rect.x,
+          y: rect.y,
+          scale,
+          clip: rect,
+          title: true
+        })
+        for (const label of inset.labels) this.captureLabel(texts, label, insetCamera, rect, scale)
+      }
+      if (signal.aborted) throw aborted()
+      if (this.shaderError) throw this.shaderError
+      renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels)
+      if (this.gl.isContextLost())
+        throw failure('WEBGL_CONTEXT_LOST', 'The WebGL context was lost during PNG export.')
+    } finally {
+      if (selection && previousSelectionVisibility !== undefined)
+        selection.visible = previousSelectionVisibility
+      try {
+        renderer.setRenderTarget(previousTarget)
+        renderer.setViewport(previousViewport)
+        renderer.setScissor(previousScissor)
+        renderer.setScissorTest(previousScissorTest)
+        renderer.setClearColor(previousColor, previousAlpha)
+      } finally {
+        target.dispose()
+      }
+    }
+    if (signal.aborted) throw aborted()
+    return encodePng(pixels, width, height, transparent, texts, signal)
   }
 
   point(x: number, y: number): { cartesian: Vec3; source: 'surface' | 'view-plane' } | undefined {
@@ -545,8 +694,11 @@ class ThreeBackend implements ViewerBackend {
   setCamera(pose: CameraPose): void {
     this.assertActive()
     validatePose(pose)
-    this.pose = copyPose(pose)
+    const next = copyPose(pose)
+    if (JSON.stringify(next) === JSON.stringify(this.pose)) return
+    this.pose = next
     this.applyCamera()
+    this.callbacks.changed()
     this.schedule()
   }
   rotate(azimuthDegrees: number, elevationDegrees: number): void {
@@ -606,9 +758,76 @@ class ThreeBackend implements ViewerBackend {
 
   setOverlay(overlay: InteractionOverlay): void {
     if (this.disposed) return
+    const measurementChanged =
+      this.interaction.label !== overlay.label ||
+      JSON.stringify(this.interaction.points) !== JSON.stringify(overlay.points)
     this.interaction = structuredClone(overlay)
     this.updateInteraction()
+    if (measurementChanged) this.callbacks.changed()
     this.schedule()
+  }
+
+  setCoordination(result: CoordinationResult | undefined, showPolyhedra: boolean): void {
+    if (this.disposed) return
+    if (this.coordinationResult === result && this.showPolyhedra === showPolyhedra) return
+    let prepared: Group | undefined
+    if (result && showPolyhedra) {
+      prepared = new Group()
+      try {
+        for (const center of result.centers) {
+          const polyhedron = center.polyhedron
+          if (!polyhedron) continue
+          const geometry = new BufferGeometry()
+          geometry.setAttribute(
+            'position',
+            new BufferAttribute(new Float32Array(polyhedron.vertices.flat()), 3)
+          )
+          geometry.setIndex(polyhedron.triangles.flat())
+          prepared.add(
+            new Mesh(
+              geometry,
+              new MeshBasicMaterial({
+                color: 0x3c91ba,
+                side: DoubleSide,
+                transparent: true,
+                opacity: 0.2,
+                depthWrite: false,
+                toneMapped: false
+              })
+            )
+          )
+          const edges = new Map<string, readonly [Vec3, Vec3]>()
+          for (const face of polyhedron.faces)
+            for (let index = 0; index < face.length; index++) {
+              const a = face[index]
+              const b = face[(index + 1) % face.length]
+              edges.set(a < b ? `${a}:${b}` : `${b}:${a}`, [
+                polyhedron.vertices[a],
+                polyhedron.vertices[b]
+              ])
+            }
+          prepared.add(
+            lineSegments(
+              [...edges.values()],
+              [...edges.values()].map(() => [0.1, 0.3, 0.4])
+            )
+          )
+        }
+      } catch (error) {
+        disposeTree(prepared)
+        throw error
+      }
+    }
+    const changed = this.showPolyhedra || showPolyhedra
+    if (this.coordinationGroup) disposeTree(this.coordinationGroup)
+    this.coordinationGroup = prepared
+    this.coordinationResult = result
+    this.showPolyhedra = showPolyhedra
+    if (prepared) this.scene.add(prepared)
+    if (changed) {
+      this.callbacks.changed()
+      this.schedule()
+    }
   }
 
   clear(): void {
@@ -616,11 +835,16 @@ class ThreeBackend implements ViewerBackend {
     this.generation++
     this.pending?.controller.abort()
     this.pending = undefined
+    this.pointerInteraction.clear()
     this.cancelScheduled()
     if (this.layer) disposeTree(this.layer.group)
     this.layer = undefined
     this.releaseAuxiliary()
     this.releaseInteraction()
+    if (this.coordinationGroup) disposeTree(this.coordinationGroup)
+    this.coordinationGroup = undefined
+    this.coordinationResult = undefined
+    this.showPolyhedra = false
     this.interaction = EMPTY_OVERLAY
     this.frame = undefined
     this.performanceLabel.style.display = 'none'
@@ -634,7 +858,7 @@ class ThreeBackend implements ViewerBackend {
       this.clear()
     } finally {
       this.disposed = true
-      this.detachPointer()
+      this.pointerInteraction.dispose()
       this.canvas.removeEventListener('webglcontextlost', this.onContextLost)
       this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
       this.labelsRoot.remove()
@@ -784,7 +1008,7 @@ class ThreeBackend implements ViewerBackend {
       borderRadius: '2px',
       color
     })
-    return { node, position: new Vector3(...position) }
+    return { node, position: new Vector3(...position), text, color }
   }
   private prepareAuxiliary(frame: RenderFrame, signature: string): AuxiliaryLayer {
     const group = new Group()
@@ -919,6 +1143,7 @@ class ThreeBackend implements ViewerBackend {
   private releaseInteraction() {
     if (this.interactionGroup) disposeTree(this.interactionGroup)
     this.interactionGroup = undefined
+    this.selectionGroup = undefined
     this.interactionLabel?.node.remove()
     this.interactionLabel = undefined
   }
@@ -927,6 +1152,9 @@ class ThreeBackend implements ViewerBackend {
     if (!this.layer) return
     const group = new Group()
     this.interactionGroup = group
+    const selection = new Group()
+    this.selectionGroup = selection
+    group.add(selection)
     const atomSet = new Set(this.interaction.selectedAtomIds)
     const atomIndices = this.layer.atomIds.flatMap((id, index) => (atomSet.has(id) ? [index] : []))
     if (atomIndices.length) {
@@ -935,7 +1163,7 @@ class ThreeBackend implements ViewerBackend {
         atomIndices.length,
         instanceMaterial(true)
       )
-      group.add(mesh)
+      selection.add(mesh)
       const values = new Float64Array(atomIndices.length * ATOM_STRIDE)
       atomIndices.forEach((source, index) => {
         values.set(
@@ -957,7 +1185,7 @@ class ThreeBackend implements ViewerBackend {
         bondIndices.length,
         instanceMaterial(true)
       )
-      group.add(mesh)
+      selection.add(mesh)
       const values = new Float64Array(bondIndices.length * BOND_STRIDE)
       bondIndices.forEach((source, index) => {
         values.set(
@@ -1014,10 +1242,11 @@ class ThreeBackend implements ViewerBackend {
       y > this.height
     )
       return false
-    return !this.auxiliary?.insets.some(
-      ({ rect }) =>
-        x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height
-    )
+    const insets = this.auxiliary?.insets ?? []
+    return !insets.some((_, index) => {
+      const rect = this.insetRectangle(this.width, this.height, index, insets.length)
+      return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height
+    })
   }
   private prepareRay(x: number, y: number): boolean {
     if (!this.frame || !this.mainPoint(x, y)) return false
@@ -1030,18 +1259,69 @@ class ThreeBackend implements ViewerBackend {
     const meshes = this.layer.bonds ? [this.layer.atoms, this.layer.bonds] : [this.layer.atoms]
     return this.raycaster.intersectObjects(meshes, false)[0]
   }
-  private placeLabel(label: Label, camera: PerspectiveCamera, rect: Inset['rect']) {
+  private labelPosition(label: Label, camera: PerspectiveCamera, rect: ScreenRectangle) {
     const projected = label.position.clone().project(camera)
     const visible =
       projected.z >= -1 &&
       projected.z <= 1 &&
       Math.abs(projected.x) <= 1 &&
       Math.abs(projected.y) <= 1
-    label.node.style.display = visible ? 'block' : 'none'
-    if (visible) {
-      label.node.style.left = `${rect.x + ((projected.x + 1) / 2) * rect.width}px`
-      label.node.style.top = `${rect.y + ((1 - projected.y) / 2) * rect.height}px`
+    return visible
+      ? {
+          x: rect.x + ((projected.x + 1) / 2) * rect.width,
+          y: rect.y + ((1 - projected.y) / 2) * rect.height
+        }
+      : undefined
+  }
+  private placeLabel(label: Label, camera: PerspectiveCamera, rect: ScreenRectangle) {
+    const position = this.labelPosition(label, camera, rect)
+    label.node.style.display = position ? 'block' : 'none'
+    if (!position) return
+    label.node.style.left = `${position.x}px`
+    label.node.style.top = `${position.y}px`
+  }
+  private captureLabel(
+    texts: CaptureText[],
+    label: Label,
+    camera: PerspectiveCamera,
+    rect: ScreenRectangle,
+    scale: number
+  ) {
+    const position = this.labelPosition(label, camera, rect)
+    if (position)
+      texts.push({ text: label.text, color: label.color, ...position, clip: rect, scale })
+  }
+  private insetRectangle(
+    width: number,
+    height: number,
+    index: number,
+    count: number,
+    scale = 1
+  ): ScreenRectangle {
+    const margin = Math.min(12 * scale, width / 20)
+    const size = Math.max(
+      1,
+      Math.min(240 * scale, (width - margin * (count + 1)) / Math.max(1, count), height * 0.36)
+    )
+    return {
+      x: width - (index + 1) * (size + margin),
+      y: height - size - margin,
+      width: size,
+      height: size
     }
+  }
+  private configureInsetCamera(inset: Inset, camera: PerspectiveCamera) {
+    const offset = new Vector3(...this.pose.position)
+      .sub(new Vector3(...this.pose.target))
+      .normalize()
+    const distance = (inset.radius / Math.sin((camera.fov * Math.PI) / 360)) * 1.15
+    camera.position.copy(inset.target).addScaledVector(offset, distance)
+    camera.up.set(...this.pose.up)
+    camera.near = Math.max(0.0001, distance - inset.radius * 2)
+    camera.far = distance + inset.radius * 4
+    camera.lookAt(inset.target)
+    camera.updateProjectionMatrix()
+    camera.updateMatrixWorld(true)
   }
   private draw() {
     if (this.disposed || this.lost) return
@@ -1054,35 +1334,11 @@ class ThreeBackend implements ViewerBackend {
     for (const label of this.auxiliary?.labels ?? []) this.placeLabel(label, this.camera, fullRect)
     if (this.interactionLabel) this.placeLabel(this.interactionLabel, this.camera, fullRect)
     const insets = this.auxiliary?.insets ?? []
-    const margin = Math.min(12, this.width / 20)
-    const size = Math.max(
-      1,
-      Math.min(
-        240,
-        (this.width - margin * (insets.length + 1)) / Math.max(1, insets.length),
-        this.height * 0.36
-      )
-    )
     for (let index = 0; index < insets.length; index++) {
       const inset = insets[index]
-      const rect = {
-        x: this.width - (index + 1) * (size + margin),
-        y: this.height - size - margin,
-        width: size,
-        height: size
-      }
+      const rect = this.insetRectangle(this.width, this.height, index, insets.length)
       inset.rect = rect
-      const offset = new Vector3(...this.pose.position)
-        .sub(new Vector3(...this.pose.target))
-        .normalize()
-      const distance = (inset.radius / Math.sin((inset.camera.fov * Math.PI) / 360)) * 1.15
-      inset.camera.position.copy(inset.target).addScaledVector(offset, distance)
-      inset.camera.up.set(...this.pose.up)
-      inset.camera.near = Math.max(0.0001, distance - inset.radius * 2)
-      inset.camera.far = distance + inset.radius * 4
-      inset.camera.lookAt(inset.target)
-      inset.camera.updateProjectionMatrix()
-      inset.camera.updateMatrixWorld(true)
+      this.configureInsetCamera(inset, inset.camera)
       this.renderer.setScissorTest(true)
       this.renderer.setViewport(rect.x, this.height - rect.y - rect.height, rect.width, rect.height)
       this.renderer.setScissor(rect.x, this.height - rect.y - rect.height, rect.width, rect.height)

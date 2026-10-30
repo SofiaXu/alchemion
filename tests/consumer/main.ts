@@ -201,7 +201,71 @@ async function finish() {
   document.querySelector('output')!.value = 'passed'
   return { cycles, resources: resources.snapshot(), listeners: resources.listenerDetails() }
 }
-window.consumerHarness = { headless, run, selection, removeFirst, finish }
+async function features() {
+  const { createViewer } = await import('alchemion/viewer')
+  const unicodeFold = formats.parseCifDocument('#\\#CIF_2.0\ndata_case\n_\u1c89 1\n_\u1c8a 2\n')
+  const isotope = formats.parseStructure(
+    `Bromine reference\nAlchemion\n\n  1  0  0  0  0  0            999 V2000\n${'    0.0000'.repeat(3)} Br  2${'  0'.repeat(11)}\nM  END\n`,
+    { format: 'mol' }
+  )
+  const parsed = formats.parseStructure('Consumer\n1\n2 0 0\n0 2 0\n0 0 2\nC\n1\nDirect\n0 0 0\n', {
+    format: 'poscar'
+  })
+  if (!parsed.structure) throw new Error('POSCAR import failed')
+  const built = core.createSupercell(parsed.structure, [2, 1, 1])
+  if (!built.ok) throw new Error('Supercell failed')
+  const analysis = core.analyzeCoordination(built.value.snapshot, {
+    centerAtomIds: [built.value.snapshot.atoms[0].id],
+    rules: [{ elements: ['C', 'C'], maxDistance: 2.1 }]
+  })
+  if (!analysis.ok) throw new Error('Coordination failed')
+  const viewer = createViewer(document.querySelector<HTMLElement>('#first')!, {
+    inferBonds: false,
+    renderMode: 'ball-and-stick'
+  })
+  let result
+  try {
+    await viewer.load(parsed.structure)
+    await viewer.execute({ type: 'build-supercell', repetitions: [2, 1, 1] })
+    const ids = viewer.getSnapshot()!.atoms.map((atom) => atom.id)
+    viewer.setSelectedSourceAtomIds(ids)
+    await viewer.execute(ids.map((atomId) => ({ type: 'set-element', atomId, element: 'N' })))
+    await viewer.undo()
+    await viewer.setOptions({
+      coordination: { rules: [{ elements: ['C', 'C'], maxDistance: 2.1 }], showPolyhedra: true }
+    })
+    const saved = viewer.getViewState(),
+      revision = viewer.getState().revision
+    viewer.rotate(15, 0)
+    await viewer.restoreViewState(saved)
+    const image = await viewer.exportPng({ width: 96, height: 64, transparent: true })
+    const decoded = await createImageBitmap(image)
+    result = {
+      sourceCount: viewer.getSnapshot()!.atoms.length,
+      selected: viewer.getState().selectedSourceAtomIds.length,
+      sourceCountPure: built.value.snapshot.atoms.length,
+      mapped: built.value.atomMapping.length,
+      coordination: analysis.value.centers[0].coordinationNumber,
+      workerCounts: viewer
+        .getState()
+        .coordination?.centers.map((center) => center.coordinationNumber),
+      restored: JSON.stringify(viewer.getViewState()) === JSON.stringify(saved),
+      revisionUnchanged: viewer.getState().revision === revision,
+      width: decoded.width,
+      height: decoded.height,
+      mime: image.type,
+      unicodeFold: unicodeFold.diagnostics.some((entry) => entry.code === 'CIF_DUPLICATE_TAG'),
+      bromineIsotope: isotope.structure?.atoms[0].isotope,
+      imports: importResources
+    }
+    decoded.close()
+  } finally {
+    viewer.dispose()
+    viewer.dispose()
+  }
+  return { ...result, released: resources.snapshot() }
+}
+window.consumerHarness = { headless, run, selection, removeFirst, finish, features }
 declare global {
   interface Window {
     consumerHarness: {
@@ -210,6 +274,7 @@ declare global {
       selection: typeof selection
       removeFirst: typeof removeFirst
       finish: typeof finish
+      features: typeof features
     }
   }
 }

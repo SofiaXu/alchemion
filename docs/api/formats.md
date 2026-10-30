@@ -14,10 +14,10 @@ import type { ParseOptions, WriteOptions } from 'alchemion/formats'
 
 ## 结构读写
 
-| 函数                                                                                 | 参数与结果                                                                                                                                                                          |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`parseStructure(text, options)`](../../packages/alchemion/src/formats/index.ts)     | 输入文本及必需的 `ParseOptions`，返回 `ParseResult`：可选 `structure`、必有 `diagnostics`，CIF 需要选择时另有 `candidates`。只接受显式 `format: 'cif' \| 'mol'`，不按扩展名猜格式。 |
-| [`writeStructure(snapshot, options)`](../../packages/alchemion/src/formats/index.ts) | 输入 `StructureSnapshot` 及必需的 `WriteOptions`，返回 `WriteResult`：可选 `text`、必有 `diagnostics`，MOL 可带 `atomMapping`。写出前先验证源结构。                                 |
+| 函数                                                                                 | 参数与结果                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`parseStructure(text, options)`](../../packages/alchemion/src/formats/index.ts)     | 输入文本及必需的 `ParseOptions`，返回 `ParseResult`：可选 `structure`、必有 `diagnostics`，CIF 需要选择时另有 `candidates`。只接受显式 `format: 'cif' \| 'mol' \| 'poscar'`，不按扩展名猜格式。 |
+| [`writeStructure(snapshot, options)`](../../packages/alchemion/src/formats/index.ts) | 输入 `StructureSnapshot` 及必需的 `WriteOptions`，返回 `WriteResult`：可选 `text`、必有 `diagnostics`，MOL 可带 `atomMapping`。写出前先验证源结构。                                             |
 
 这些函数不返回 `ScientificResult`；先检查 `structure` 或 `text` 是否存在，再使用结果。失败由 error 诊断说明，成功也可能有 warning/info。`Diagnostic` 类型从 `alchemion/core` 导入，包含严重级别、稳定代码、说明、上下文及可用的行列定位。宿主负责呈现诊断，不能只把所有结果都当成字符串。
 
@@ -35,19 +35,38 @@ if (parsed.structure) {
 
 选项及结果声明见[contracts.ts](../../packages/alchemion/src/formats/contracts.ts)。
 
-| 类型              | 字段与行为                                                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `CifParseOptions` | `{ format: 'cif', block?: BlockSelector }`。                                                                             |
-| `BlockSelector`   | `{ name: string }` 或 `{ index: number }`；索引从 `0` 开始。                                                             |
-| `MolParseOptions` | `{ format: 'mol' }`；文本中的 V2000/V3000 标记决定记录版本。                                                             |
-| `ParseOptions`    | 上述两种选项的判别联合。                                                                                                 |
-| `ParseResult`     | `{ structure?, diagnostics, candidates? }`，`candidates` 为 `{ name, index }` 数组。没有有效源结构时不提供 `structure`。 |
+| 类型                 | 字段与行为                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `CifParseOptions`    | `{ format: 'cif', block?: BlockSelector }`。                                                                             |
+| `BlockSelector`      | `{ name: string }` 或 `{ index: number }`；索引从 `0` 开始。                                                             |
+| `MolParseOptions`    | `{ format: 'mol' }`；文本中的 V2000/V3000 标记决定记录版本。                                                             |
+| `PoscarParseOptions` | `{ format: 'poscar' }`；读取具有明确元素行的 VASP5 基础几何。                                                            |
+| `ParseOptions`       | 上述三种选项的判别联合。                                                                                                 |
+| `ParseResult`        | `{ structure?, diagnostics, candidates? }`，`candidates` 为 `{ name, index }` 数组。没有有效源结构时不提供 `structure`。 |
 
 CIF 恰有一个 block 时可省略选择；多个 block 而未选择时返回候选和选择错误，不默读第一项。空文档、重复 block 名、未知选择、所选 block 缺失有效晶胞或必需坐标都会诊断。结构映射要求周期晶体字段；任意 CIF 文档不一定能映射为结构。
 
 CIF2 按标准 `#\#CIF_2.0` 标识识别；没有该标识时按 CIF1.1 校验，不因 Unicode 或扩展名自动升级。支持晶胞、分数或可转换笛卡尔坐标、标签/元素/占位、等方 U/B、空间群/显式操作及已建模不确定度。两组坐标同时存在时须一致。`.` 与 `?` 保持不同。完整标签及同义字段列表见[产品规范](../product.md)。
 
 MOL 读取单个分子的 V2000 或 V3000，包括元素、Å 坐标、电荷、同位素、自由基、映射号、支持的键阶与显式立体标志。查询、反应、聚合物/Sgroup、R-group 和增强立体分组不在模型范围，遇到不支持的科学构造会诊断，不静默降成普通原子或单键。
+
+### POSCAR 导入
+
+通过 `parseStructure(text, { format: 'poscar' })` 读取 VASP5 元素行、数量及基础晶体几何。缩放规则依据 [VASP POSCAR 规范](https://vasp.at/wiki/POSCAR)：单个正数统一缩放；单个负数表示目标体积，由未缩放晶胞求实际正缩放因子；三个正数分别缩放基矢的 x/y/z 笛卡尔分量。最终晶胞仍须满足领域规范的有限、右手、非退化要求。
+
+坐标模式接受以 `D/d` 开始的 Direct 和以 `C/c/K/k` 开始的 Cartesian。Direct 分数坐标不受缩放因子再次缩放，也不自动折回晶胞；Cartesian 位置使用相同的统一或分量缩放，再通过 core 的唯一坐标实现转为分数坐标。元素与数量行一一对应，数量为非负安全整数且总数大于零；只接受已知元素符号，不截断元素别名，也不从标题或外部 POTCAR 猜测元素。
+
+导入按文件记录顺序分配 `poscar:atom:1` 等源 ID，保留标题，设置已知满占位；不推断空间群、不创建显式键。坐标后可有一个与所属元素一致的标签；数值行支持 `!`/`#` 行内注释。科学数值必须有限，支持普通十进制及 `e/E/d/D` 指数。
+
+当前不建模 Selective Dynamics、离子/晶格速度和 CONTCAR predictor-corrector。遇到这些信息、无元素行的 VASP4、未知科学尾段或非法输入时不返回 `structure`，并提供 error 诊断及从 1 开始的行列定位。读取没有接受科学损失的选项，宿主不得将此类失败当作成功导入。
+
+| 诊断代码                                                                                      | 含义                                     |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `POSCAR_SCALE`、`POSCAR_LATTICE`、`POSCAR_CELL`                                               | 缩放或晶胞非法。                         |
+| `POSCAR_SPECIES_REQUIRED`、`POSCAR_ELEMENT`、`POSCAR_COUNTS`                                  | 缺少元素、元素无法识别或数量不合法。     |
+| `POSCAR_COORDINATE_MODE`、`POSCAR_COORDINATE`、`POSCAR_COORDINATE_FIELDS`、`POSCAR_TRUNCATED` | 坐标模式、数值、额外字段或记录数量错误。 |
+| `POSCAR_SELECTIVE_DYNAMICS_UNSUPPORTED`                                                       | 约束信息无法表达。                       |
+| `POSCAR_LATTICE_VELOCITIES_UNSUPPORTED`、`POSCAR_TRAILING_DATA_UNSUPPORTED`                   | 晶格速度或其他额外非空尾段无法表达。     |
 
 ### 写出选项
 
@@ -61,7 +80,7 @@ MOL 读取单个分子的 V2000 或 V3000，包括元素、Å 坐标、电荷、
 
 CIF1/2 输出都以结构模型重新序列化，CIF2 输出带标准版本标识。MOL 不自动从 V2000 切换 V3000，不拆分或截断超限数据；V2000 原子和键各不超过 999，其他字段也必须可表示。CIF 结构编解码不承诺任意原文、未知字典或注释的无损编辑。
 
-POSCAR 仅输出有有效晶胞且非空的周期源。采用 VASP5 元素名/数量行、缩放因子 `1.0`、`Direct` 分数坐标，元素分组按源原子中首次出现顺序，组内保留原顺序。它不自动展开显示实例、不造真空晶胞、不接受部分或未知占位，也不提供导入功能。
+POSCAR 仅输出有有效晶胞且非空的周期源。采用 VASP5 元素名/数量行、缩放因子 `1.0`、`Direct` 分数坐标，元素分组按源原子中首次出现顺序，组内保留原顺序。它不自动展开显示实例、不造真空晶胞、不接受部分或未知占位；输出可由上述导入接口重新读取，源 ID 不写入 POSCAR 文件。
 
 ## 科学损失与有限 MOL
 
@@ -97,7 +116,7 @@ MOL 的 `WriteResult.atomMapping` 为 `ExportAtomMapping[]`。每项包含从 `1
 
 | 声明来源                                                            | 导出类型及作用                                                                                     |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [读选项](../../packages/alchemion/src/formats/contracts.ts)         | `BlockSelector`、`CifParseOptions`、`MolParseOptions`、`ParseOptions`。                            |
+| [读选项](../../packages/alchemion/src/formats/contracts.ts)         | `BlockSelector`、`CifParseOptions`、`MolParseOptions`、`PoscarParseOptions`、`ParseOptions`。      |
 | [写选项](../../packages/alchemion/src/formats/contracts.ts)         | `CifWriteOptions`、`MolFiniteSelection`、`MolWriteOptions`、`PoscarWriteOptions`、`WriteOptions`。 |
 | [结果](../../packages/alchemion/src/formats/contracts.ts)           | `ParseResult`、`ExportAtomMapping`、`WriteResult`。                                                |
 | [文档版本与位置](../../packages/alchemion/src/formats/cif/types.ts) | `CifVersion`（`'1' \| '2'`）、`CifLocation`（行列及可选 offset）。                                 |

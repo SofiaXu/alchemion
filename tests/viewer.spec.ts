@@ -446,4 +446,266 @@ test('@workspace unavailable WebGL, context recovery and twenty measured lifecyc
     contentType: 'application/json'
   })
 })
+test('@workspace @features pointer rectangles, modifiers, source selection and one-transaction batch editing', async ({
+  page
+}) => {
+  await page.evaluate(() =>
+    window.viewerHarness.open('orthogonal', {
+      interactionMode: 'box-select',
+      neighborCells: [[1, 0, 0]],
+      cutoff: { kind: 'none' },
+      camera: {
+        position: [6, 1.5, 30],
+        target: [6, 1.5, 1.75],
+        up: [0, 1, 0],
+        fovYDegrees: 45,
+        near: 0.1,
+        far: 1000
+      }
+    })
+  )
+  const initial = await page.evaluate(() => window.viewerHarness.inspect())
+  const beforeCamera = await page.evaluate(() =>
+    window.viewerHarness.camera('set', {
+      position: [6, 1.5, 30],
+      target: [6, 1.5, 1.75],
+      up: [0, 1, 0],
+      fovYDegrees: 45,
+      near: 0.1,
+      far: 1000
+    })
+  )
+  const box = async (points: Vec3[], key?: 'Shift' | 'Control') => {
+    const targets = await page.evaluate(
+      (values) => values.map((value) => window.viewerHarness.target(value)),
+      points
+    )
+    const left = Math.min(...targets.map((point) => point.x)) - 8
+    const right = Math.max(...targets.map((point) => point.x)) + 8
+    const top = Math.min(...targets.map((point) => point.y)) - 8
+    const bottom = Math.max(...targets.map((point) => point.y)) + 8
+    if (key) await page.keyboard.down(key)
+    try {
+      await page.mouse.move(left, top)
+      await page.mouse.down()
+      await page.mouse.move(right, bottom, { steps: 5 })
+      await expect(page.locator('[data-alchemion-selection-box]')).toBeVisible()
+      await page.mouse.up()
+    } finally {
+      if (key) await page.keyboard.up(key)
+    }
+    await expect(page.locator('[data-alchemion-selection-box]')).toHaveCount(0)
+    return page.evaluate(() => window.viewerHarness.inspect())
+  }
+  expect((await box([[2, 1.5, 1.75]])).state.selectedSourceAtomIds).toEqual(['p'])
+  expect((await box([[10, 1.5, 1.75]], 'Shift')).state.selectedSourceAtomIds).toEqual(['p'])
+  expect((await box([[10, 1.5, 1.75]], 'Control')).state.selectedSourceAtomIds).toEqual([])
+  const selected = await box([
+    [2, 1.5, 1.75],
+    [10, 1.5, 1.75]
+  ])
+  expect(selected.state.selectedSourceAtomIds).toEqual(['p', 'q'])
+  expect(selected.state.selection).toBeUndefined()
+  expect(selected.events.filter((event) => event.type === 'selection').at(-1)).toMatchObject({
+    selectedSourceAtomIds: ['p', 'q']
+  })
+  expect(
+    (
+      await page.evaluate(() =>
+        window.viewerHarness.camera('set', {
+          position: [6, 1.5, 30],
+          target: [6, 1.5, 1.75],
+          up: [0, 1, 0],
+          fovYDegrees: 45,
+          near: 0.1,
+          far: 1000
+        })
+      )
+    ).before
+  ).toEqual(beforeCamera.before)
+  expect(await page.evaluate(() => window.viewerHarness.features.selectionValidation())).toEqual({
+    accepted: ['p', 'q'],
+    rejected: true,
+    retained: ['p', 'q']
+  })
+  const edited = await page.evaluate(() =>
+    window.viewerHarness.features.translateSelected([0.1, 0, 0])
+  )
+  expect(edited.state.revision).toBe(initial.state.revision + 1)
+  expect(edited.state.selectedSourceAtomIds).toEqual(['p', 'q'])
+  expect(edited.snapshot?.atoms).toMatchObject([
+    { id: 'p', fractional: [0.35, 0.25, 0.25] },
+    { id: 'q', fractional: [0.6, 0.25, 0.25] }
+  ])
+  const undone = await page.evaluate(() => window.viewerHarness.history('undo'))
+  expect(undone.snapshot).toEqual(initial.snapshot)
+  expect(undone.state.canUndo).toBe(false)
+  expect(undone.state.revision).toBe(initial.state.revision + 2)
+  const redone = await page.evaluate(() => window.viewerHarness.history('redo'))
+  expect(redone.snapshot).toEqual(edited.snapshot)
+  expect(redone.state.selectedSourceAtomIds).toEqual(['p', 'q'])
+  const carbon = redone
+    .snapshot!.atoms.filter((atom) => atom.element === 'C')
+    .map((atom) => atom.id)
+  expect(
+    (await page.evaluate((ids) => window.viewerHarness.features.select(ids), carbon)).state
+      .selectedSourceAtomIds
+  ).toEqual(['p'])
+})
+
+test('@workspace @features constructed supercell, vacancy and substitution retain reversible source identity', async ({
+  page
+}) => {
+  const result = await page.evaluate(() => window.viewerHarness.features.supercellDefects())
+  expect(result.constructed.kind).toBe('periodic')
+  if (result.constructed.kind !== 'periodic') throw new Error('Expected a periodic supercell')
+  expect(result.constructed.cell.basis).toEqual([
+    [16, 0, 0],
+    [0, 6, 0],
+    [0, 0, 7]
+  ])
+  expect(result.constructed.atoms).toHaveLength(8)
+  expect(result.constructed.bonds).toHaveLength(4)
+  expect(result.constructed.symmetry?.operations).toHaveLength(1)
+  expect(result.constructed.metadata?.alchemionSupercell).toBeDefined()
+  expect(new Set(result.constructed.atoms.map((atom) => atom.id)).size).toBe(8)
+  expect(result.defect.snapshot?.atoms).toHaveLength(7)
+  expect(
+    result.defect.snapshot?.atoms.some((atom) => atom.id === result.constructed.atoms[0].id)
+  ).toBe(false)
+  expect(
+    result.defect.snapshot?.atoms.find((atom) => atom.id === result.constructed.atoms[1].id)
+      ?.element
+  ).toBe('F')
+  expect(result.defect.state.revision).toBe(result.constructionRevision + 1)
+  expect(result.defect.state.selectedSourceAtomIds).toEqual([result.constructed.atoms[1].id])
+  expect(result.restored).toEqual(result.constructed)
+  expect(result.originalRestored).toBe(true)
+  expect(result.redone).toEqual(result.constructed)
+  expect(result.finalState.documentId).toBe(result.documentId)
+})
+
+test('@workspace @features two analytic coordination centers, polyhedron pixels and stale/cancelled Worker results', async ({
+  page
+}, info) => {
+  const result = await page.evaluate(() => window.viewerHarness.features.coordination())
+  expect(result.initial?.centers).toHaveLength(2)
+  for (const center of result.initial!.centers) {
+    expect(center.coordinationNumber).toBe(6)
+    expect(center.neighbors.map((neighbor) => neighbor.distance)).toEqual([1, 1, 1, 1, 1, 1])
+    expect(center.polyhedron?.vertices).toHaveLength(6)
+    expect(center.polyhedron?.triangles).toHaveLength(8)
+    expect(center.polyhedron?.volume).toBeCloseTo(4 / 3, 10)
+    expect(center.polyhedron?.volumeUnit).toBe('angstrom^3')
+  }
+  expect(result.visible.polyhedronPixels).toBeGreaterThan(20)
+  expect(result.hidden.polyhedronPixels).toBe(0)
+  expect(result.latest.state.selectedSourceAtomIds).toEqual(['right'])
+  expect(
+    result.latest.state.coordination?.centers.map((center) => center.center.sourceAtomId)
+  ).toEqual(['right'])
+  expect(result.latest.state.revision).toBe(0)
+  expect(result.latest.source?.atoms).toHaveLength(14)
+  expect(result.cancelled).toBe('AbortError')
+  expect(result.cancelledState.status).toBe('cancelled')
+  expect(result.cancelledState.coordination).toBeUndefined()
+  expect(result.reentered).toBe(true)
+  expect(result.reentrantCenter).toBe('left')
+  expect(result.recovered.status).toBe('ready')
+  await info.attach('coordination-observations', {
+    body: JSON.stringify(result),
+    contentType: 'application/json'
+  })
+})
+
+test('@workspace @features decoded 4K PNG alpha, white background, measurement glyphs and validated view restore', async ({
+  page
+}, info) => {
+  await page.evaluate(() =>
+    window.viewerHarness.open('molecule', {
+      interactionMode: 'measure-distance',
+      // Keep chemical colors out of the independent red measurement-glyph probe.
+      elementStyles: {
+        C: { color: '#607b89' },
+        O: { color: '#607b89' },
+        N: { color: '#607b89' },
+        S: { color: '#607b89' }
+      },
+      camera: {
+        position: [0, 0, 18],
+        target: [0, 0, 0],
+        up: [0, 1, 0],
+        fovYDegrees: 45,
+        near: 0.1,
+        far: 1000
+      }
+    })
+  )
+  await click(page, [-3, 0, 0])
+  await click(page, [0, 0, 0])
+  const result = await page.evaluate(() => window.viewerHarness.features.pngAndView())
+  expect(result.annotated).toMatchObject({
+    width: 3840,
+    height: 2160,
+    type: 'image/png',
+    corner: [0, 0, 0, 0]
+  })
+  expect(result.annotated.bytes).toBeGreaterThan(1000)
+  expect(result.annotated.atom[3]).toBe(255)
+  expect(result.annotated.atom.slice(0, 3).some((value) => value < 240)).toBe(true)
+  expect(result.annotated.textPixels).toBeGreaterThan(20)
+  expect(result.white).toMatchObject({
+    width: 3840,
+    height: 2160,
+    corner: [255, 255, 255, 255],
+    textPixels: 0
+  })
+  expect(result.exportUnchanged).toBe(true)
+  expect(result.invalid).not.toBe('resolved')
+  expect(result.invalidCamera).not.toBe('resolved')
+  expect(result.invalidUnchanged).toBe(true)
+  expect(result.restored).toBe(true)
+  expect(result.sourceUnchanged).toBe(true)
+  expect(result.revisionUnchanged).toBe(true)
+  expect(result.state.canUndo).toBe(false)
+  expect(result.state.options.coordination).toEqual(result.saved.options.coordination)
+  await info.attach('decoded-png-and-view', {
+    body: JSON.stringify(result),
+    contentType: 'application/json'
+  })
+})
+
+test('@workspace @features PNG success, encoding failure, cancellation, replacement and independent viewer cleanup', async ({
+  page
+}, info) => {
+  const result = await page.evaluate(() => window.viewerHarness.features.pngResources())
+  for (const counts of [
+    result.success,
+    result.failed,
+    result.cameraReleased,
+    result.supersededReleased
+  ])
+    expect(counts).toEqual(result.baseline)
+  expect(result.failure).not.toBe('resolved')
+  expect(result.cameraCancel).toBe('AbortError')
+  expect(result.superseded).toBe('AbortError')
+  expect(result.independent).toMatchObject({
+    first: 'AbortError',
+    secondCamera: true,
+    firstSelection: ['a'],
+    secondSelection: ['b']
+  })
+  expect(result.independent.second).toMatchObject({ width: 128, height: 128, type: 'image/png' })
+  expect(result.cleared).toBe('AbortError')
+  expect(result.emptyEvents.length).toBeGreaterThan(0)
+  for (const state of result.emptyEvents)
+    expect(state).toEqual({ selected: [], coordination: false, selection: false })
+  expect(result.disposed).toBe('AbortError')
+  released(result.resources)
+  await info.attach('png-resource-observations', {
+    body: JSON.stringify(result),
+    contentType: 'application/json'
+  })
+})
+
 export type ViewerBrowserApi = ViewerHarnessApi

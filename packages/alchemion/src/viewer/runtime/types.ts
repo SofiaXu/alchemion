@@ -1,10 +1,16 @@
 import type { DerivationOptions } from '../../core/bonds'
 import type { BrillouinZone, BrillouinZoneOptions } from '../../core/brillouin-zone'
+import type { CoordinationOptions, CoordinationResult } from '../../core/coordination'
 import type { DocumentState, EditCommand } from '../../core/editing'
 import type { ReciprocalLattice } from '../../core/reciprocal'
 import type { Cell, DerivedStructure, Diagnostic, StructureSnapshot } from '../../core/types'
 
 export type ComputationTask =
+  | {
+      readonly kind: 'coordination'
+      readonly snapshot: StructureSnapshot
+      readonly options: CoordinationOptions
+    }
   | {
       readonly kind: 'derive'
       readonly snapshot: StructureSnapshot
@@ -34,6 +40,7 @@ export type ComputationResult = ComputationContext & {
     | { readonly category: 'derive'; readonly value: DerivedStructure }
     | { readonly category: 'reciprocal'; readonly value: ReciprocalLattice }
     | { readonly category: 'brillouin-zone'; readonly value: BrillouinZone }
+    | { readonly category: 'coordination'; readonly value: CoordinationResult }
   )
 export interface ComputationRuntimeOptions {
   readonly mode?: 'worker' | 'sync'

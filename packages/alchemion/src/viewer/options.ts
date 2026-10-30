@@ -1,4 +1,5 @@
 import { getElement } from '../core/data'
+import { validateCoordinationRules } from '../core/coordination'
 import type { DerivationOptions } from '../core/bonds'
 import type { StructureSnapshot, Vec3 } from '../core/types'
 import type { CameraPose, ViewerOptions } from './types'
@@ -25,7 +26,8 @@ export const DEFAULT_OPTIONS: ViewerOptions = immutable({
   cutoff: { kind: 'none' },
   inferBonds: true,
   interactionMode: 'none',
-  showPerformance: false
+  showPerformance: false,
+  coordination: { rules: [], showPolyhedra: false }
 })
 
 const vector = (input: unknown): input is Vec3 =>
@@ -38,7 +40,7 @@ export function validateCamera(pose: CameraPose): void {
     !vector(pose.up) ||
     !Number.isFinite(pose.fovYDegrees) ||
     pose.fovYDegrees <= 0 ||
-    pose.fovYDegrees >= 180 ||
+    pose.fovYDegrees >= 179 ||
     !Number.isFinite(pose.near) ||
     !Number.isFinite(pose.far) ||
     pose.near <= 0 ||
@@ -63,7 +65,8 @@ export function mergeOptions(current: ViewerOptions, patch: Partial<ViewerOption
   if (!patch || typeof patch !== 'object' || Array.isArray(patch))
     throw new TypeError('VIEWER_OPTIONS: options must be an object.')
   for (const key of Object.keys(patch))
-    if (!(key in DEFAULT_OPTIONS)) throw new TypeError(`VIEWER_OPTIONS: unknown option ${key}.`)
+    if (!Object.hasOwn(DEFAULT_OPTIONS, key))
+      throw new TypeError(`VIEWER_OPTIONS: unknown option ${key}.`)
   const next = { ...current, ...structuredClone(patch) }
   if (!['space-filling', 'ball-and-stick'].includes(next.renderMode))
     throw new TypeError('VIEWER_OPTIONS: unsupported render mode.')
@@ -84,6 +87,7 @@ export function mergeOptions(current: ViewerOptions, patch: Partial<ViewerOption
     ![
       'none',
       'select',
+      'box-select',
       'pick-point',
       'measure-distance',
       'measure-angle',
@@ -91,6 +95,16 @@ export function mergeOptions(current: ViewerOptions, patch: Partial<ViewerOption
     ].includes(next.interactionMode)
   )
     throw new TypeError('VIEWER_OPTIONS: unsupported interaction mode.')
+  if (
+    !next.coordination ||
+    typeof next.coordination !== 'object' ||
+    typeof next.coordination.showPolyhedra !== 'boolean' ||
+    Object.keys(next.coordination).some((key) => !['rules', 'showPolyhedra'].includes(key))
+  )
+    throw new TypeError('VIEWER_OPTIONS: coordination needs rules and a polyhedron switch.')
+  const coordinationDiagnostics = validateCoordinationRules(next.coordination.rules)
+  if (coordinationDiagnostics.some((entry) => entry.severity === 'error'))
+    throw new TypeError(`VIEWER_OPTIONS: ${coordinationDiagnostics[0].message}`)
   if (
     !Array.isArray(next.neighborCells) ||
     next.neighborCells.some((cell) => !vector(cell) || !cell.every(Number.isSafeInteger))

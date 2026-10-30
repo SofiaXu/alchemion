@@ -304,7 +304,7 @@ export function createControllerWithRuntime(
         return Promise.reject(
           new ComputationError('EDIT_DOCUMENT_EMPTY', 'Load a structure before computing it.')
         )
-      if (!task || !['reciprocal', 'brillouin-zone'].includes(task.kind))
+      if (!task || !['reciprocal', 'brillouin-zone', 'coordination'].includes(task.kind))
         return Promise.reject(
           new ComputationError(
             'COMPUTATION_TASK',

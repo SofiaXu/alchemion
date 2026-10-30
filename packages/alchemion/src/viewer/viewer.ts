@@ -2,9 +2,12 @@ import { cartesianToFractional } from '../core/cell'
 import { measureAngle, measureDistance, measureTorsion } from '../core/measurements'
 import type { BrillouinZone } from '../core/brillouin-zone'
 import type { ReciprocalLattice } from '../core/reciprocal'
+import type { CoordinationResult } from '../core/coordination'
 import type { AtomInstance, DerivedStructure, Diagnostic, ScientificResult } from '../core/types'
 import { createThreeBackend } from './backend/three'
 import { createRenderFrame } from './frame'
+import type { PointerModifiers } from './internal-contracts'
+import { pngOptions, validateViewState } from './view-state'
 import { createControllerWithRuntime } from './runtime/controller'
 import { createComputationRuntime } from './runtime/runtime'
 import { abortError, ComputationError } from './runtime/types'
@@ -81,6 +84,12 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   let displayDiagnostics: readonly Diagnostic[] = []
   let selection: ViewerSelection | undefined
   let selectionAnchor: ViewerSelection | undefined
+  let selectedSourceAtomIds: readonly string[] = []
+  let coordination: CoordinationResult | undefined
+  let coordinationKey = ''
+  let coordinationDiagnostics: readonly Diagnostic[] = []
+  let activeExport: AbortController | undefined
+  let pendingCamera: import('./types').CameraPose | undefined
   let measurement: ViewerMeasurement | undefined
   let measurePoints: AtomInstance[] = []
   let prepared: { derived: DerivedStructure; context: ComputationContext } | undefined
@@ -106,9 +115,16 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
               : state.status,
       canUndo: state.canUndo,
       canRedo: state.canRedo,
-      diagnostics: [...state.diagnostics, ...displayDiagnostics, ...(viewFailure ?? [])],
+      diagnostics: [
+        ...state.diagnostics,
+        ...displayDiagnostics,
+        ...coordinationDiagnostics,
+        ...(viewFailure ?? [])
+      ],
       options,
+      selectedSourceAtomIds,
       ...(selection ? { selection } : {}),
+      ...(coordination ? { coordination } : {}),
       ...(measurement ? { measurement } : {})
     })
   function emit(event: ViewerEvent) {
@@ -165,14 +181,44 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     return new Promise<void>((resolve, reject) => waiters.add({ resolve, reject }))
   }
   function invalidateFrame() {
+    invalidateExport()
     frameSequence++
     activeFrame?.abort()
     activeFrame = undefined
     viewBusy = false
   }
+  function invalidateExport() {
+    activeExport?.abort()
+  }
+  function emitSelection() {
+    emit({ type: 'selection', selection, selectedSourceAtomIds, ...context() })
+  }
+  function invalidateCoordination() {
+    invalidateExport()
+    coordination = undefined
+    coordinationKey = ''
+    coordinationDiagnostics = []
+    backend.setCoordination(undefined, options.coordination.showPolyhedra)
+  }
+  function forgetDocumentInteraction() {
+    selection = undefined
+    selectionAnchor = undefined
+    selectedSourceAtomIds = []
+    coordination = undefined
+    coordinationKey = ''
+    coordinationDiagnostics = []
+    measurement = undefined
+    measurePoints = []
+    pendingCamera = undefined
+  }
   function updateOverlay() {
+    invalidateExport()
+    const selected = new Set(selectedSourceAtomIds)
     backend.setOverlay({
-      selectedAtomIds: selection?.kind === 'atom' ? [selection.instance.id] : [],
+      selectedAtomIds:
+        shown?.derived.atoms
+          .filter((atom) => selected.has(atom.sourceAtomId))
+          .map((atom) => atom.id) ?? [],
       selectedBondIds: selection?.kind === 'bond' ? [selection.bond.id] : [],
       points: measurePoints.map((point) => point.cartesian),
       ...(measurement
@@ -186,7 +232,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     if (resetSelection) {
       selection = undefined
       selectionAnchor = undefined
-      emit({ type: 'selection', ...context() })
+      selectedSourceAtomIds = []
+      emitSelection()
     }
     measurement = undefined
     measurePoints = []
@@ -194,8 +241,14 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     updateOverlay()
   }
   function restoreSelection(derived: DerivedStructure) {
+    const existing = new Set(controller.getState().snapshot?.atoms.map((atom) => atom.id))
+    selectedSourceAtomIds = selectedSourceAtomIds.filter((id) => existing.has(id))
     const anchor = selectionAnchor ?? selection
-    if (!anchor) return
+    if (!anchor) {
+      emitSelection()
+      updateOverlay()
+      return
+    }
     const atoms = new Map(derived.atoms.map((atom) => [atom.id, atom]))
     selection = undefined
     if (anchor.kind === 'atom') {
@@ -211,7 +264,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
         }
     }
     selectionAnchor = selection
-    emit({ type: 'selection', selection, ...context() })
+    emitSelection()
     updateOverlay()
   }
   function report(error: unknown, fatal = false) {
@@ -228,9 +281,20 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   let backend: ReturnType<typeof createThreeBackend>
   try {
     backend = createThreeBackend(canvas, overlay, {
-      click(x, y) {
-        clicked(x, y)
+      click(x, y, modifiers) {
+        clicked(x, y, modifiers)
       },
+      boxSelect(rect, modifiers) {
+        if (disposed || getState().status !== 'ready' || !shown) return
+        const ids = new Set(backend.selectBox(rect))
+        const sources = shown.derived.atoms
+          .filter((atom) => ids.has(atom.id))
+          .map((atom) => atom.sourceAtomId)
+        selection = undefined
+        selectionAnchor = undefined
+        changeSelection(sources, modifiers)
+      },
+      changed: invalidateExport,
       contextLost() {
         if (disposed) return
         invalidateFrame()
@@ -322,10 +386,41 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
           }
           if (signal.aborted || sequence !== frameSequence || version !== viewRevision)
             throw abortError()
+          const availableCenters = new Set(source.snapshot.atoms.map((atom) => atom.id))
+          const centers = selectedSourceAtomIds.filter((id) => availableCenters.has(id))
+          const analysisKey = JSON.stringify([key, centers, nextOptions.coordination.rules])
+          if (analysisKey !== coordinationKey) {
+            let analysis: CoordinationResult | undefined
+            let diagnostics: readonly Diagnostic[] = []
+            if (centers.length && nextOptions.coordination.rules.length) {
+              const result = await controller.compute(
+                {
+                  kind: 'coordination',
+                  snapshot: source.snapshot,
+                  options: { centerAtomIds: centers, rules: nextOptions.coordination.rules }
+                },
+                { signal }
+              )
+              if (result.category !== 'coordination')
+                throw new Error('Unexpected coordination task category.')
+              analysis = result.value
+              diagnostics = result.diagnostics
+            }
+            if (signal.aborted || sequence !== frameSequence || version !== viewRevision)
+              throw abortError()
+            coordination = analysis
+            coordinationDiagnostics = diagnostics
+            coordinationKey = analysisKey
+          }
           const built = createRenderFrame(source.snapshot, derived, nextOptions, {
             ...(nextOptions.showReciprocalLattice ? { reciprocal: auxiliary.reciprocal } : {}),
             ...(nextOptions.showBrillouinZone ? { zone: auxiliary.zone } : {})
           })
+          if (pendingCamera) {
+            backend.setCamera(pendingCamera)
+            centerDocument = request.documentId
+          }
+          backend.setCoordination(coordination, nextOptions.coordination.showPolyhedra)
           await backend.commit(
             { ...built.frame, fitToView: !camera && centerDocument !== request.documentId },
             { ...request, viewRevision: version },
@@ -335,7 +430,10 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
             throw abortError()
           displayDiagnostics = built.diagnostics
           shown = { derived, context: request }
+          pendingCamera = undefined
           restoreSelection(derived)
+          if (signal.aborted || sequence !== frameSequence || version !== viewRevision)
+            throw abortError()
           centerDocument = request.documentId
           return
         } catch (error) {
@@ -392,6 +490,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     state = next
     if (next.status === 'computing') {
       invalidateFrame()
+      invalidateCoordination()
       viewCancelled = false
       prepared = undefined
       viewFailure = undefined
@@ -433,7 +532,58 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   observer.observe(container)
   resize()
   if (camera) backend.setCamera(camera)
-  function clicked(x: number, y: number) {
+  function selectedIds(input: readonly string[]): readonly string[] {
+    if (!Array.isArray(input) || input.some((id) => typeof id !== 'string'))
+      throw new TypeError('VIEWER_SELECTION: source IDs must be an array of strings.')
+    const source = controller.getState().snapshot
+    const available = new Set(source?.atoms.map((atom) => atom.id))
+    if (input.some((id) => !available.has(id)))
+      throw new RangeError('VIEWER_SELECTION: a selected source atom does not exist.')
+    const requested = new Set(input)
+    return source?.atoms.filter((atom) => requested.has(atom.id)).map((atom) => atom.id) ?? []
+  }
+  function refreshSelection() {
+    invalidateCoordination()
+    viewRevision++
+    activeFrame?.abort()
+    emitSelection()
+    updateOverlay()
+    if (
+      prepared &&
+      state.status === 'ready' &&
+      !viewBusy &&
+      options.coordination.rules.length &&
+      selectedSourceAtomIds.length
+    )
+      void present(prepared.derived, prepared.context, new AbortController().signal).catch(
+        (error) => report(error, true)
+      )
+    publish()
+  }
+  function changeSelection(ids: readonly string[], modifiers?: PointerModifiers) {
+    const next = new Set(selectedSourceAtomIds)
+    const unique = new Set(ids)
+    if (modifiers?.ctrlKey || modifiers?.metaKey) {
+      for (const id of unique) {
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+      }
+    } else if (modifiers?.shiftKey) {
+      for (const id of unique) next.add(id)
+    } else {
+      next.clear()
+      for (const id of unique) next.add(id)
+    }
+    selectedSourceAtomIds = selectedIds([...next])
+    if (
+      selection?.kind === 'atom' &&
+      !selectedSourceAtomIds.includes(selection.instance.sourceAtomId)
+    )
+      selection = undefined
+    selectionAnchor = selection
+    refreshSelection()
+  }
+  function clicked(x: number, y: number, modifiers?: PointerModifiers) {
     if (disposed || getState().status !== 'ready' || !shown) return
     const mode = options.interactionMode
     if (mode === 'none') return
@@ -455,7 +605,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     const hit = backend.pick(x, y),
       derived = shown.derived
     const atoms = new Map(derived.atoms.map((atom) => [atom.id, atom]))
-    if (mode === 'select') {
+    if (mode === 'select' || mode === 'box-select') {
       selection = undefined
       if (hit?.kind === 'atom') {
         const instance = atoms.get(hit.instanceId)
@@ -470,9 +620,10 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
           }
       }
       selectionAnchor = selection
-      emit({ type: 'selection', selection, ...context() })
-      updateOverlay()
-      publish()
+      changeSelection(
+        selection?.kind === 'atom' ? [selection.instance.sourceAtomId] : [],
+        modifiers
+      )
       return
     }
     if (hit?.kind !== 'atom') return
@@ -509,6 +660,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   }
   async function sourceOperation(action: () => Promise<void>): Promise<void> {
     open()
+    invalidateExport()
     const generation = sourceGeneration
     sourceCalls++
     try {
@@ -522,34 +674,70 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       if (generation === sourceGeneration) sourceCalls--
     }
   }
+  async function changePresentation(
+    next: ViewerOptions,
+    nextCamera?: import('./types').CameraPose
+  ) {
+    open()
+    const previous = options
+    if (JSON.stringify(previous) === JSON.stringify(next) && !nextCamera) return
+    invalidateExport()
+    options = next
+    if (nextCamera) pendingCamera = nextCamera
+    viewRevision++
+    activeFrame?.abort()
+    if (previous.interactionMode !== next.interactionMode) {
+      selection = undefined
+      selectionAnchor = undefined
+      emitSelection()
+      resetInteraction(false)
+    }
+    if (!state.snapshot && sourceCalls === 0) {
+      if (pendingCamera) backend.setCamera(pendingCamera)
+      pendingCamera = undefined
+      publish()
+      return
+    }
+    if (derivationChanged(previous, next) || viewCancelled || state.status === 'cancelled')
+      await sourceOperation(() => controller.recompute())
+    else if (state.status === 'computing' || viewBusy) await waitForDisplay()
+    else if (prepared) {
+      try {
+        await present(prepared.derived, prepared.context, new AbortController().signal)
+      } catch (error) {
+        report(error, true)
+        throw error
+      }
+    }
+  }
   return {
     load: (snapshot) => sourceOperation(() => controller.load(snapshot)),
     getSnapshot: () => controller.getState().snapshot,
     getState,
-    async setOptions(patch: Partial<ViewerOptions>) {
+    setSelectedSourceAtomIds(ids) {
       open()
-      const previous = options,
-        next = mergeOptions(options, patch)
-      if (JSON.stringify(previous) === JSON.stringify(next)) return
-      options = next
-      viewRevision++
-      activeFrame?.abort()
-      if (previous.interactionMode !== next.interactionMode) resetInteraction(true)
-      if (!state.snapshot && sourceCalls === 0) {
-        publish()
+      const next = selectedIds(ids)
+      const nextSelection =
+        selection?.kind === 'atom' && next.includes(selection.instance.sourceAtomId)
+          ? selection
+          : undefined
+      if (
+        next.length === selectedSourceAtomIds.length &&
+        next.every((id, index) => id === selectedSourceAtomIds[index]) &&
+        nextSelection === selection
+      )
         return
-      }
-      if (derivationChanged(previous, next) || viewCancelled || state.status === 'cancelled')
-        await sourceOperation(() => controller.recompute())
-      else if (state.status === 'computing' || viewBusy) await waitForDisplay()
-      else if (prepared) {
-        try {
-          await present(prepared.derived, prepared.context, new AbortController().signal)
-        } catch (error) {
-          report(error, true)
-          throw error
-        }
-      }
+      selectedSourceAtomIds = next
+      if (
+        selection?.kind !== 'atom' ||
+        !selectedSourceAtomIds.includes(selection.instance.sourceAtomId)
+      )
+        selection = undefined
+      selectionAnchor = selection
+      refreshSelection()
+    },
+    async setOptions(patch: Partial<ViewerOptions>) {
+      await changePresentation(mergeOptions(options, patch))
     },
     execute: (command) => sourceOperation(() => controller.execute(command)),
     undo: () => sourceOperation(() => controller.undo()),
@@ -558,7 +746,11 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       if (
         disposed ||
         (viewCancelled && sourceCalls === 0) ||
-        (state.status !== 'computing' && !viewBusy && sourceCalls === 0 && waiters.size === 0)
+        (state.status !== 'computing' &&
+          !viewBusy &&
+          sourceCalls === 0 &&
+          waiters.size === 0 &&
+          !activeExport)
       )
         return
       viewCancelled = true
@@ -572,31 +764,62 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       prepared = undefined
       shown = undefined
       auxiliary = undefined
+      invalidateCoordination()
       resetInteraction(true)
       controller.cancel()
       publish()
     },
     recompute: () => sourceOperation(() => controller.recompute()),
     getCamera: () => backend.getCamera(),
+    getViewState: () => immutable({ version: 1, camera: backend.getCamera(), options }),
+    async restoreViewState(input) {
+      open()
+      const next = validateViewState(input)
+      await changePresentation(next.options, next.camera)
+    },
+    async exportPng(input = {}) {
+      open()
+      if (getState().status !== 'ready')
+        throw new ComputationError('PNG_NOT_READY', 'PNG export requires a complete ready frame.')
+      const next = pngOptions(input, canvas.width, canvas.height)
+      invalidateExport()
+      const local = new AbortController()
+      activeExport = local
+      try {
+        const blob = await backend.exportPng(next, local.signal)
+        if (local.signal.aborted) throw abortError()
+        return blob
+      } finally {
+        if (activeExport === local) activeExport = undefined
+      }
+    },
     setCamera(pose) {
       open()
       validateCamera(pose)
+      pendingCamera = undefined
+      invalidateExport()
       backend.setCamera(structuredClone(pose))
     },
     rotate(azimuth, elevation) {
       open()
       if (![azimuth, elevation].every(Number.isFinite))
         throw new RangeError('Camera angles must be finite degrees.')
+      pendingCamera = undefined
+      invalidateExport()
       backend.rotate(azimuth, elevation)
     },
     zoom(factor) {
       open()
       if (!Number.isFinite(factor) || factor <= 0)
         throw new RangeError('Zoom factor must be positive and finite.')
+      pendingCamera = undefined
+      invalidateExport()
       backend.zoom(factor)
     },
     center() {
       open()
+      pendingCamera = undefined
+      invalidateExport()
       backend.center()
     },
     subscribe(listener) {
@@ -613,6 +836,9 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       sourceGeneration++
       sourceCalls = 0
       rejectWaiters(abortError())
+      // The controller publishes empty synchronously; no old-document identities
+      // or analysis may be included in that first state event.
+      forgetDocumentInteraction()
       controller.clear()
       backend.clear()
       viewFailure = undefined
@@ -620,6 +846,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       prepared = undefined
       shown = undefined
       auxiliary = undefined
+      invalidateCoordination()
       resetInteraction(true)
       publish()
     },
@@ -631,6 +858,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       invalidateFrame()
       rejectWaiters(abortError())
       observer.disconnect()
+      forgetDocumentInteraction()
       controller.dispose()
       unsubscribe()
       backend.dispose()
@@ -642,6 +870,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       shown = undefined
       auxiliary = undefined
       selection = undefined
+      selectedSourceAtomIds = []
+      coordination = undefined
       measurement = undefined
       measurePoints = []
       publish()

@@ -2,7 +2,7 @@ import { validateCell } from './cell'
 import { getElement } from './data'
 import { isFiniteVector, isIntegerVector } from './math'
 import { failureFrom, success } from './result'
-import { isSamePhysicalEndpoint, resolveSymmetry } from './symmetry'
+import { createEndpointResolver, resolveSymmetry } from './symmetry'
 import type {
   BondEndpoint,
   Diagnostic,
@@ -101,11 +101,10 @@ export function validateStructure(input: unknown): readonly Diagnostic[] {
         diagnostics.push(...resolved.diagnostics)
       } else {
         diagnostics.push(
-          ...resolved.diagnostics.map(
-            (item): Diagnostic =>
-              item.code === 'SYMMETRY_AMBIGUOUS' || item.code === 'SYMMETRY_UNRESOLVED'
-                ? { ...item, severity: 'warning' }
-                : item
+          ...resolved.diagnostics.map((item): Diagnostic =>
+            item.code === 'SYMMETRY_AMBIGUOUS' || item.code === 'SYMMETRY_UNRESOLVED'
+              ? { ...item, severity: 'warning' }
+              : item
           )
         )
       }
@@ -230,6 +229,9 @@ export function validateStructure(input: unknown): readonly Diagnostic[] {
   }
 
   const bondIds = new Set<string>()
+  const endpointResolver = diagnostics.some((entry) => entry.severity === 'error')
+    ? undefined
+    : createEndpointResolver(snapshot, operations)
   for (const item of input.bonds as unknown[]) {
     if (!record(item)) {
       error('BOND_INPUT', 'Bond must be an object.')
@@ -299,7 +301,7 @@ export function validateStructure(input: unknown): readonly Diagnostic[] {
     }
     if (endpointsValid && !diagnostics.some((entry) => entry.severity === 'error')) {
       const [a, b] = item.endpoints as unknown as readonly [BondEndpoint, BondEndpoint]
-      const same = isSamePhysicalEndpoint(snapshot, a, b, operations)
+      const same = endpointResolver!.same(a, b)
       if (!same.ok) diagnostics.push(...same.diagnostics)
       else if (same.value)
         error('BOND_SELF', 'Both endpoints resolve to the same physical source instance.', {

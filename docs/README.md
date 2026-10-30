@@ -7,10 +7,10 @@ Alchemion 提供浏览器 TypeScript SDK 和独立中英工作台。当前公开
 | 文档                           | 内容                                                |
 | ------------------------------ | --------------------------------------------------- |
 | [快速开始](getting-started.md) | 构建、使用真实 tarball、最小导入/显示/编辑/导出示例 |
-| [工作台指南](demo.md)          | 本地与离线样例、三维交互、编辑、历史与导出          |
-| [core API](api/core.md)        | 结构模型、科学计算与同步编辑事务                    |
-| [formats API](api/formats.md)  | CIF/MOL/POSCAR、文档语法、诊断与损失                |
-| [viewer API](api/viewer.md)    | 三维 viewer、事件、选项与独立异步控制器             |
+| [工作台指南](demo.md)          | 导入、三维交互、批量编辑、超胞、配位、视图与导出    |
+| [core API](api/core.md)        | 结构模型、超胞、配位分析与同步编辑事务              |
+| [formats API](api/formats.md)  | CIF/MOL/POSCAR 读写、文档语法、诊断与损失           |
+| [viewer API](api/viewer.md)    | 选择、三维显示、PNG 与视图、事件和独立异步控制器    |
 
 ## 规范与维护
 

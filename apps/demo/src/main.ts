@@ -26,9 +26,11 @@ import type {
 import { getLocale, setLocale, tr, type Locale, type Message } from './i18n'
 import { crystalSample, molecularSample } from './samples'
 import { markup } from './ui'
+import { appendFeatureTools, installFeatures, renderFeatures } from './features'
 import './main.css'
 
 document.querySelector<HTMLElement>('#app')!.innerHTML = markup
+appendFeatureTools()
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T
 const value = (id: string) =>
   el<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id).value
@@ -135,6 +137,7 @@ function status() {
   disable('recompute', !source || busy)
   for (const id of ['apply-atom', 'add-atom', 'delete-atom', 'apply-cell'])
     disable(id, !source || busy)
+  disable('build-supercell', source?.kind !== 'periodic' || busy)
   disable('move-instance', !selectedInstance || busy)
   disable('collect-instance', !selectedInstance || busy)
   el<HTMLFieldSetElement>('cell-fields').disabled = source?.kind !== 'periodic' || busy
@@ -143,6 +146,7 @@ function status() {
   el('finite-fields').hidden = source?.kind !== 'periodic' || value('export-format') !== 'mol'
 }
 function inspect() {
+  renderFeatures(state)
   el('selection-details').textContent = selection ? json(selection) : tr('noSelection')
   el('point-details').textContent = point ? json(point) : tr('noPoint')
   const measurement = state?.measurement
@@ -238,6 +242,10 @@ function sourceChanged() {
     'option[value=fractional]'
   )!.disabled = source?.kind !== 'periodic'
   put('coordinate-frame', source?.kind === 'periodic' ? 'fractional' : 'cartesian')
+  put('batch-frame', source?.kind === 'periodic' ? 'fractional' : 'cartesian')
+  el<HTMLSelectElement>('batch-frame').querySelector<HTMLOptionElement>(
+    'option[value=fractional]'
+  )!.disabled = source?.kind !== 'periodic'
   sourceRows()
   updateAtomFields()
   invalidateExport()
@@ -312,7 +320,7 @@ function resetCandidates() {
 }
 async function importText(token = ++importGeneration) {
   const text = value('import-text'),
-    format = value('import-format') as 'cif' | 'mol'
+    format = value('import-format') as 'cif' | 'mol' | 'poscar'
   const signature = `${format}:${text}`
   const block =
     candidateSignature === signature && value('block-select') !== ''
@@ -339,7 +347,9 @@ async function importText(token = ++importGeneration) {
   // Resetting candidate UI must not erase the detected version.
   if (format === 'cif')
     el('import-version').textContent = parseCifDocument(text).document?.version ?? '—'
-  else el('import-version').textContent = text.match(/\bV(?:2000|3000)\b/)?.[0] ?? '—'
+  else
+    el('import-version').textContent =
+      format === 'poscar' ? 'VASP5' : (text.match(/\bV(?:2000|3000)\b/)?.[0] ?? '—')
   showDiagnostics()
   if (!parsed.structure) return false
   await requireViewer().load(parsed.structure)
@@ -430,7 +440,7 @@ function checkExport(accept = false) {
   // from hard format requirements. A hard error must never offer an override.
   disable('accept-loss', !!result.text || !onlyLossErrors(result.diagnostics) || accept)
   disable('download-export', !result.text)
-  disable('reimport-export', !result.text || options.format === 'poscar')
+  disable('reimport-export', !result.text)
   showDiagnostics()
   return !!result.text
 }
@@ -554,7 +564,8 @@ on('file-input', 'change', () => {
       reading = false
       put('import-text', text)
       const cif = /\.cif$/i.test(file.name) || /^\s*(?:#.*\n\s*)*data_/i.test(text)
-      put('import-format', cif ? 'cif' : 'mol')
+      const poscar = /(?:^|[.])(POSCAR|CONTCAR|vasp)$/i.test(file.name)
+      put('import-format', cif ? 'cif' : poscar ? 'poscar' : 'mol')
       status()
       await run(() => importText(token))
     })
@@ -647,6 +658,7 @@ on('atom-rows', 'click', (event) => {
     ?.dataset.sourceId
   if (id) {
     selectedAtomId = id
+    requireViewer().setSelectedSourceAtomIds([id])
     updateAtomFields()
   }
 })
@@ -759,25 +771,27 @@ action('clear-instances', () => {
 })
 form('export-form', () => checkExport())
 action('accept-loss', () => checkExport(true))
-action('download-export', () => {
-  const current = currentExport()
-  const url = URL.createObjectURL(
-    new Blob([current.result.text!], { type: 'text/plain;charset=utf-8' })
-  )
+function download(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob)
   urls.add(url)
   const link = document.createElement('a')
   link.href = url
-  link.download =
-    current.options.format === 'poscar' ? 'POSCAR' : `alchemion.${current.options.format}`
+  link.download = name
   link.click()
   setTimeout(() => {
     URL.revokeObjectURL(url)
     urls.delete(url)
   }, 1000)
+}
+action('download-export', () => {
+  const current = currentExport()
+  download(
+    new Blob([current.result.text!], { type: 'text/plain;charset=utf-8' }),
+    current.options.format === 'poscar' ? 'POSCAR' : `alchemion.${current.options.format}`
+  )
 })
 action('reimport-export', () => {
   const current = currentExport()
-  if (current.options.format === 'poscar') return false
   resetCandidates()
   put('import-format', current.options.format)
   put('import-text', current.result.text!)
@@ -799,6 +813,18 @@ window.addEventListener(
   },
   { once: true }
 )
+installFeatures({
+  signal: lifetime.signal,
+  viewer: requireViewer,
+  source: requireSource,
+  action,
+  form,
+  on,
+  run,
+  vector,
+  download,
+  inspect
+})
 status()
 inspect()
 showDiagnostics()

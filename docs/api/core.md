@@ -93,6 +93,45 @@ bond cutoff 保留主要单胞所有实例及其直接成键的第一层端点�
 
 `BrillouinZoneOptions` 的 `maxShell` 默认 `64`，`maxCandidates` 默认 `250000`，均须为正安全整数。`BrillouinZoneFace.vertices` 是顶点索引，面从外看逆时针；`reciprocalIndex` 标识切面格矢，`normal/offset` 定义半空间。`convergence` 给出壳层、候选数、遗漏格矢长度下界和最大顶点半径。
 
+## 超胞与配位分析
+
+[`createSupercell(snapshot, repetitions)`](../../packages/alchemion/src/core/supercell.ts) 返回 `ScientificResult<SupercellResult>`。`snapshot` 参数为 `StructureSnapshot`，运行时必须为周期源；`repetitions: Vec3` 必须包含三个正安全整数。函数不修改输入、不创建文档历史，按完整源对称生成新的 P1 周期源，独立于 viewer 显示选项。
+
+| `SupercellResult` 字段 | 类型与含义                                                                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `snapshot`             | `PeriodicStructureSnapshot`；新晶胞与全部新原子/键 ID，副本可独立编辑。                                                                  |
+| `atomMapping`          | `readonly SupercellAtomMapping[]`；每项为 `{ atomId, source: BondEndpoint, equivalentSources: readonly BondEndpoint[] }`，回溯旧源实例。 |
+| `bondMapping`          | `readonly SupercellBondMapping[]`；每项为 `{ bondId, sourceBondId }`，回溯旧显式键。                                                     |
+
+纯函数按确定顺序分配 ID，并避开输入已有 ID；ID 是不透明身份，不以其字符串格式作为 API。`1×1×1` 仍展开对称并分配新身份。已有标签加唯一后缀，缺失标签不补写。显式键保留完整周期边界与键阶，推断键不固化到源；占位与其他坐标无关字段保持原义。结果快照及其来源映射与输入隔离。
+
+新坐标清除旧坐标不确定度并警告；基矢变化时清除旧晶胞不确定度并警告，`1×1×1` 保留未变晶胞测量。`metadata.alchemionSupercell` 包含 `schemaVersion: 1`、`repetitions`、`sourceCell`、解析后的 `sourceSymmetry`、两组映射，以及可选 `parent`；原 metadata 与格式来源保留，不自动改写任意字符串引用。
+
+单次重复单胞数和输出原子数各最多 `100000`。非周期源、非法倍数、超出安全整数或预算、无法映射显式键时返回失败；周期键存在 `stereo` 时以 `SUPERCELL_STEREO_UNSUPPORTED` 失败，周期 `stereoParity` 沿用现有结构校验。构建数学、缺陷与验证边界见[领域规范](../domain.md#超胞与独立缺陷)和 T-DOM-07。
+
+[`analyzeCoordination(snapshot, options)`](../../packages/alchemion/src/core/coordination.ts) 返回 `ScientificResult<CoordinationResult>`，支持周期源及分子源。它只分析显式给定的中心与规则，不修改源、选择或历史。
+
+| 输入类型              | 字段与行为                                                                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CoordinationOptions` | `centerAtomIds: readonly AtomId[]`、`rules: readonly CoordinationRule[]`；中心去重并稳定排序，缺失 ID 失败。                                                   |
+| `CoordinationRule`    | `elements: readonly [string, string]`、可选 `minDistance: number`、必需 `maxDistance: number`；Å 制有限距离，默认最小为 `0`，且 `0 <= min <= max`、`max > 0`。 |
+
+元素对无序且不得重复，元素符号须已知；距离上下界均包含，比较容差为 `1e-8 Å`。无匹配规则的元素对不计邻居，空规则返回空邻域，空中心返回空结果。每个源使用完整对称中心胞中按稳定实例 ID 排序的首个代表，返回具体中心 `AtomInstance`，不采用点击影像或当前显示 cutoff。
+
+`CoordinationResult` 为 `{ centers: readonly CoordinationCenter[], unit: 'angstrom' }`。每个 `CoordinationCenter` 包含 `center: AtomInstance`、`neighbors: readonly CoordinationNeighbor[]`、`coordinationNumber: number` 与可选 `polyhedron: CoordinationPolyhedron`；邻居项为 `{ instance: AtomInstance, distance: number }`，按距离及稳定实例 ID 排序。
+
+| `CoordinationPolyhedron` 字段  | 类型与含义                                                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `vertices`                     | `readonly Vec3[]`；Å 笛卡尔顶点。                                                                           |
+| `vertexNeighborIndices`        | `readonly (readonly number[])[]`；每个顶点对应当前 `neighbors` 数组的全部邻居下标，保留同位点不同源的映射。 |
+| `faces`                        | `readonly (readonly number[])[]`；顶点下标组成的面，从外看逆时针。                                          |
+| `triangles`                    | `readonly (readonly [number, number, number])[]`；面内三角化顶点下标。                                      |
+| `volume`、`unit`、`volumeUnit` | 体积数值、`'angstrom'` 与 `'angstrom^3'`。                                                                  |
+
+配位数按几何站点计数，不按占位加权；同源不同周期影像可分别计数，不同源重合站点保留，仅排除中心源的同一实际位置。周期邻域按晶胞度量完整搜索，不受显示邻胞或自动成键影响。少于四个非共面位置等退化情况仍返回邻居/CN，省略多面体并给出 `COORDINATION_POLYHEDRON_DEGENERATE` 信息诊断。
+
+每次搜索最多 `100000` 个去重后唯一候选影像，另有 `5000000` 个格点的枚举保护；分别以 `COORDINATION_BUDGET` 或 `COORDINATION_SEARCH_BUDGET` 失败，不返回未标记截断结果。完整几何语义、数值边界及 T-DOM-08 见[领域规范](../domain.md#几何配位与多面体)。浏览器异步执行见[viewer API](viewer.md)。
+
 ## 同步编辑事务与历史
 
 [`createDocumentStore(options?)`](../../packages/alchemion/src/core/editing/index.ts) 返回 `DocumentStore`，无需浏览器资源。`DocumentStoreOptions.historyLimit` 默认为 `100`，可为 `0`；非负安全整数之外的值抛出 `RangeError`。
@@ -118,8 +157,11 @@ bond cutoff 保留主要单胞所有实例及其直接成键的第一层端点�
 | `set-instance-position` | `instance, cartesian, documentId, revision`；按实例逆变换回写源。上下文过期时拒绝 `EDIT_STALE_INSTANCE`。  |
 | `set-cell`              | `cell`；仅周期源，保持源分数坐标。若与对称不相容，整个事务失败。                                           |
 | `set-symmetry`          | 可选 `symmetry`；仅周期源。可与晶胞变更组成同一事务，例如显式设置 Hall 1；不暗中降为 P1。                  |
+| `build-supercell`       | `repetitions: Vec3`；按上述构造替换当前周期源，一次操作对应一次可撤销事务，documentId 保持不变。           |
 
 坐标或晶胞变化会清理不再有效的测量不确定度并诊断；删除立体参照原子会清理失效 parity，undo 可恢复。需要异步计算、订阅或画布时使用[viewer API](viewer.md)中的独立 controller 或 Viewer，它们组合相同事务实现。
+
+构建命令由文档分配新 AtomId/BondId，并记录该文档已发出的 ID。undo 不回退分配状态，redo 恢复已有快照；撤销后再次构建使用新 ID，不复用被撤销构建的身份。失败不会改变公开源、历史或 revision；新 load/clear 才重置文档分配状态。需要构建后继续编辑并保留历史时使用此命令；把纯函数生成的快照交给 `load` 时，仍按 load 契约创建新文档并清空历史。
 
 ## 公开类型索引
 
@@ -137,3 +179,5 @@ bond cutoff 保留主要单胞所有实例及其直接成键的第一层端点�
 | [测量](../../packages/alchemion/src/core/measurements.ts)、[倒易](../../packages/alchemion/src/core/reciprocal.ts)  | `Measurement`、`ReciprocalLattice`。                                                                                                                                           |
 | [BZ](../../packages/alchemion/src/core/brillouin-zone.ts)                                                           | `BrillouinZone`、`BrillouinZoneFace`、`BrillouinZoneOptions`。                                                                                                                 |
 | [编辑](../../packages/alchemion/src/core/editing/index.ts)                                                          | `EditCommand`、`DocumentStore`、`DocumentStoreOptions`、`DocumentState`、`DocumentChange`。                                                                                    |
+| [超胞](../../packages/alchemion/src/core/supercell.ts)                                                              | `SupercellResult`、`SupercellAtomMapping`、`SupercellBondMapping`。                                                                                                            |
+| [配位](../../packages/alchemion/src/core/coordination.ts)                                                           | `CoordinationRule`、`CoordinationOptions`、`CoordinationNeighbor`、`CoordinationPolyhedron`、`CoordinationCenter`、`CoordinationResult`。                                      |

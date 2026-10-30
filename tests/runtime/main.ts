@@ -177,7 +177,45 @@ async function concurrentLifecycle() {
   }
 }
 
-window.runtimeHarness = { production, controllerFlows, concurrentLifecycle, faults }
+async function coordinationTask() {
+  const sync = createComputationRuntime({ mode: 'sync' }),
+    worker = createComputationRuntime()
+  const task: ComputationTask = {
+    kind: 'coordination',
+    snapshot: crystal,
+    options: { centerAtomIds: ['periodic-a'], rules: [{ elements: ['C', 'C'], maxDistance: 2.1 }] }
+  }
+  try {
+    const old = worker.compute({ documentId: 'coordination', revision: 0, task }).then(
+      () => 'resolved',
+      (error: Error) => error.name
+    )
+    const [current, reference] = await Promise.all([
+      worker.compute({ documentId: 'coordination', revision: 1, task }),
+      sync.compute({ documentId: 'coordination', revision: 1, task })
+    ])
+    if (current.category !== 'coordination') throw new Error('Wrong category')
+    return {
+      old: await old,
+      revision: current.revision,
+      equal: JSON.stringify(current.value) === JSON.stringify(reference.value),
+      count: current.value.centers[0].coordinationNumber,
+      volume: current.value.centers[0].polyhedron?.volume,
+      canvases: document.querySelectorAll('canvas').length
+    }
+  } finally {
+    sync.dispose()
+    worker.dispose()
+    worker.dispose()
+  }
+}
+window.runtimeHarness = {
+  production,
+  controllerFlows,
+  concurrentLifecycle,
+  faults,
+  coordinationTask
+}
 declare global {
   interface Window {
     runtimeHarness: {
@@ -185,6 +223,7 @@ declare global {
       controllerFlows: typeof controllerFlows
       concurrentLifecycle: typeof concurrentLifecycle
       faults: typeof faults
+      coordinationTask: typeof coordinationTask
     }
   }
 }

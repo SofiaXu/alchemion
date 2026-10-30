@@ -40,11 +40,13 @@ jobs:
         id: scope
         run: pnpm ci:changes --scope
       - name: Targeted unit cases
+        env:
+          TEST_WORKERS: '8'
         run: pnpm ci:changes --unit
       - if: steps.scope.outputs.sdk == 'true'
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - name: Linux development Worker, edit and export
-        if: steps.scope.outputs.demo == 'true'
+        if: steps.scope.outputs.dev_smoke == 'true'
         run: xvfb-run --auto-servernum pnpm dev -- --smoke
       # The development watcher rewrites dist. Rebuild production outputs before
       # running production hosts or packing the final consumer.
@@ -58,17 +60,17 @@ jobs:
         run: pnpm ci:changes --checks
       - name: Linux independent runtime and Worker faults
         if: steps.scope.outputs.runtime == 'true'
-        run: xvfb-run --auto-servernum pnpm test:browser -- --suite=runtime --prepared
+        run: xvfb-run --auto-servernum pnpm test:browser -- --suite=runtime --prepared --grep="${{ steps.scope.outputs.runtime_grep }}"
       - name: Linux software-driver viewer functionality
         if: steps.scope.outputs.viewer == 'true'
         # Platform/driver coverage; hardware performance is measured separately.
-        run: xvfb-run --auto-servernum pnpm test:browser -- --suite=viewer --prepared
+        run: xvfb-run --auto-servernum pnpm test:browser -- --suite=viewer --prepared --grep="${{ steps.scope.outputs.viewer_grep }}"
       - name: Linux built demo user workflows
         if: steps.scope.outputs.demo == 'true'
-        run: xvfb-run --auto-servernum pnpm test:browser -- --suite=demo --prepared
+        run: xvfb-run --auto-servernum pnpm test:browser -- --suite=demo --prepared --grep="${{ steps.scope.outputs.demo_grep }}"
       - name: Linux production tarball, nested module Worker and lifecycle
         if: steps.scope.outputs.package == 'true'
-        run: xvfb-run --auto-servernum pnpm test:package -- --prepared
+        run: xvfb-run --auto-servernum pnpm test:package -- --prepared --grep="${{ steps.scope.outputs.package_grep }}"
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:

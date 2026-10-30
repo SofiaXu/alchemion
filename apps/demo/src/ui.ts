@@ -21,8 +21,8 @@ ${panel(
   'import',
   `<h1 data-i18n="import"></h1><p data-i18n="tagline"></p>
 ${field('sample-select', 'sample', `<select id="sample-select">${option('molecule', 'moleculeSample')}${option('crystal', 'crystalSample')}</select>`)}${button('load-sample', 'loadSample')}<p class="hint" data-i18n="sampleNote"></p>
-<hr>${field('file-input', 'file', '<input id="file-input" type="file" accept=".cif,.mol,text/plain">')}
-${field('import-format', 'format', '<select id="import-format"><option value="cif">CIF</option><option value="mol" selected>MOL</option></select>')}
+<hr>${field('file-input', 'file', '<input id="file-input" type="file" accept=".cif,.mol,.vasp,.poscar,text/plain">')}
+${field('import-format', 'format', '<select id="import-format"><option value="cif">CIF</option><option value="mol" selected>MOL</option><option value="poscar">POSCAR</option></select>')}
 ${field('import-text', 'input', '<textarea id="import-text" rows="9" spellcheck="false"></textarea>')}
 <div id="block-field" hidden>${field('block-select', 'block', '<select id="block-select"></select>')}</div><p>${word('version')}: <output id="import-version">—</output></p>${button('import-button', 'importText')}<p class="hint" data-i18n="importHelp"></p>`
 )}

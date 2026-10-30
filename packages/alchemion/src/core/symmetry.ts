@@ -18,6 +18,8 @@ import type {
   Cell,
   Diagnostic,
   Matrix3,
+  MolecularAtom,
+  PeriodicAtom,
   Rational,
   ScientificResult,
   SpaceGroupIdentifier,
@@ -347,15 +349,30 @@ export interface EndpointPosition {
   readonly fractional?: Vec3
   readonly cartesian: Vec3
 }
+type AtomLookup = ReadonlyMap<string, PeriodicAtom | MolecularAtom>
+
 export function resolveBondEndpoint(
   snapshot: StructureSnapshot,
   endpoint: BondEndpoint,
   operations?: readonly SymmetryOperation[]
 ): ScientificResult<EndpointPosition> {
+  return resolveEndpoint(snapshot, endpoint, operations)
+}
+
+function resolveEndpoint(
+  snapshot: StructureSnapshot,
+  endpoint: BondEndpoint,
+  operations?: readonly SymmetryOperation[],
+  atoms?: AtomLookup
+): ScientificResult<EndpointPosition> {
   if (!endpoint || !isIntegerVector(endpoint.integerCellOffset))
     return failure('BOND_ENDPOINT', 'Bond endpoint requires an integer cell offset.')
   if (snapshot.kind === 'molecular') {
-    const atom = snapshot.atoms.find((entry) => entry.id === endpoint.sourceAtomId)
+    const atom = (
+      atoms
+        ? atoms.get(endpoint.sourceAtomId)
+        : snapshot.atoms.find((entry) => entry.id === endpoint.sourceAtomId)
+    ) as MolecularAtom | undefined
     if (!atom) return failure('BOND_ATOM', 'Bond endpoint references a missing source atom.')
     if (
       endpoint.symmetryOperationId !== 'identity' ||
@@ -369,7 +386,11 @@ export function resolveBondEndpoint(
       return failure('COORDINATE_NONFINITE', 'Molecular atom coordinates must be finite.')
     return success({ cartesian: [...atom.cartesian] as unknown as Vec3 })
   }
-  const atom = snapshot.atoms.find((entry) => entry.id === endpoint.sourceAtomId)
+  const atom = (
+    atoms
+      ? atoms.get(endpoint.sourceAtomId)
+      : snapshot.atoms.find((entry) => entry.id === endpoint.sourceAtomId)
+  ) as PeriodicAtom | undefined
   if (!atom) return failure('BOND_ATOM', 'Bond endpoint references a missing source atom.')
   const resolved = operations
     ? success(operations)
@@ -395,8 +416,18 @@ export function isSamePhysicalEndpoint(
   b: BondEndpoint,
   operations?: readonly SymmetryOperation[]
 ): ScientificResult<boolean> {
-  const pa = resolveBondEndpoint(snapshot, a, operations),
-    pb = resolveBondEndpoint(snapshot, b, operations)
+  return samePhysicalEndpoint(snapshot, a, b, operations)
+}
+
+function samePhysicalEndpoint(
+  snapshot: StructureSnapshot,
+  a: BondEndpoint,
+  b: BondEndpoint,
+  operations?: readonly SymmetryOperation[],
+  atoms?: AtomLookup
+): ScientificResult<boolean> {
+  const pa = resolveEndpoint(snapshot, a, operations, atoms),
+    pb = resolveEndpoint(snapshot, b, operations, atoms)
   if (!pa.ok) return pa
   if (!pb.ok) return pb
   if (a.sourceAtomId !== b.sourceAtomId) return success(false)
@@ -418,7 +449,16 @@ export function canonicalizeEndpoint(
   endpoint: BondEndpoint,
   operations?: readonly SymmetryOperation[]
 ): ScientificResult<BondEndpoint> {
-  const position = resolveBondEndpoint(snapshot, endpoint, operations)
+  return canonicalEndpoint(snapshot, endpoint, operations)
+}
+
+function canonicalEndpoint(
+  snapshot: StructureSnapshot,
+  endpoint: BondEndpoint,
+  operations?: readonly SymmetryOperation[],
+  atoms?: AtomLookup
+): ScientificResult<BondEndpoint> {
+  const position = resolveEndpoint(snapshot, endpoint, operations, atoms)
   if (!position.ok) return position
   if (snapshot.kind === 'molecular') return success({ ...endpoint, integerCellOffset: [0, 0, 0] })
   const resolved = operations
@@ -429,7 +469,8 @@ export function canonicalizeEndpoint(
     snapshot,
     endpoint.sourceAtomId,
     position.value.fractional!,
-    resolved.value
+    resolved.value,
+    atoms
   )
 }
 
@@ -437,9 +478,12 @@ function endpointAtPosition(
   snapshot: Extract<StructureSnapshot, { kind: 'periodic' }>,
   sourceAtomId: string,
   position: Vec3,
-  operations: readonly SymmetryOperation[]
+  operations: readonly SymmetryOperation[],
+  atoms?: AtomLookup
 ): ScientificResult<BondEndpoint> {
-  const atom = snapshot.atoms.find((entry) => entry.id === sourceAtomId)!
+  const atom = (
+    atoms ? atoms.get(sourceAtomId) : snapshot.atoms.find((entry) => entry.id === sourceAtomId)
+  ) as PeriodicAtom
   const aliases: BondEndpoint[] = []
   for (const operation of operations) {
     const difference = subtract(position, applySymmetry(operation, atom.fractional))
@@ -466,15 +510,43 @@ export function transformBondEndpoint(
   operation: SymmetryOperation,
   operations: readonly SymmetryOperation[]
 ): ScientificResult<BondEndpoint> {
-  if (snapshot.kind === 'molecular') return canonicalizeEndpoint(snapshot, endpoint, operations)
-  const position = resolveBondEndpoint(snapshot, endpoint, operations)
+  return transformedEndpoint(snapshot, endpoint, operation, operations)
+}
+
+function transformedEndpoint(
+  snapshot: StructureSnapshot,
+  endpoint: BondEndpoint,
+  operation: SymmetryOperation,
+  operations: readonly SymmetryOperation[],
+  atoms?: AtomLookup
+): ScientificResult<BondEndpoint> {
+  if (snapshot.kind === 'molecular') return canonicalEndpoint(snapshot, endpoint, operations, atoms)
+  const position = resolveEndpoint(snapshot, endpoint, operations, atoms)
   if (!position.ok) return position
   return endpointAtPosition(
     snapshot,
     endpoint.sourceAtomId,
     applySymmetry(operation, position.value.fractional!),
-    operations
+    operations,
+    atoms
   )
+}
+
+/** A request-local index. It is never cached or reused after a source transaction. */
+export function createEndpointResolver(
+  snapshot: StructureSnapshot,
+  operations?: readonly SymmetryOperation[]
+) {
+  const atoms: AtomLookup = new Map(snapshot.atoms.map((atom) => [atom.id, atom]))
+  return {
+    resolve: (endpoint: BondEndpoint) => resolveEndpoint(snapshot, endpoint, operations, atoms),
+    same: (a: BondEndpoint, b: BondEndpoint) =>
+      samePhysicalEndpoint(snapshot, a, b, operations, atoms),
+    canonicalize: (endpoint: BondEndpoint) =>
+      canonicalEndpoint(snapshot, endpoint, operations, atoms),
+    transform: (endpoint: BondEndpoint, operation: SymmetryOperation) =>
+      transformedEndpoint(snapshot, endpoint, operation, operations ?? [], atoms)
+  }
 }
 
 /** Fractional reach implied by a Cartesian radius, including oblique/multicell neighbors. */

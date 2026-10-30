@@ -29,6 +29,17 @@ export { reciprocalLattice, reciprocalPoint } from './reciprocal'
 export type { ReciprocalLattice } from './reciprocal'
 export { computeBrillouinZone } from './brillouin-zone'
 export type { BrillouinZone, BrillouinZoneFace, BrillouinZoneOptions } from './brillouin-zone'
+export { createSupercell } from './supercell'
+export type { SupercellResult, SupercellAtomMapping, SupercellBondMapping } from './supercell'
+export { analyzeCoordination } from './coordination'
+export type {
+  CoordinationRule,
+  CoordinationOptions,
+  CoordinationNeighbor,
+  CoordinationPolyhedron,
+  CoordinationCenter,
+  CoordinationResult
+} from './coordination'
 export { createDocumentStore } from './editing'
 export type {
   EditCommand,

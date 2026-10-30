@@ -8,7 +8,10 @@ export interface CifParseOptions {
 export interface MolParseOptions {
   readonly format: 'mol'
 }
-export type ParseOptions = CifParseOptions | MolParseOptions
+export interface PoscarParseOptions {
+  readonly format: 'poscar'
+}
+export type ParseOptions = CifParseOptions | MolParseOptions | PoscarParseOptions
 export interface CifWriteOptions {
   readonly format: 'cif'
   readonly version: '1' | '2'

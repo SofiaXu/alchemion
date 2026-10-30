@@ -49,6 +49,54 @@ const insideFraction = (position: Vec3, width: Vec3): boolean =>
   )
 const instanceId = (endpoint: BondEndpoint): string => `atom:${endpointKey(endpoint)}`
 
+/** Shared physical-position merging; callers provide candidates from one source atom. */
+export function mergeEquivalentInstances(candidates: readonly AtomInstance[]): AtomInstance[] {
+  const buckets = new Map<string, number[]>()
+  const unique: AtomInstance[] = []
+  for (const candidate of [...candidates].sort((a, b) => compareStrings(a.id, b.id))) {
+    const bucket = candidate.fractional!.map((value) =>
+      Math.floor(value / SPECIAL_POSITION_TOLERANCE)
+    )
+    let found: number | undefined
+    for (let x = -1; x <= 1 && found === undefined; x++)
+      for (let y = -1; y <= 1 && found === undefined; y++)
+        for (let z = -1; z <= 1 && found === undefined; z++)
+          for (const index of buckets.get(`${bucket[0] + x},${bucket[1] + y},${bucket[2] + z}`) ??
+            [])
+            if (
+              candidate.fractional!.every(
+                (value, i) =>
+                  Math.abs(value - unique[index].fractional![i]) <= SPECIAL_POSITION_TOLERANCE
+              )
+            ) {
+              found = index
+              break
+            }
+    if (found !== undefined) {
+      const existing = unique[found]
+      const aliases = new Map(
+        [...existing.equivalentSources, ...candidate.equivalentSources].map((source) => [
+          endpointKey(source),
+          source
+        ])
+      )
+      unique[found] = {
+        ...existing,
+        equivalentSources: [...aliases.values()].sort((a, b) =>
+          compareStrings(endpointKey(a), endpointKey(b))
+        )
+      }
+    } else {
+      const key = bucket.join(',')
+      const entries = buckets.get(key) ?? []
+      entries.push(unique.length)
+      buckets.set(key, entries)
+      unique.push(candidate)
+    }
+  }
+  return unique
+}
+
 /** Generate finite display instances; source coordinates are never wrapped in place. */
 export function deriveInstances(
   snapshot: StructureSnapshot,
@@ -179,48 +227,7 @@ export function deriveInstances(
         })
       }
     }
-    candidates.sort((a, b) => compareStrings(a.id, b.id))
-    const buckets = new Map<string, number[]>()
-    const unique: AtomInstance[] = []
-    for (const candidate of candidates) {
-      const bucket = candidate.fractional!.map((value) =>
-        Math.floor(value / SPECIAL_POSITION_TOLERANCE)
-      )
-      let found: number | undefined
-      for (let x = -1; x <= 1 && found === undefined; x++)
-        for (let y = -1; y <= 1 && found === undefined; y++)
-          for (let z = -1; z <= 1 && found === undefined; z++) {
-            for (const index of buckets.get(`${bucket[0] + x},${bucket[1] + y},${bucket[2] + z}`) ??
-              []) {
-              if (
-                candidate.fractional!.every(
-                  (value, component) =>
-                    Math.abs(value - unique[index].fractional![component]) <=
-                    SPECIAL_POSITION_TOLERANCE
-                )
-              ) {
-                found = index
-                break
-              }
-            }
-          }
-      if (found !== undefined) {
-        const existing = unique[found]
-        unique[found] = {
-          ...existing,
-          equivalentSources: [...existing.equivalentSources, ...candidate.equivalentSources].sort(
-            (a, b) => compareStrings(endpointKey(a), endpointKey(b))
-          )
-        }
-      } else {
-        const key = bucket.join(',')
-        const entries = buckets.get(key) ?? []
-        entries.push(unique.length)
-        buckets.set(key, entries)
-        unique.push(candidate)
-      }
-    }
-    all.push(...unique)
+    all.push(...mergeEquivalentInstances(candidates))
   }
   return success(
     all.sort((a, b) => compareStrings(a.id, b.id)),
