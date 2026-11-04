@@ -24,7 +24,14 @@ import type {
   ViewerState
 } from 'alchemion/viewer'
 import { getLocale, setLocale, tr, type Locale, type Message } from './i18n'
-import { crystalSample, molecularSample } from './samples'
+import {
+  calculationSample,
+  calculationSampleName,
+  crystalSample,
+  molecularSample,
+  orthogonalCrystalSample
+} from './samples'
+import { installGuides } from './guides'
 import { markup } from './ui'
 import { appendFeatureTools, installFeatures, renderFeatures } from './features'
 import { appendModelingTools, installModeling } from './modeling'
@@ -47,7 +54,7 @@ const disable = (id: string, disabled: boolean) => {
 }
 const json = (item: unknown) => JSON.stringify(item, null, 2)
 const lifetime = new AbortController()
-const urls = new Set<string>()
+const downloads = new Map<string, number>()
 let viewer: Viewer | undefined
 let state: ViewerState | undefined
 let unsubscribe: (() => void) | undefined
@@ -72,6 +79,9 @@ let lastExport: { fingerprint: string; options: WriteOptions; result: WriteResul
 let candidateSignature = ''
 let renderResults = () => {}
 let resultsPending = false
+let modelingPending = false
+let localizeModeling = () => {}
+let localizeGuides = () => {}
 
 class InputError extends Error {
   constructor(readonly key: Message) {
@@ -137,7 +147,7 @@ function status() {
     ? `${tr(source.kind)} · ${source.atoms.length} ${tr('atoms')} · ${tr('revision')} ${state?.revision}`
     : ''
   const busy = reading || state?.status === 'computing'
-  disable('cancel', !busy && !resultsPending)
+  disable('cancel', !busy && !resultsPending && !modelingPending)
   disable('undo', !state?.canUndo || busy)
   disable('redo', !state?.canRedo || busy)
   disable('recompute', !source || busy)
@@ -263,6 +273,8 @@ function language() {
   showDiagnostics()
   inspect()
   renderResults()
+  localizeModeling()
+  localizeGuides()
   const placeholder = el<HTMLSelectElement>('block-select').options[0]
   if (placeholder?.value === '') placeholder.textContent = tr('chooseBlock')
 }
@@ -363,13 +375,20 @@ async function importText(token = ++importGeneration) {
   await requireViewer().load(parsed.structure)
   return true
 }
-function sample() {
+const structureExamples = {
+  orthogonal: { format: 'cif', text: orthogonalCrystalSample },
+  crystal: { format: 'cif', text: crystalSample },
+  molecule: { format: 'mol', text: molecularSample }
+}
+function sample(id: keyof typeof structureExamples) {
+  if ((state?.canUndo || state?.canRedo) && !window.confirm(tr('kitReplaceExample'))) return false
+  const { format, text } = structureExamples[id]
   ++importGeneration
   reading = false
   resetCandidates()
-  const molecule = value('sample-select') === 'molecule'
-  put('import-format', molecule ? 'mol' : 'cif')
-  put('import-text', molecule ? molecularSample : crystalSample)
+  put('sample-select', id)
+  put('import-format', format)
+  put('import-text', text)
   return importText()
 }
 function selectedAtom() {
@@ -490,7 +509,8 @@ cameraDetails.id = 'camera-details'
 cameraSection.append(cameraTitle, cameraDetails)
 el('panel-display').append(cameraSection)
 try {
-  viewer = createViewer(el('viewer'), { interactionMode: 'select' })
+  viewer = createViewer(el('viewer'), { interactionMode: 'select', showLattice: true })
+  el<HTMLInputElement>('show-lattice').checked = true
   // An oblique initial direction keeps the teaching molecule's z-directed bond
   // away from the viewing ray. Subsequent loads still use the SDK's automatic fit.
   viewer.setCamera({
@@ -549,7 +569,13 @@ document
     button.addEventListener('click', () => tab(button.dataset.panel!), { signal: lifetime.signal })
   )
 on('language-select', 'change', language)
-action('load-sample', sample)
+action('load-sample', () => sample(value('sample-select') as keyof typeof structureExamples))
+const compactInspector = window.matchMedia('(max-width: 1100px)')
+function resizeInspector() {
+  el<HTMLDetailsElement>('kit-inspector').open = !compactInspector.matches
+}
+resizeInspector()
+compactInspector.addEventListener('change', resizeInspector, { signal: lifetime.signal })
 action('import-button', () => importText())
 for (const id of ['import-text', 'import-format'])
   on(id, id === 'import-text' ? 'input' : 'change', () => {
@@ -783,15 +809,17 @@ form('export-form', () => checkExport())
 action('accept-loss', () => checkExport(true))
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob)
-  urls.add(url)
   const link = document.createElement('a')
   link.href = url
   link.download = name
   link.click()
-  setTimeout(() => {
-    URL.revokeObjectURL(url)
-    urls.delete(url)
-  }, 1000)
+  downloads.set(
+    url,
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url)
+      downloads.delete(url)
+    }, 1000)
+  )
 }
 action('download-export', () => {
   const current = currentExport()
@@ -815,18 +843,21 @@ action('reimport-export', () => {
 })
 window.addEventListener(
   'pagehide',
-  () => {
-    if (disposed) return
+  (event) => {
+    if (disposed || event.persisted) return
     disposed = true
     ++importGeneration
     ++actionGeneration
     lifetime.abort()
     unsubscribe?.()
     viewer?.dispose()
-    for (const url of urls) URL.revokeObjectURL(url)
-    urls.clear()
+    for (const [url, timer] of downloads) {
+      window.clearTimeout(timer)
+      URL.revokeObjectURL(url)
+    }
+    downloads.clear()
   },
-  { once: true }
+  { signal: lifetime.signal }
 )
 installFeatures({
   signal: lifetime.signal,
@@ -840,18 +871,25 @@ installFeatures({
   download,
   inspect
 })
-installModeling({
+const modeling = installModeling({
   signal: lifetime.signal,
   viewer: requireViewer,
   action,
   on,
+  pending(next) {
+    if (next === modelingPending) return
+    modelingPending = next
+    status()
+  },
   usePickedPoint(pickedPoint) {
     put('coordinate-frame', 'cartesian')
     put('atom-position', pickedPoint.join(' '))
     tab('edit')
   }
 })
-renderResults = installResultTools({
+localizeModeling = modeling.localize
+localizeModeling()
+const results = installResultTools({
   signal: lifetime.signal,
   viewer: () => viewer,
   action,
@@ -865,8 +903,32 @@ renderResults = installResultTools({
     status()
   }
 })
+renderResults = results.render
+localizeGuides = installGuides({
+  signal: lifetime.signal,
+  locale: getLocale,
+  available: () => Boolean(viewer),
+  openTool(panel, kind, recipe) {
+    tab(panel)
+    if (kind && (kind !== value('model-kind') || recipe !== undefined))
+      modeling.choose(kind, recipe)
+    el(`tab-${panel}`).focus()
+  },
+  loadExample(id) {
+    void run(() => {
+      if (id === 'results') {
+        tab('results')
+        return results.importExample(
+          new File([calculationSample], calculationSampleName, { type: 'application/json' })
+        )
+      }
+      tab('import')
+      return sample(id)
+    })
+  }
+})
 status()
 inspect()
 showDiagnostics()
 invalidateExport()
-if (viewer) void run(sample)
+if (viewer) void run(() => sample('orthogonal'))

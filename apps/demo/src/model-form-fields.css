@@ -1,0 +1,55 @@
+.model-fieldset {
+  min-inline-size: 0;
+  margin: 8px 0;
+  padding: 0 8px 8px;
+  border: 1px solid var(--line, #ccd8dc);
+  border-radius: 7px;
+}
+.model-fieldset legend {
+  padding-inline: 4px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.model-components {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+  gap: 6px;
+}
+.model-components:has(> .model-fieldset) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.model-components > .model-fieldset {
+  margin-block: 5px 0;
+}
+.model-components .model-field label {
+  margin-top: 4px;
+}
+.model-field.model-enable {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 8px 0;
+}
+.model-enable label {
+  margin: 0;
+}
+.model-row {
+  padding: 0 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line, #ccd8dc);
+}
+.model-row > button {
+  margin-top: 5px;
+}
+.model-advanced {
+  margin: 8px 0;
+}
+.model-field output {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted, #435a64);
+  font-size: 12px;
+}

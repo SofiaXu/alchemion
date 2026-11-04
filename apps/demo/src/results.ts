@@ -483,16 +483,22 @@ export function installResultTools(host: Host) {
   }
   on('format', 'change', setFormat)
   setFormat()
+  async function importResult(file: File, options: ImportOptions) {
+    const generation = ++resultGeneration
+    const result = await resultApi().import(file, options)
+    if (host.signal.aborted || generation !== resultGeneration) return false
+    render(result.id)
+    return true
+  }
   form('import-form', async () => {
     const file = input('file').files?.[0]
     if (!file) throw new Error(tr('resultFileNeeded'))
-    const generation = ++resultGeneration
     const format = value('format') as keyof typeof resultFormats
     const path =
       format === 'vasprun' && value('path').trim()
         ? (JSON.parse(value('path')) as ImportOptions['path'])
         : undefined
-    const result = await resultApi().import(file, {
+    return importResult(file, {
       format,
       ...(format === 'cube'
         ? { quantity: value('quantity').trim(), unit: value('unit').trim() }
@@ -500,7 +506,6 @@ export function installResultTools(host: Host) {
       ...(path ? { path } : {}),
       ...(format === 'outcar' ? { reference: host.viewer()?.getSnapshot() } : {})
     })
-    if (!host.signal.aborted && generation === resultGeneration) render(result.id)
   })
 
   form('neb-form', async () => {
@@ -569,6 +574,9 @@ export function installResultTools(host: Host) {
     })
   })
   action('open', () => {
+    const document = host.viewer()?.getState()
+    if ((document?.canUndo || document?.canRedo) && !window.confirm(tr('kitOpenResultFrame')))
+      return false
     pause()
     stopVibration()
     return resultApi().open(currentResult().id, currentFrame())
@@ -958,5 +966,10 @@ export function installResultTools(host: Host) {
     { once: true }
   )
   render()
-  return render
+  return {
+    render,
+    importExample(file: File) {
+      return importResult(file, { format: 'alchemion-result' })
+    }
+  }
 }

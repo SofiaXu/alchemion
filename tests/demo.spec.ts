@@ -398,11 +398,13 @@ for (const crystal of realCrystals) {
   })
 }
 
-async function buildModel(page: Page, kind: string, options?: unknown) {
-  await tab(page, 'model')
-  await page.locator('#model-kind').selectOption(kind)
-  if (options !== undefined) await page.locator('#model-options').fill(JSON.stringify(options))
-  await page.locator('#model-preview').click()
+async function openModelJson(page: Page) {
+  if (!(await page.locator('#model-options').isVisible()))
+    await page.locator('#model-json-panel > summary').click()
+}
+
+async function applyModelPreview(page: Page, json = false) {
+  await page.locator(json ? '#model-preview-json' : '#model-preview').click()
   await expect(page.locator('#model-dialog')).toBeVisible()
   const result = await details(page, 'model-result')
   if (await page.locator('#model-loss-field').isVisible())
@@ -413,6 +415,16 @@ async function buildModel(page: Page, kind: string, options?: unknown) {
   return result
 }
 
+async function buildModel(page: Page, kind: string, options?: unknown) {
+  await tab(page, 'model')
+  await page.locator('#model-kind').selectOption(kind)
+  if (options !== undefined) {
+    await openModelJson(page)
+    await page.locator('#model-options').fill(JSON.stringify(options))
+  }
+  return applyModelPreview(page, options !== undefined)
+}
+
 test('@demo @modeling crystal, matrix, slab and fixed bottom layers round-trip through POSCAR', async ({
   page
 }) => {
@@ -421,22 +433,24 @@ test('@demo @modeling crystal, matrix, slab and fixed bottom layers round-trip t
   expect(crystal).toMatchObject({ atomCount: 1, parameters: { expandedAtomCount: 1 } })
   const original = await summary(page)
   await page.locator('#model-kind').selectOption('supercell')
-  await page.locator('#model-options').fill('[[1,0,0],[1,0,0],[0,0,1]]')
+  await page.locator('#model-form-supercell-mode').selectOption('matrix')
+  await page.locator('#model-form-supercell-1-1').fill('0')
   await page.locator('#model-preview').click()
   await expect(page.locator('#runtime-diagnostics')).toContainText('SUPERCELL_')
   await expect(page.locator('#model-dialog')).toBeHidden()
   expect(await summary(page)).toEqual(original)
-  const matrix = await buildModel(page, 'supercell', [
-    [2, 0, 0],
-    [1, 1, 0],
-    [0, 0, 1]
-  ])
+  await page.locator('#model-form-supercell-1-1').fill('1')
+  const matrix = await applyModelPreview(page)
   expect(matrix.atomCount).toBe(2)
-  const slab = await buildModel(page, 'slab', {
-    hkl: [0, 0, 1],
-    thickness: { repeats: 2 },
-    vacuum: 12
-  })
+  await page.locator('#model-kind').selectOption('terminations')
+  await page.locator('#model-form-terminations-0').fill('0')
+  await page.locator('#model-form-terminations-2').fill('1')
+  await page.locator('#model-preview').click()
+  await expect(page.locator('#model-apply')).toBeHidden()
+  await page.locator('#model-candidate-list [data-model-candidate="0"]').click()
+  await expect(page.locator('#model-kind')).toHaveValue('slab')
+  await expect(page.locator('#model-form-slab-hkl-2')).toHaveValue('1')
+  const slab = await applyModelPreview(page)
   expect(slab).toMatchObject({ atomCount: 4, parameters: { vacuum: 12 } })
   expect((await summary(page)).documentId).toBe(original.documentId)
   const beforeFlags = Number((await summary(page)).revision)
@@ -525,27 +539,154 @@ test('@demo @modeling seeded packing validates uploaded quotas and edits its sub
     minimumDistance: 1,
     seed: 25
   }
+  await openModelJson(page)
   await page.locator('#model-options').fill(JSON.stringify({ ...input, counts: [2, 3] }))
-  await page.locator('#model-preview').click()
+  await page.locator('#model-preview-json').click()
   await expect(page.locator('#runtime-diagnostics')).toContainText('one count or one ratio')
   expect(await summary(page)).toEqual(original)
   await page.locator('#model-options').fill(JSON.stringify(input))
-  await page.locator('#model-preview').click()
-  await expect(page.locator('#model-dialog')).toBeVisible()
-  expect(await details(page, 'model-result')).toMatchObject({
+  await page.locator('#model-fill-json').click()
+  await expect(page.locator('#model-form-packing-counts-0')).toHaveValue('2')
+  expect(await applyModelPreview(page)).toMatchObject({
     atomCount: 3,
     composition: { C: 1, He: 2 },
     parameters: { seed: 25 }
   })
-  if (await page.locator('#model-loss-field').isVisible())
-    await page.locator('#model-accept-loss').check()
-  await page.locator('#model-apply').click()
-  await ready(page)
   await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '3')
   expect((await summary(page)).documentId).toBe(original.documentId)
   await page.locator('#undo').click()
   await ready(page)
   await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '1')
+})
+
+test('@demo @kit 15 modeling forms write typed recipes and preserve unsupported JSON', async ({
+  page
+}) => {
+  await open(page)
+  await tab(page, 'model')
+  await expect(page.locator('#model-options')).toBeHidden()
+  const mappings: readonly {
+    kind: string
+    select?: readonly (readonly [field: string, value: string])[]
+    fill?: readonly (readonly [field: string, value: string])[]
+    expected: Record<string, unknown> | unknown[]
+  }[] = [
+    {
+      kind: 'crystal',
+      select: [['cell-mode', 'basis']],
+      fill: [['cell-basis-0-0', '5']],
+      expected: {
+        cell: {
+          basis: [
+            [5, 0, 0],
+            [0, 4, 0],
+            [0, 0, 4]
+          ]
+        },
+        atoms: [{ id: 'C1', element: 'C', fractional: [0, 0, 0] }]
+      }
+    },
+    {
+      kind: 'symmetry',
+      select: [['output', 'primitive']],
+      expected: { output: 'primitive', hallNumber: 0 }
+    },
+    {
+      kind: 'supercell',
+      select: [['mode', 'matrix']],
+      fill: [['0-0', '3']],
+      expected: [
+        [3, 0, 0],
+        [1, 1, 0],
+        [0, 0, 1]
+      ]
+    },
+    { kind: 'terminations', fill: [['1', '1']], expected: [1, 1, 0] },
+    {
+      kind: 'slab',
+      select: [['thickness-mode', 'angstrom']],
+      fill: [['thickness-angstrom', '7.5']],
+      expected: { hkl: [1, 0, 0], termination: 0, thickness: { angstrom: 7.5 }, vacuum: 12 }
+    },
+    {
+      kind: 'interface',
+      fill: [
+        ['candidate', '2'],
+        ['search-rotation', '12']
+      ],
+      expected: { candidate: 2, search: { rotation: 12 }, options: { gap: 3, vacuum: 12 } }
+    },
+    {
+      kind: 'adsorbate',
+      fill: [
+        ['target-2', '1.5'],
+        ['height', '2.25']
+      ],
+      expected: { target: [0, 0, 1.5], height: 2.25, rotation: { axis: [0, 0, 1], angle: 0 } }
+    },
+    { kind: 'interstitials', fill: [['grid', '9']], expected: { grid: 9, limit: 12 } },
+    {
+      kind: 'defects',
+      select: [['mode', 'interstitial']],
+      fill: [['fractional-0', '0.25']],
+      expected: { kind: 'interstitial', element: 'H', fractional: [0.25, 0.5, 0.5] }
+    },
+    {
+      kind: 'fragment',
+      select: [['fragment', 'ethylene']],
+      expected: { fragment: 'ethylene', target: { direction: [1, 0, 0] }, distance: 1.54 }
+    },
+    { kind: 'hydrogens', select: [['scope', 'selection']], expected: { scope: 'selection' } },
+    {
+      kind: 'polymer',
+      select: [['recipe-mode', 'random']],
+      fill: [['recipe-seed', '42']],
+      expected: { recipe: { kind: 'random', counts: [{ unit: 'ethylene', count: 2 }], seed: 42 } }
+    },
+    {
+      kind: 'packing',
+      select: [['mode', 'ratios']],
+      fill: [
+        ['ratios-0', '2.5'],
+        ['totalMolecules', '6']
+      ],
+      expected: { ratios: [2.5], totalMolecules: 6, density: 0.2 }
+    },
+    {
+      kind: 'nanotube',
+      select: [['boundary-mode', 'finite']],
+      fill: [['boundary-length', '15']],
+      expected: { walls: [{ n: 5, m: 5 }], boundary: { kind: 'finite', length: 15 } }
+    },
+    {
+      kind: 'cluster',
+      select: [['shape-mode', 'box']],
+      fill: [['shape-halfLengths-0', '4']],
+      expected: { center: [0, 0, 0], shape: { kind: 'box', halfLengths: [4, 6, 6] } }
+    }
+  ]
+  const recipe = page.locator('#model-options')
+  for (const { kind, select = [], fill = [], expected } of mappings) {
+    await test.step(kind, async () => {
+      await page.locator('#model-kind').selectOption(kind)
+      for (const [field, value] of select)
+        await page.locator(`#model-form-${kind}-${field}`).selectOption(value)
+      for (const [field, value] of fill)
+        await page.locator(`#model-form-${kind}-${field}`).fill(value)
+      await openModelJson(page)
+      await page.locator('#model-copy-json').click()
+      expect(JSON.parse(await recipe.inputValue())).toMatchObject(expected)
+    })
+  }
+  const unsupported = JSON.stringify({
+    ...(JSON.parse(await recipe.inputValue()) as Record<string, unknown>),
+    metadata: { note: 'retain' }
+  })
+  await recipe.fill(unsupported)
+  await page.locator('#model-fill-json').click()
+  await expect(page.locator('#runtime-diagnostics')).toContainText('the form cannot represent')
+  await expect(recipe).toHaveValue(unsupported)
+  await expect(page.locator('#model-form-cluster-shape-halfLengths-0')).toHaveValue('4')
 })
 
 test('@demo @features POSCAR, source batches, supercell defects, coordination and portable views', async ({
@@ -653,7 +794,7 @@ test('@demo @features POSCAR, source batches, supercell defects, coordination an
   await page.locator('#import-view').setInputFiles({
     name: 'future.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify({ ...view, version: 2 }))
+    buffer: Buffer.from(JSON.stringify({ ...view, version: 3 }))
   })
   await expect(page.locator('#runtime-diagnostics')).toContainText('VIEW_STATE')
   expect(await summary(page)).toEqual(beforeInvalid)
@@ -1317,7 +1458,12 @@ test('@demo CIF block, periodic displays, derived edit, cell, finite MOL and all
   await expect(page.locator('#accept-loss')).toBeEnabled()
   await page.locator('#accept-loss').click()
   await expect(page.locator('#export-output')).toHaveValue(/Direct/)
-  await expect(page.locator('#reimport-export')).toBeDisabled()
+  const beforePoscar = await summary(page)
+  await page.locator('#reimport-export').click()
+  await ready(page)
+  const afterPoscar = await summary(page)
+  expect(afterPoscar).toMatchObject({ kind: 'periodic', atomCount: '2' })
+  expect(afterPoscar.documentId).not.toBe(beforePoscar.documentId)
   // The explicit loss option cannot override a hard occupancy prerequisite.
   await tab(page, 'import')
   await page.locator('#import-format').selectOption('cif')
@@ -1409,6 +1555,178 @@ test('@demo invalid imports, committed cancellation, late results and recoverabl
   await expect(page.locator('#demo-status')).toHaveAttribute('data-state', 'empty')
 })
 
+test('@demo @kit-navigation responsive workbench preserves the document through tutorials and preview', async ({
+  page
+}, info) => {
+  await open(page)
+  const source = await summary(page)
+  expect(source).toMatchObject({ kind: 'periodic', atomCount: '2' })
+  await expect(page.locator('#show-lattice')).toBeChecked()
+  const inspector = page.locator('#kit-inspector')
+  await expect(inspector).toHaveAttribute('open', '')
+  const [toolsBox, viewBox, inspectorBox] = await Promise.all(
+    ['.tools', '.stage', '#kit-inspector'].map((selector) => page.locator(selector).boundingBox())
+  )
+  expect(toolsBox!.x + toolsBox!.width).toBeLessThan(viewBox!.x)
+  expect(viewBox!.x + viewBox!.width).toBeLessThan(inspectorBox!.x)
+  expect(inspectorBox!.y).toBe(viewBox!.y)
+  await info.attach('workbench-1440', { body: await page.screenshot(), contentType: 'image/png' })
+
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await expect(inspector).not.toHaveAttribute('open')
+  await expect(page.locator('#selection-details')).toBeHidden()
+  await page.locator('#kit-inspector-toggle').press('Enter')
+  await expect(page.locator('#selection-details')).toBeVisible()
+  await expect(page.locator('#viewer canvas')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1024)
+
+  await tab(page, 'edit')
+  await page.locator('#atom-rows tr').first().locator('button').click()
+  await page.locator('#atom-element').selectOption('N')
+  await page.locator('#apply-atom').click()
+  await expect(page.locator('#atom-rows tr').first()).toHaveAttribute('data-element', 'N')
+  await ready(page)
+  const edited = await summary(page)
+  const tutorial = page.locator('#kit-tutorials')
+  await tutorial.press('Enter')
+  await expect(tutorial).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('#kit-guide-title')).toBeFocused()
+  await page.locator('[data-guide-tutorial="reciprocal"]').click()
+  const workflow = page.locator('[data-guide-workflow="reciprocal"]')
+  await expect(workflow).toHaveText('From CIF to reciprocal space')
+  await page.locator('#language-select').selectOption('zh')
+  await expect(tutorial).toHaveText('教程')
+  await expect(workflow).toHaveText('从 CIF 到倒易空间')
+  await page.locator('[data-guide-tool="display"]').click()
+  await expect(page.locator('#tab-display')).toBeFocused()
+  await expect(page.locator('#tab-display')).toHaveAttribute('aria-pressed', 'true')
+  expect(await summary(page)).toEqual(edited)
+  const [compactView, guideBox] = await Promise.all([
+    page.locator('.stage').boundingBox(),
+    page.locator('#kit-guide').boundingBox()
+  ])
+  expect(compactView!.x + compactView!.width).toBeLessThan(guideBox!.x)
+  await info.attach('workbench-1024', { body: await page.screenshot(), contentType: 'image/png' })
+  await page.locator('#language-select').selectOption('en')
+  await page.locator('[data-guide-action="close"]').click()
+  await expect(tutorial).toBeFocused()
+
+  await page.locator('#kit-examples').click()
+  const loadMolecule = page.locator('[data-guide-example="molecule"]')
+  async function confirmLoad(accept: boolean) {
+    const confirmed = page.waitForEvent('dialog').then(async (dialog) => {
+      if (accept) await dialog.accept()
+      else await dialog.dismiss()
+      expect(dialog.type()).toBe('confirm')
+    })
+    await Promise.all([confirmed, loadMolecule.click()])
+  }
+  await confirmLoad(false)
+  expect(await summary(page)).toEqual(edited)
+  await expect(page.locator('#undo')).toBeEnabled()
+  await page.locator('#undo').click()
+  await ready(page)
+  await expect(page.locator('#undo')).toBeDisabled()
+  await expect(page.locator('#redo')).toBeEnabled()
+  await confirmLoad(true)
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-kind', 'molecular')
+  await ready(page)
+  const molecule = await summary(page)
+  expect(molecule.documentId).not.toBe(source.documentId)
+  await expect(page.locator('#redo')).toBeDisabled()
+
+  await page.locator('[data-guide-action="close"]').click()
+  await tab(page, 'model')
+  const previewButton = page.locator('#model-preview')
+  await previewButton.press('Enter')
+  await expect(page.locator('#model-dialog')).toBeVisible()
+  await expect(page.locator('#model-apply')).toBeEnabled()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#model-dialog')).toBeHidden()
+  await expect(previewButton).toBeFocused()
+  await expect(page.locator('#model-canvas canvas')).toHaveCount(0)
+  expect(await summary(page)).toEqual(molecule)
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')))
+  await expect(page.locator('#viewer canvas')).toHaveCount(0)
+})
+
+test('@demo @kit cancelled teaching result ignores a late reply and can be loaded again', async ({
+  page
+}) => {
+  await page.addInitScript(() => {
+    let hold = true
+    window.Worker = new Proxy(window.Worker, {
+      construct(target, args) {
+        const worker = Reflect.construct(target, args) as Worker
+        const add = worker.addEventListener.bind(worker)
+        const remove = worker.removeEventListener.bind(worker)
+        const listeners = new Map<EventListenerOrEventListenerObject, EventListener>()
+        worker.addEventListener = (
+          type: string,
+          listener: EventListenerOrEventListenerObject,
+          options?: boolean | AddEventListenerOptions
+        ) => {
+          if (type !== 'message') return add(type, listener, options)
+          const wrapped: EventListener = (event) => {
+            const deliver = () => {
+              if (typeof listener === 'function') listener.call(worker, event)
+              else listener.handleEvent(event)
+            }
+            const reply = (event as MessageEvent<{ category: string; kind: string }>).data
+            if (hold && reply.category === 'result-import') {
+              hold = false
+              // Deliver the real parser reply only after cancellation has settled.
+              window.addEventListener('release-teaching-result', deliver, { once: true })
+              document.documentElement.dataset.heldResult = reply.kind
+            } else deliver()
+          }
+          listeners.set(listener, wrapped)
+          add(type, wrapped, options)
+        }
+        worker.removeEventListener = (
+          type: string,
+          listener: EventListenerOrEventListenerObject,
+          options?: boolean | EventListenerOptions
+        ) => {
+          const wrapped = type === 'message' ? listeners.get(listener) : undefined
+          if (wrapped) listeners.delete(listener)
+          remove(type, wrapped ?? listener, options)
+        }
+        return worker
+      }
+    })
+  })
+  await open(page)
+  const source = await summary(page)
+  await page.locator('#kit-examples').click()
+  const loadResult = page.locator('[data-guide-example="results"]')
+  await loadResult.click()
+  await expect(page.locator('html')).toHaveAttribute('data-held-result', 'result')
+  const imports = page.locator('#result-import-status')
+  await expect(imports).toHaveAttribute('data-state', 'computing')
+  await page.locator('#cancel').click()
+  await expect(imports).toHaveAttribute('data-state', 'empty')
+  await page.evaluate(() => window.dispatchEvent(new Event('release-teaching-result')))
+  await expect(page.locator('#result-choice option')).toHaveCount(0)
+  expect(await summary(page)).toEqual(source)
+
+  await loadResult.click()
+  await expect(imports).toHaveAttribute('data-state', 'ready')
+  await expect(page.locator('#result-choice')).toHaveValue('alchemion-teaching-result')
+  expect(await summary(page)).toEqual(source)
+  await page.locator('[data-guide-action="close"]').click()
+  await page.locator('#result-frame').selectOption('first')
+  await page.locator('#result-open').click()
+  await expect(page.locator('#result-binding-status')).toHaveAttribute('data-state', 'bound')
+  await ready(page)
+  await expect(page.locator('#result-chart-plots canvas[data-chart="energy"]')).toBeVisible()
+  await page.locator('#result-layer-kind').selectOption('surface')
+  await page.locator('#result-data').selectOption('analytical-density')
+  await page.locator('#result-threshold').fill('0.75')
+  await page.locator('#result-add-layer').click()
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'ready')
+})
+
 test('@demo offline bundled samples, local notices and understandable WebGL2 unavailability', async ({
   page,
   context,
@@ -1448,6 +1766,11 @@ test('@demo offline bundled samples, local notices and understandable WebGL2 una
     await fallback.goto(page.url())
     await expect(fallback.locator('#webgl-unavailable')).toBeVisible()
     await expect(fallback.locator('#webgl-details')).toContainText('WEBGL2_UNAVAILABLE')
+    await expect(fallback.locator('#sources-link')).toBeVisible()
+    await fallback.locator('#kit-tutorials').click()
+    await fallback.locator('[data-guide-tutorial="measurement"]').click()
+    await expect(fallback.locator('[data-guide-workflow="measurement"]')).toBeVisible()
+    await expect(fallback.locator('[data-guide-example="molecule"]')).toBeDisabled()
     expect(errors).toEqual([])
   } finally {
     await unavailable.close()
@@ -1458,6 +1781,10 @@ test('@dev real development Worker, form edit and public MOL export', async ({ p
   const workers: string[] = []
   page.on('worker', (worker) => workers.push(worker.url()))
   await open(page)
+  await page.locator('#sample-select').selectOption('molecule')
+  await page.locator('#load-sample').click()
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-kind', 'molecular')
+  await ready(page)
   await tab(page, 'edit')
   await page.locator('#atom-rows tr').first().locator('button').click()
   await page.locator('#atom-element').selectOption('F')

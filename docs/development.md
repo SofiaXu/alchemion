@@ -58,6 +58,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 
 建模浏览器路径使用 `--grep=@modeling`，真实 CIF 兼容回归使用 `--grep=@real-crystals`。`pnpm test:package -- --prepared --grep=@modeling` 使用本轮生产 SDK 验证真实 tarball 的对称 WASM 与释放。单元验证按相关文件或用例选择，CI 根据已识别的建模变更路由。
 
+科研工作台的表单映射、教程导航和示例失效用 `--suite=demo --grep=@kit` 定向验证。仅检查布局、键盘与预览对话框时使用 `--grep=@kit-navigation`。
+
 | 位置                                                  | 用途                                                  |
 | ----------------------------------------------------- | ----------------------------------------------------- |
 | `tests/runtime`                                       | 无 canvas 的控制器/计算运行时浏览器宿主。             |

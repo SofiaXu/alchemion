@@ -36,12 +36,6 @@ const text = (id: string, key: Message, value = '') => field(id, key, input(id, 
 const choice = (id: string, key: Message, content = '') => field(id, key, select(id, content))
 
 export function appendResultTools() {
-  document
-    .querySelector('.tools nav')!
-    .insertAdjacentHTML(
-      'beforeend',
-      '<button id="tab-results" type="button" data-panel="results" aria-pressed="false" data-i18n="results"></button>'
-    )
   document.querySelector('.tools')!.insertAdjacentHTML(
     'beforeend',
     `<section id="panel-results" class="tool-panel" hidden>
