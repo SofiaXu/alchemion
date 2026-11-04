@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "spglib": {
+    "version": "2.6.0",
+    "commit": "c633404d67b2aa341ae748819c542e81c0c1f55d"
+  },
+  "emscripten": {
+    "version": "4.0.23",
+    "build": "aaa43392544d695232b70eda706d751f18980c2a"
+  },
+  "files": {
+    "spglib.wasm": "6ff7a75e3a1227aa1e8693be97ed611128543ea1398116579d7275b3ddd60901",
+    "LICENSE.txt": "9c4e602ce15bf48206dad105b666ddaeedba747eeda6465807106bc11f4f587f",
+    "TOOLCHAIN_LICENSES.txt": "92a5d23f7c84a52719bec47f1335b426345a6d21f57cc00540e00c219a880f24"
+  }
+}

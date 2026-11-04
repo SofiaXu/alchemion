@@ -27,10 +27,12 @@ import { getLocale, setLocale, tr, type Locale, type Message } from './i18n'
 import { crystalSample, molecularSample } from './samples'
 import { markup } from './ui'
 import { appendFeatureTools, installFeatures, renderFeatures } from './features'
+import { appendModelingTools, installModeling } from './modeling'
 import './main.css'
 
 document.querySelector<HTMLElement>('#app')!.innerHTML = markup
 appendFeatureTools()
+appendModelingTools()
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T
 const value = (id: string) =>
   el<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id).value
@@ -824,6 +826,17 @@ installFeatures({
   vector,
   download,
   inspect
+})
+installModeling({
+  signal: lifetime.signal,
+  viewer: requireViewer,
+  action,
+  on,
+  usePickedPoint(pickedPoint) {
+    put('coordinate-frame', 'cartesian')
+    put('atom-position', pickedPoint.join(' '))
+    tab('edit')
+  }
 })
 status()
 inspect()

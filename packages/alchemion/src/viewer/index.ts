@@ -1,5 +1,9 @@
 export { createViewer } from './viewer'
 export { validateViewState } from './view-state'
+export { createModelingRuntime } from './runtime/modeling-runtime'
+export type { ModelingRequest, ModelingPreview, ModelingRuntime } from './runtime/modeling-runtime'
+export type { ModelingTask } from './runtime/modeling-task'
+export type { CrystalSymmetryOptions } from './runtime/spglib/crystal-symmetry'
 export type {
   Viewer,
   ViewerOptions,

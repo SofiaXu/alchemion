@@ -58,14 +58,14 @@ MOL 读取单个分子的 V2000 或 V3000，包括元素、Å 坐标、电荷、
 
 导入按文件记录顺序分配 `poscar:atom:1` 等源 ID，保留标题，设置已知满占位；不推断空间群、不创建显式键。坐标后可有一个与所属元素一致的标签；数值行支持 `!`/`#` 行内注释。科学数值必须有限，支持普通十进制及 `e/E/d/D` 指数。
 
-当前不建模 Selective Dynamics、离子/晶格速度和 CONTCAR predictor-corrector。遇到这些信息、无元素行的 VASP4、未知科学尾段或非法输入时不返回 `structure`，并提供 error 诊断及从 1 开始的行列定位。读取没有接受科学损失的选项，宿主不得将此类失败当作成功导入。
+启用 Selective Dynamics 后，每条坐标记录必须包含三个 `T`／`F` 标志，对应 `PeriodicAtom.movable`。标志使用 Direct 方向，即使坐标行采用 Cartesian。离子／晶格速度、CONTCAR predictor-corrector、无元素行的 VASP4、未知科学尾段或非法输入返回带行列定位的错误。
 
 | 诊断代码                                                                                      | 含义                                     |
 | --------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | `POSCAR_SCALE`、`POSCAR_LATTICE`、`POSCAR_CELL`                                               | 缩放或晶胞非法。                         |
 | `POSCAR_SPECIES_REQUIRED`、`POSCAR_ELEMENT`、`POSCAR_COUNTS`                                  | 缺少元素、元素无法识别或数量不合法。     |
 | `POSCAR_COORDINATE_MODE`、`POSCAR_COORDINATE`、`POSCAR_COORDINATE_FIELDS`、`POSCAR_TRUNCATED` | 坐标模式、数值、额外字段或记录数量错误。 |
-| `POSCAR_SELECTIVE_DYNAMICS_UNSUPPORTED`                                                       | 约束信息无法表达。                       |
+| `POSCAR_SELECTIVE_FLAGS`                                                                      | 移动标志数量或字面值非法。               |
 | `POSCAR_LATTICE_VELOCITIES_UNSUPPORTED`、`POSCAR_TRAILING_DATA_UNSUPPORTED`                   | 晶格速度或其他额外非空尾段无法表达。     |
 
 ### 写出选项
@@ -81,6 +81,8 @@ MOL 读取单个分子的 V2000 或 V3000，包括元素、Å 坐标、电荷、
 CIF1/2 输出都以结构模型重新序列化，CIF2 输出带标准版本标识。MOL 不自动从 V2000 切换 V3000，不拆分或截断超限数据；V2000 原子和键各不超过 999，其他字段也必须可表示。CIF 结构编解码不承诺任意原文、未知字典或注释的无损编辑。
 
 POSCAR 仅输出有有效晶胞且非空的周期源。采用 VASP5 元素名/数量行、缩放因子 `1.0`、`Direct` 分数坐标，元素分组按源原子中首次出现顺序，组内保留原顺序。它不自动展开显示实例、不造真空晶胞、不接受部分或未知占位；输出可由上述导入接口重新读取，源 ID 不写入 POSCAR 文件。
+
+存在显式移动标志时，POSCAR 为分组后的每个原子写出对应标志，缺省项写成 `T T T`。CIF 和有限 MOL 对不能表达的移动约束走科学损失确认。MOL 能存储聚合物的展开拓扑，单元配方以 `MOL_POLYMER_RECIPE_LOSS` 诊断。
 
 ## 科学损失与有限 MOL
 

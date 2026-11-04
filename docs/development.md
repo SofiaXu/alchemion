@@ -44,6 +44,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 
 `--prepared` 只复用本轮已构建且输入匹配的 SDK；不能依赖上个会话的 dist。`--project=chromium|firefox|webkit` 和 `--grep=<正则>` 定向选择浏览器或场景，不能用子集宣称完整集合通过。普通场景默认4进程，可配置 `TEST_WORKERS`，无自动重试。
 
+真实晶体页面回归可执行 `pnpm test:browser -- --suite=demo --grep=@real-crystals`，默认在三个浏览器检查[固定 COD 实验 CIF](../tests/fixtures/crystals/README.md)，无需运行时联网。原始文件也可直接从该目录选择导入 demo；样例的实验条件、预期与诊断边界见夹具说明。
+
 `--phase`、`check:m1` 和 `bench --smoke` 已删除，调用时明确报错，不兼容转发到其他 suite。按功能选择 runtime/viewer/demo，包消费者和正式基准各只有一个入口。
 
 五项结构工作台能力使用 `@features` 浏览器标签，viewer 另保留直接受影响的派生编辑/历史回归。CI 在已知功能实现与入口增量的 diff 内输出对应 `*_grep`，本地通过同一 `--grep` 选择；未知共享修改保留保守路由。只检查 POSCAR 时不因新增 `ParseOptions` 联合而默认执行全部 CIF/MOL 用例。单元可显式 `--maxWorkers=8`，浏览器 `TEST_WORKERS=4`；不为凑并行复制单场景。
@@ -51,6 +53,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 开发 watcher 会改写 SDK dist。需要开发冒烟与生产消费者/基准时，先开发冒烟，再生产构建，然后用 `--prepared` 复用同轮生产产物；不能把开发产物误当最终生产包。独立命令自行准备前置产物，聚合任务可复用一次构建，SDK 源类型检查不依赖 demo。
 
 ## 测试宿主、脚本与 CI
+
+建模浏览器路径使用 `--grep=@modeling`，真实 CIF 兼容回归使用 `--grep=@real-crystals`。`pnpm test:package -- --prepared --grep=@modeling` 使用本轮生产 SDK 验证真实 tarball 的对称 WASM 与释放。单元验证按相关文件或用例选择，CI 根据已识别的建模变更路由。
 
 | 位置                                                  | 用途                                                  |
 | ----------------------------------------------------- | ----------------------------------------------------- |
@@ -86,6 +90,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 结果保留首轮失败和后续修正的对应关系，失败、未运行、通过分开记录。采样输入或产物改变时不能拼成同一轮成绩。持久文档只保留当前能力、约束和方法；未完成任务进入[计划索引](plan/README.md)，原始日志留在 `.tmp` 或 CI artifacts。
 
 ## 独立参考与数据工具
+
+重建对称识别资产时，在临时目录检出 spglib `v2.6.0`，激活 Emscripten `4.0.23`，运行 `python scripts/spglib-wasm/build.py <spglib-checkout>`。脚本核对提交与编译器，更新浏览器资产、许可证及 SHA-256 清单。日常 SDK 构建使用已固定的资产并校验其散列。
 
 ### 源编辑定向归因
 

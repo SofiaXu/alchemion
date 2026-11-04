@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createCell } from '../../cell'
+import { finishConstruction } from '../../construction'
 import { deriveInstances } from '../../derivation'
 import { createDocumentStore } from '..'
 import type { DocumentChange, DocumentStore, EditCommand } from '..'
@@ -35,6 +36,77 @@ function loaded(snapshot: StructureSnapshot = molecule()): DocumentStore {
 const change = (result: ScientificResult<DocumentChange>) => value(result).state
 
 describe('source document transactions', () => {
+  it('rolls back duplicate explicit bonds and keeps retired bond IDs reserved', () => {
+    const store = loaded()
+    const before = store.getState()
+    expect(
+      store.execute({ type: 'add-bond', id: 'duplicate', atoms: ['b', 'a'], order: 'single' }).ok
+    ).toBe(false)
+    expect(store.getState()).toEqual(before)
+    expect(store.execute({ type: 'set-bond-order', bondId: 'ab', order: 'triple' }).ok).toBe(true)
+    expect(store.getState().snapshot!.bonds[0].order).toBe('triple')
+    expect(store.execute({ type: 'remove-bond', bondId: 'ab' }).ok).toBe(true)
+    expect(
+      store.execute({ type: 'add-bond', id: 'ab', atoms: ['a', 'b'], order: 'single' }).ok
+    ).toBe(false)
+    expect(store.undo().ok).toBe(true)
+    expect(store.getState().snapshot!.bonds[0].order).toBe('triple')
+  })
+
+  it('binds construction to a revision and remaps retired IDs before one undoable commit', () => {
+    const store = loaded()
+    const { documentId } = store.getState()
+    const add: EditCommand = {
+      type: 'add-atom',
+      atom: { id: 'generated', element: 'H', cartesian: [0, 0, 1] }
+    }
+    value(store.execute(add))
+    value(
+      store.execute({
+        type: 'add-bond',
+        id: 'generated-bond',
+        atoms: ['a', 'generated'],
+        order: 'single'
+      })
+    )
+    const preview = store.getState().snapshot!
+    const mappings = (items: readonly { id: string }[]) =>
+      items.map(({ id }) => ({ id, origins: [{ input: 'source', sourceId: id }] }))
+    const construction = value(
+      finishConstruction(preview, mappings(preview.atoms), mappings(preview.bonds), { seed: 1 })
+    )
+    value(store.undo())
+    value(store.undo())
+    const before = store.getState()
+    expect(
+      store.execute({
+        type: 'apply-construction',
+        documentId: documentId!,
+        revision: 2,
+        construction
+      }).ok
+    ).toBe(false)
+    expect(store.getState()).toEqual(before)
+    const applied = change(
+      store.execute({
+        type: 'apply-construction',
+        documentId: documentId!,
+        revision: before.revision,
+        construction
+      })
+    )
+    const added = applied.snapshot!.atoms[2].id
+    expect(added).not.toBe('generated')
+    expect(applied.snapshot!.bonds[1]).toMatchObject({
+      endpoints: [{ sourceAtomId: 'a' }, { sourceAtomId: added }]
+    })
+    expect(applied.snapshot!.bonds[1].id).not.toBe('generated-bond')
+    expect(applied.snapshot!.metadata?.alchemionConstruction).toMatchObject({
+      parameters: { seed: 1 },
+      atoms: [{ id: 'a' }, { id: 'b' }, { id: added }]
+    })
+    expect(change(store.undo()).snapshot).toEqual(before.snapshot)
+  })
   it('commits a batch once, isolates inputs and preserves duplicate-label identity', () => {
     const input = molecule()
     const store = loaded(input)

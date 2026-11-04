@@ -16,6 +16,8 @@ The radius table uses C sp3 and Mn/Fe/Co low spin. Atomic numbers 97–118 have 
 
 Sources: https://github.com/spglib/spglib/tree/v2.6.0 ; Hall settings 1–530 from `get_spacegroup_type` and `get_symmetry_from_database`. Integer rotations are transposed to SDK column storage, translations are reduced to exact rational numbers after checking the round-trip error. Operation order is retained; no setting is guessed from an international number.
 
+The browser modeling worker also loads a spglib 2.6.0 WebAssembly build on demand. The distributed `dist/spglib-notices` directory records the pinned source and compiler, binary hash, and the spglib and toolchain licences. The standalone demo includes these notices with its offline data sources.
+
 Original BSD 3-Clause license from https://github.com/spglib/spglib/blob/v2.6.0/COPYING:
 
 ```text

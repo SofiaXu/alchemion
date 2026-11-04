@@ -44,6 +44,19 @@ const tooling = has(
   /^(package\.json|pnpm-(lock|workspace)\.yaml|\.node-version|tsconfig.*|eslint\.config\.mjs|vitest\.config\.ts)$/
 )
 const shared = tasks || tooling || harness || has(/^tests\/shared\//)
+const modelingPaths = [
+  /^(?:docs\/|README\.md$|apps\/demo\/)/,
+  /^packages\/alchemion\/(?:THIRD_PARTY_NOTICES\.md$|src\/(?:core\/|viewer\/(?:index\.ts$|runtime\/)))/,
+  /^packages\/alchemion\/src\/formats\/(?:index\.ts$|poscar\/|cif\/(?:structure\.ts$|__tests__\/structure\.test\.ts$)|mol\/(?:finite\.ts$|writer\.ts$))/,
+  /^tests\/(?:consumer\/|fixtures\/crystals\/|demo\.spec\.ts$|package\.spec\.ts$)/,
+  /^scripts\/(?:ci-changes\.mjs$|tasks\.mjs$|worker-urls\.mjs$|demo-assets\.mjs$|spglib-wasm\/)/
+]
+const modelingDelivery =
+  !tooling &&
+  has(
+    /^packages\/alchemion\/src\/(?:core\/(?:construction|surface|packing|defects|nano|molecular|polymer)\.ts|viewer\/runtime\/(?:modeling-|spglib\/))/
+  ) &&
+  changed.every((file) => modelingPaths.some((pattern) => pattern.test(file)))
 // A known feature delivery gets explicit cases; unknown/shared scientific edits
 // retain the existing conservative routing. Entry-only additions follow the
 // implementation files in the same delivery rather than every format suite.
@@ -96,13 +109,22 @@ if (process.argv.includes('--scope')) {
     demo,
     package: pkg,
     viewer,
-    runtime_grep: featureDelivery ? '@features' : '@workspace',
-    viewer_grep: featureDelivery
-      ? '@features|derived-instance edits, selection retention'
-      : '@workspace',
-    demo_grep: featureDelivery ? '@features' : '@demo',
-    package_grep: featureDelivery ? '@features' : '@package',
-    dev_smoke: demo && !featureDelivery,
+    runtime_grep: modelingDelivery
+      ? '@features|public sync/worker scientific tasks agree'
+      : featureDelivery
+        ? '@features'
+        : '@workspace',
+    viewer_grep:
+      modelingDelivery || featureDelivery
+        ? '@features|derived-instance edits, selection retention'
+        : '@workspace',
+    demo_grep: modelingDelivery
+      ? '@modeling|@real-crystals'
+      : featureDelivery
+        ? '@features'
+        : '@demo',
+    package_grep: modelingDelivery ? '@modeling' : featureDelivery ? '@features' : '@package',
+    dev_smoke: demo && !featureDelivery && !modelingDelivery,
     base
   }
   if (process.env.GITHUB_OUTPUT)
@@ -124,7 +146,7 @@ if (process.argv.includes('--scope')) {
     if (file.startsWith('packages/alchemion/src/formats/')) {
       const section = file.split('/')[4]
       addDirectory(
-        featureDelivery && section.includes('.')
+        (featureDelivery || modelingDelivery) && section.includes('.')
           ? 'packages/alchemion/src/formats/poscar'
           : section.includes('.')
             ? 'packages/alchemion/src/formats'
@@ -151,7 +173,9 @@ if (process.argv.includes('--scope')) {
       tests.add(`${core}__tests__/vdw.test.ts`)
     else if (file.startsWith(`${core}data/`)) {
       for (const name of ['data', 'bonds']) tests.add(`${core}__tests__/${name}.test.ts`)
-    } else if (file === `${core}math.ts` || file === `${core}types.ts`)
+    } else if (modelingDelivery && file === `${core}types.ts`)
+      tests.add(`${core}__tests__/structure.test.ts`)
+    else if (file === `${core}math.ts` || file === `${core}types.ts`)
       addDirectory(`${core}__tests__`)
     else if (file.startsWith(`${core}editing/`)) addDirectory(`${core}editing/__tests__`)
     else if (file.startsWith(core) && /^[\w-]+\.ts$/.test(file.slice(core.length))) {
@@ -166,7 +190,12 @@ if (process.argv.includes('--scope')) {
       )
     )
       addDirectory('packages/alchemion/src/viewer/runtime/__tests__')
-    else if (/^packages\/alchemion\/src\/viewer\//.test(file))
+    else if (
+      /^packages\/alchemion\/src\/viewer\//.test(file) &&
+      !(
+        modelingDelivery && /^packages\/alchemion\/src\/viewer\/(?:index\.ts$|runtime\/)/.test(file)
+      )
+    )
       addDirectory('packages/alchemion/src/viewer/__tests__')
   }
   const selected = [...tests].filter((file) => existsSync(file)).sort()

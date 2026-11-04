@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { PeriodicStructureSnapshot, StructureSnapshot } from '../../../core/types'
 import { writePoscarStructure } from '..'
-import { parseStructure } from '../..'
+import { parseStructure, writeStructure } from '../..'
 
 const source = (): PeriodicStructureSnapshot => ({
   kind: 'periodic',
@@ -143,7 +143,8 @@ describe('T-FMT-03 POSCAR import', () => {
     [poscarInput().replace('C\n1\nDirect', 'C\n0\nDirect'), 'POSCAR_COUNTS', 7],
     [poscarInput().replace('C\n1\nDirect', 'Fe_pv\n1\nDirect'), 'POSCAR_ELEMENT', 6],
     [poscarInput().replace('C\n1\nDirect', '1\nDirect\n0 0 0'), 'POSCAR_SPECIES_REQUIRED', 6],
-    [poscarInput('1', 'Selective dynamics'), 'POSCAR_SELECTIVE_DYNAMICS_UNSUPPORTED', 8],
+    [poscarInput('1', 'Selective dynamics'), 'POSCAR_COORDINATE_MODE', 9],
+    [poscarInput('1', 'Selective dynamics\nDirect', '0 0 0 T F X'), 'POSCAR_SELECTIVE_FLAGS', 10],
     [poscarInput('1', 'Direct', '0 0 0 T F T'), 'POSCAR_COORDINATE_FIELDS', 9],
     [poscarInput('1', 'Direct', 'NaN 0 0'), 'POSCAR_COORDINATE', 9],
     [poscarInput('1', 'Direct', '0 0'), 'POSCAR_COORDINATE', 9],
@@ -164,6 +165,66 @@ describe('T-FMT-03 POSCAR import', () => {
 })
 
 describe('T-FMT-03 periodic POSCAR and scientific losses', () => {
+  test('keeps Direct mobility under Cartesian input and element regrouping', () => {
+    const direct = parseStructure(
+      poscarInput('1', 'Selective dynamics\nDirect', '0.25 0.5 0.75 T F T C'),
+      { format: 'poscar' }
+    ).structure
+    const cartesian = parseStructure(
+      poscarInput('1', 'Selective dynamics\nCartesian', '1.3 2.025 3 T F T'),
+      { format: 'poscar' }
+    ).structure
+    expect(direct?.kind).toBe('periodic')
+    expect(cartesian?.kind).toBe('periodic')
+    if (direct?.kind !== 'periodic' || cartesian?.kind !== 'periodic')
+      throw new Error('Missing crystal')
+    expect(cartesian.atoms[0].movable).toEqual([true, false, true])
+    expect(cartesian.atoms[0].fractional).toEqual(
+      direct.atoms[0].fractional.map((x) => expect.closeTo(x))
+    )
+    const input = source()
+    const output = writePoscarStructure(
+      {
+        ...input,
+        atoms: [
+          { ...input.atoms[0], movable: [false, true, false] },
+          { ...input.atoms[1], movable: [false, false, false] },
+          input.atoms[2]
+        ]
+      },
+      { format: 'poscar' }
+    )
+    expect(output.text).toContain('Selective dynamics\nDirect\n')
+    const roundtrip = parseStructure(output.text!, { format: 'poscar' }).structure
+    if (roundtrip?.kind !== 'periodic') throw new Error('Missing round-trip crystal')
+    expect(roundtrip.atoms.map((atom) => [atom.element, atom.movable])).toEqual([
+      ['O', [false, true, false]],
+      ['O', [true, true, true]],
+      ['C', [false, false, false]]
+    ])
+    for (const [options, code] of [
+      [{ format: 'cif', version: '1' }, 'CIF_MOBILITY_LOSS'],
+      [
+        {
+          format: 'mol',
+          finite: { kind: 'source', atomIds: roundtrip.atoms.map((atom) => atom.id) }
+        },
+        'MOL_MOBILITY_LOSS'
+      ]
+    ] as const) {
+      const blocked = writeStructure(roundtrip, options)
+      expect(blocked.text).toBeUndefined()
+      expect(blocked.diagnostics).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code, severity: 'error' })])
+      )
+      const accepted = writeStructure(roundtrip, { ...options, allowLoss: true })
+      expect(accepted.text).toBeDefined()
+      expect(accepted.diagnostics).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code, severity: 'warning' })])
+      )
+    }
+  })
+
   test('basis columns become lines and interleaved species are grouped in first-occurrence order', () => {
     const input = source(),
       before = JSON.stringify(input)

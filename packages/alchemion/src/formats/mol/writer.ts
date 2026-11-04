@@ -70,6 +70,16 @@ export function writeMolStructure(
     )
   const hard = (code: string, message: string, context?: Diagnostic['context']) =>
     diagnostics.push(molDiagnostic(code, message, version, context))
+  if (
+    snapshot.metadata?.alchemionModeling &&
+    typeof snapshot.metadata.alchemionModeling === 'object' &&
+    'kind' in snapshot.metadata.alchemionModeling &&
+    snapshot.metadata.alchemionModeling.kind === 'polymer'
+  )
+    loss(
+      'MOL_POLYMER_RECIPE_LOSS',
+      'Molfile stores the expanded structure without its polymer recipe.'
+    )
   if (version === 'V2000' && (molecule.atoms.length > 999 || molecule.bonds.length > 999))
     hard('MOL_V2000_COUNT_LIMIT', 'V2000 cannot represent more than 999 atoms or 999 bonds.')
   const atomNumbers = new Map(molecule.atoms.map((atom, i) => [atom.id, i + 1]))

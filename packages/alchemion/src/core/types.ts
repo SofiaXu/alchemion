@@ -5,12 +5,7 @@ export type AtomId = string
 export type BondId = string
 export type SymmetryOperationId = string
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue }
+  null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue }
 export type DiagnosticContext = Readonly<Record<string, JsonValue | undefined>>
 export interface Diagnostic {
   readonly severity: 'error' | 'warning' | 'info'
@@ -104,8 +99,11 @@ export interface AtomProperties {
   readonly provenance?: Provenance
   readonly metadata?: Readonly<Record<string, JsonValue>>
 }
+export type Mobility = readonly [boolean, boolean, boolean]
 export interface PeriodicAtom extends AtomProperties {
   readonly fractional: Vec3
+  /** Allowed displacements along the corresponding Direct lattice vectors. */
+  readonly movable?: Mobility
 }
 export interface MolecularAtom extends AtomProperties {
   readonly cartesian: Vec3

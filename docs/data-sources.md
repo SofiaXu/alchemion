@@ -19,6 +19,7 @@
 | D-015   | [范德华显示半径](../packages/alchemion/src/core/data/vdw-radii.ts)，mendeleev-data 1.1.0，固定提交 `67e08702c5e9e8541d9944824b10edfb718d61e8`，Alvarez2013/Vogt2014。 | MIT，94值、24缺失，含估算；`vdw_radius_alvarez` pm/100→Å，不覆盖质量、共价半径或成键规则。源/元数据/许可/输出 SHA 见[范德华 manifest](../packages/alchemion/VDW_DATA_MANIFEST.json)。                  |
 | D-016   | [demo 离线样例](../apps/demo/src/samples.ts)：自产 MOL V3000 四原子非共面几何及双 block CIF。                                                                         | 项目 MIT；分子给出3Å距离/90°角/有符号二面角，晶体为正交/倾斜教学胞、恒等/反演，不是实验或数据库记录；随静态产物离线分发。                                                                              |
 | D-017   | [默认视觉配色](../packages/alchemion/src/viewer/frame.ts)。                                                                                                           | 项目独立定义，MIT；颜色为显示选择，不称为导入的 CPK/Jmol 数据或科学常数。                                                                                                                              |
+| D-018   | [实验晶体 CIF 测试输入](../tests/fixtures/crystals/README.md)：COD 9003308@291351（岩盐）、9000775@291269（石英）、9004143@291351（金红石，600°C）。                  | COD CC0 1.0，保留原始字节、AMCSD 说明和实验文献署名；逐文件 SHA256 见夹具说明。只用于真实晶体 demo 回归，不替换内置教学样例或随 SDK 分发；几何预期由晶体参数与独立算术给出。                           |
 
 ## 规范与原始输入
 
@@ -37,6 +38,8 @@
 数据重生成工具和执行方式见[开发指南](development.md#独立参考与数据工具)。重生成需审查输入散列、单位、缺失、转换与许可，不能把“安装成功”“计数正确”或“生成器退出0”单独作为科学验证通过。变更正式数据或规则时同步领域规范及对应独立验证；已认可 golden 不静默覆盖。
 
 ## 分发与署名
+
+晶体识别使用由 spglib `v2.6.0` 与 Emscripten `4.0.23` 构建的 WebAssembly。源提交、编译器版本、资产 SHA-256 与许可证散列记录在[构建清单](../packages/alchemion/src/viewer/runtime/spglib/manifest.json)。SDK 在 `dist/spglib-notices` 提供清单和 BSD-3-Clause、工具链许可。demo 的离线来源页同时包含这些内容。
 
 SDK 随包携带 `SCIENTIFIC_DATA_MANIFEST.json`、`VDW_DATA_MANIFEST.json`、构建生成的 `dist/FORMAT_DATA_MANIFEST.json` 和完整 `THIRD_PARTY_NOTICES.md`。格式 manifest 记录 Unicode/CTfile 数据来源、许可和分发表 SHA，数据源与输出是不同散列。Three 运行依赖由 SDK manifest 声明。
 

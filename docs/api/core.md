@@ -95,6 +95,8 @@ bond cutoff 保留主要单胞所有实例及其直接成键的第一层端点�
 
 ## 超胞与配位分析
 
+整数矩阵超胞、薄层、片段和其他构建器的选项见[建模 API](modeling.md)。
+
 [`createSupercell(snapshot, repetitions)`](../../packages/alchemion/src/core/supercell.ts) 返回 `ScientificResult<SupercellResult>`。`snapshot` 参数为 `StructureSnapshot`，运行时必须为周期源；`repetitions: Vec3` 必须包含三个正安全整数。函数不修改输入、不创建文档历史，按完整源对称生成新的 P1 周期源，独立于 viewer 显示选项。
 
 | `SupercellResult` 字段 | 类型与含义                                                                                                                               |

@@ -192,7 +192,10 @@ async function inspectPackage(directory) {
     'THIRD_PARTY_NOTICES.md',
     'SCIENTIFIC_DATA_MANIFEST.json',
     'VDW_DATA_MANIFEST.json',
-    'dist/FORMAT_DATA_MANIFEST.json'
+    'dist/FORMAT_DATA_MANIFEST.json',
+    'dist/spglib-notices/manifest.json',
+    'dist/spglib-notices/LICENSE.txt',
+    'dist/spglib-notices/TOOLCHAIN_LICENSES.txt'
   ]) {
     const installed = await readFile(join(directory, name))
     if (!installed.equals(await readFile(join(root, 'packages/alchemion', name))))
@@ -200,6 +203,15 @@ async function inspectPackage(directory) {
     hashes[name] = digest(installed)
     if (name.endsWith('.json')) JSON.parse(installed.toString('utf8'))
   }
+  const symmetry = JSON.parse(
+    await readFile(join(directory, 'dist/spglib-notices/manifest.json'), 'utf8')
+  )
+  const binaries = files.filter((file) => /(?:^|[\\/])spglib-.*\.wasm$/.test(file))
+  if (
+    binaries.length !== 1 ||
+    digest(await readFile(join(directory, 'dist', binaries[0]))) !== symmetry.files['spglib.wasm']
+  )
+    throw new Error('Packaged spglib WASM differs from the pinned artifact.')
   const actual = (await readdir(directory)).sort()
   const allowed = [
     'LICENSE',

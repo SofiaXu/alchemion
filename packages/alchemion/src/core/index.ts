@@ -1,4 +1,27 @@
 export type * from './types'
+export type { ConstructionOrigin, ConstructionMapping, ConstructionResult } from './construction'
+export { constructionSnapshot } from './construction'
+export { createCrystal } from './crystal-builder'
+export type { CrystalOptions } from './crystal-builder'
+export { createSlab, listSlabTerminations, slabBottomAtomIds } from './surface'
+export type { SlabOptions, SlabTermination } from './surface'
+export { createInterface, findInterfaceMatches, placeAdsorbate } from './interface-builder'
+export type {
+  InterfaceMatch,
+  InterfaceMatchOptions,
+  InterfaceOptions,
+  AdsorbateOptions
+} from './interface-builder'
+export { findInterstitials, buildDefects } from './defects'
+export type { DefectOptions, InterstitialOptions, InterstitialCandidate } from './defects'
+export { buildNanotube, cropCluster } from './nano'
+export type { NanotubeOptions, NanotubeWall, ClusterOptions } from './nano'
+export { packMolecules } from './packing'
+export type { PackingOptions, PackingComponent, PackingRegion } from './packing'
+export { BUILT_IN_FRAGMENTS, attachFragment, addHydrogens } from './molecular'
+export type { FragmentPort, MolecularFragment, AttachFragmentOptions } from './molecular'
+export { buildPolymer } from './polymer'
+export type { PolymerRecipe, PolymerOptions } from './polymer'
 export {
   createCell,
   validateCell,

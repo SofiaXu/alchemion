@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fractionalToCartesian } from '../../../core'
+import { buildDefects, fractionalToCartesian } from '../../../core'
 import { parseCifStructure, writeCifStructure } from '../structure'
 import { cartesianCif, inversionCif, skewCif } from './fixtures'
 
@@ -12,6 +12,38 @@ const withinDomainTolerance = (actual: readonly number[], expected: readonly num
 }
 
 describe('CIF crystal mapping', () => {
+  it('realizes simple co-located occupancy and reports CIF disorder correlations', () => {
+    const input = (correlated: boolean) => `data_disorder
+_cell_length_a 4
+_cell_length_b 4
+_cell_length_c 4
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+${correlated ? '_atom_site_disorder_group\n' : ''}C1 C 0 0 0 0.5${correlated ? ' 1' : ''}
+N1 N 0 0 0 0.5${correlated ? ' 2' : ''}
+`
+    const simple = parseCifStructure(input(false), { format: 'cif' })
+    expect(buildDefects(simple.structure!, { kind: 'disorder', seed: 1 })).toMatchObject({
+      ok: true,
+      value: {
+        stats: { atomCount: 1 },
+        snapshot: { atoms: [{ occupancy: { kind: 'known', value: 1 } }] }
+      }
+    })
+    const correlated = parseCifStructure(input(true), { format: 'cif' })
+    expect(buildDefects(correlated.structure!, { kind: 'disorder', seed: 1 })).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: 'DISORDER_CORRELATION' }]
+    })
+  })
   it.each(['1', '2'] as const)('maps supported scientific values and writes CIF%s', (version) => {
     const parsed = parseCifStructure((version === '2' ? '#\\#CIF_2.0\n' : '') + skewCif, {
       format: 'cif'

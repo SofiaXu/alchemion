@@ -1,4 +1,5 @@
 import { validateStructure } from '../../core'
+import { ALL_MOVABLE } from '../../core/mobility'
 import type { Diagnostic, StructureSnapshot } from '../../core/types'
 import type { PoscarWriteOptions, WriteResult } from '../contracts'
 import { hasErrors, inheritedLossDiagnostics, lossDiagnostic } from '../loss'
@@ -94,15 +95,21 @@ export function writePoscarStructure(
     if (group) group.push(atom)
     else groups.set(atom.element, [atom])
   }
+  const selective = snapshot.atoms.some((atom) => atom.movable !== undefined)
   const lines = [
     title,
     '1.0',
     ...snapshot.cell.basis.map((vector) => vector.map(String).join(' ')),
     [...groups.keys()].join(' '),
     [...groups.values()].map((atoms) => atoms.length).join(' '),
+    ...(selective ? ['Selective dynamics'] : []),
     'Direct'
   ]
   for (const atoms of groups.values())
-    for (const atom of atoms) lines.push(atom.fractional.map(String).join(' '))
+    for (const atom of atoms) {
+      const coordinate = atom.fractional.map(String).join(' ')
+      const flags = (atom.movable ?? ALL_MOVABLE).map((value) => (value ? 'T' : 'F')).join(' ')
+      lines.push(selective ? `${coordinate} ${flags}` : coordinate)
+    }
   return { text: `${lines.join('\n')}\n`, diagnostics }
 }

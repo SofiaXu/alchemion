@@ -1,4 +1,6 @@
 import { cartesianToFractional } from '../cell'
+import { constructionSnapshot } from '../construction'
+import type { ConstructionMapping, ConstructionResult } from '../construction'
 import { sourcePositionFromInstance } from '../derivation'
 import { failure, failureFrom, success } from '../result'
 import { createStructureSnapshot } from '../structure'
@@ -6,8 +8,11 @@ import { buildSupercell } from '../supercell'
 import type {
   AtomId,
   AtomInstance,
+  BondOrder,
   Cell,
   Diagnostic,
+  JsonValue,
+  Matrix3,
   MolecularAtom,
   MolecularStructureSnapshot,
   PeriodicAtom,
@@ -21,6 +26,26 @@ import type {
 
 export type EditCommand =
   | { readonly type: 'build-supercell'; readonly repetitions: Vec3 }
+  | { readonly type: 'build-supercell'; readonly matrix: Matrix3 }
+  | {
+      readonly type: 'apply-construction'
+      readonly construction: ConstructionResult
+      readonly documentId: string
+      readonly revision: number
+    }
+  | {
+      readonly type: 'set-movable'
+      readonly atomId: AtomId
+      readonly movable?: PeriodicAtom['movable']
+    }
+  | {
+      readonly type: 'add-bond'
+      readonly id: string
+      readonly atoms: readonly [AtomId, AtomId]
+      readonly order: BondOrder
+    }
+  | { readonly type: 'remove-bond'; readonly bondId: string }
+  | { readonly type: 'set-bond-order'; readonly bondId: string; readonly order: BondOrder }
   | { readonly type: 'add-atom'; readonly atom: PeriodicAtom | MolecularAtom }
   | { readonly type: 'remove-atom'; readonly atomId: AtomId }
   | { readonly type: 'set-element'; readonly atomId: AtomId; readonly element: string }
@@ -161,6 +186,208 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
     else (atom as Mutable<MolecularAtom>).cartesian = [...position]
   }
 
+  function replaceConstruction(
+    command: Extract<EditCommand, { type: 'apply-construction' }>,
+    added: Set<string>,
+    addedBonds: Set<string>
+  ): ScientificResult<Draft> {
+    if (command.documentId !== documentId || command.revision !== revision)
+      return failure(
+        'EDIT_STALE_CONSTRUCTION',
+        'The preview belongs to a different document or revision.'
+      )
+    const checked = createStructureSnapshot(command.construction.snapshot)
+    if (!checked.ok) return checked
+    const draft = copy(checked.value) as Draft
+    const remap = (
+      items: readonly { id: string }[],
+      liveItems: readonly { id: string }[],
+      used: ReadonlySet<string>,
+      issued: Set<string>,
+      mappings: readonly ConstructionMapping[]
+    ) => {
+      const live = new Set(liveItems.map(({ id }) => id))
+      const reserved = new Set(items.map(({ id }) => id))
+      const retained = new Set(
+        mappings
+          .filter(({ id, origins }) =>
+            origins.some(
+              ({ input, sourceId, endpoint }) =>
+                (input === 'source' || input === 'substrate' || input === 'host') &&
+                sourceId === id &&
+                (!endpoint ||
+                  (endpoint.symmetryOperationId === 'identity' &&
+                    endpoint.integerCellOffset.every((value) => value === 0)))
+            )
+          )
+          .map(({ id }) => id)
+      )
+      const mapped = new Map<string, string>()
+      let index = 0
+      for (const { id } of items) {
+        if (live.has(id) && retained.has(id)) continue
+        let next = id
+        if (used.has(id)) {
+          do next = `construction:${revision + 1}:${++index}`
+          while (used.has(next) || reserved.has(next))
+          reserved.add(next)
+          mapped.set(id, next)
+        }
+        issued.add(next)
+      }
+      return mapped
+    }
+    const atoms = remap(
+      draft.atoms,
+      snapshot!.atoms,
+      usedAtomIds,
+      added,
+      command.construction.atoms
+    )
+    const bonds = remap(
+      draft.bonds,
+      snapshot!.bonds,
+      usedBondIds,
+      addedBonds,
+      command.construction.bonds
+    )
+    for (const atom of draft.atoms) {
+      atom.id = atoms.get(atom.id) ?? atom.id
+      if (atom.stereoParity)
+        atom.stereoParity = {
+          ...atom.stereoParity,
+          referenceAtoms: atom.stereoParity.referenceAtoms.map((id) => id && (atoms.get(id) ?? id))
+        }
+    }
+    draft.bonds = draft.bonds.map((bond) => {
+      const endpoint = (value: SourceBond['endpoints'][number]) => ({
+        ...value,
+        sourceAtomId: atoms.get(value.sourceAtomId) ?? value.sourceAtomId
+      })
+      return {
+        ...bond,
+        id: bonds.get(bond.id) ?? bond.id,
+        endpoints: [endpoint(bond.endpoints[0]), endpoint(bond.endpoints[1])]
+      }
+    })
+    const oldSupercell = draft.metadata?.alchemionSupercell
+    if (
+      oldSupercell &&
+      typeof oldSupercell === 'object' &&
+      'atomMapping' in oldSupercell &&
+      'bondMapping' in oldSupercell
+    ) {
+      const updateMapping = (
+        items: JsonValue,
+        field: string,
+        ids: ReadonlyMap<string, string>
+      ): JsonValue =>
+        Array.isArray(items)
+          ? items.map((item: JsonValue) => {
+              if (!item || typeof item !== 'object' || Array.isArray(item)) return item
+              const record = item as Readonly<Record<string, JsonValue>>
+              const id = record[field]
+              return typeof id === 'string' && ids.has(id)
+                ? { ...record, [field]: ids.get(id)! }
+                : record
+            })
+          : items
+      draft.metadata = {
+        ...draft.metadata,
+        alchemionSupercell: {
+          ...oldSupercell,
+          atomMapping: updateMapping(oldSupercell.atomMapping, 'atomId', atoms),
+          bondMapping: updateMapping(oldSupercell.bondMapping, 'bondId', bonds)
+        }
+      }
+    }
+    const renamed = (mappings: readonly ConstructionMapping[], ids: ReadonlyMap<string, string>) =>
+      mappings.map((mapping) => ({ ...mapping, id: ids.get(mapping.id) ?? mapping.id }))
+    const withOrigins = constructionSnapshot({
+      ...command.construction,
+      snapshot: draft,
+      atoms: renamed(command.construction.atoms, atoms),
+      bonds: renamed(command.construction.bonds, bonds)
+    })
+    return success(withOrigins, checked.diagnostics)
+  }
+
+  function editBond(
+    draft: Draft,
+    command: Extract<EditCommand, { type: 'add-bond' | 'remove-bond' | 'set-bond-order' }>,
+    added: Set<string>,
+    diagnostics: Diagnostic[]
+  ): ScientificResult<undefined> {
+    if (draft.kind !== 'molecular')
+      return failure('EDIT_MOLECULAR_REQUIRED', 'Direct bond edits require a molecular document.')
+    let endpoints: readonly AtomId[]
+    if (command.type === 'add-bond') {
+      if (
+        typeof command.id !== 'string' ||
+        !command.id.trim() ||
+        usedBondIds.has(command.id) ||
+        added.has(command.id)
+      )
+        return failure('EDIT_BOND_ID_REUSED', 'A new bond requires a fresh nonempty ID.')
+      if (!Array.isArray(command.atoms) || command.atoms.length !== 2)
+        return failure('EDIT_BOND_ATOMS', 'A bond requires two distinct existing atoms.')
+      const [left, right] = command.atoms
+      if (
+        left === right ||
+        ![left, right].every((id) => draft.atoms.some((atom) => atom.id === id))
+      )
+        return failure('EDIT_BOND_ATOMS', 'A bond requires two distinct existing atoms.')
+      if (
+        draft.bonds.some((bond) =>
+          bond.endpoints.every((endpoint) => command.atoms.includes(endpoint.sourceAtomId))
+        )
+      )
+        return failure('EDIT_BOND_DUPLICATE', 'The atoms already have an explicit bond.')
+      const endpoint = (sourceAtomId: AtomId) => ({
+        sourceAtomId,
+        symmetryOperationId: 'identity',
+        integerCellOffset: [0, 0, 0] as Vec3
+      })
+      draft.bonds.push({
+        id: command.id,
+        endpoints: [endpoint(left), endpoint(right)],
+        order: command.order
+      })
+      added.add(command.id)
+      endpoints = command.atoms
+    } else {
+      const index = draft.bonds.findIndex(({ id }) => id === command.bondId)
+      if (index < 0)
+        return failure('EDIT_BOND_MISSING', 'The edit references a missing explicit bond.')
+      const bond = draft.bonds[index]
+      if (command.type === 'remove-bond') draft.bonds.splice(index, 1)
+      else {
+        if (command.order === bond.order) return success(undefined)
+        const { stereo, ...rest } = bond
+        draft.bonds[index] = { ...rest, order: command.order }
+        if (stereo)
+          diagnostics.push({
+            severity: 'warning',
+            code: 'EDIT_BOND_STEREO_CLEARED',
+            message: 'Changing bond order invalidated its stereo annotation.',
+            context: { bondId: bond.id }
+          })
+      }
+      endpoints = bond.endpoints.map((endpoint) => endpoint.sourceAtomId)
+    }
+    for (const atom of draft.atoms) {
+      if (!endpoints.includes(atom.id) || !atom.stereoParity) continue
+      delete atom.stereoParity
+      diagnostics.push({
+        severity: 'warning',
+        code: 'EDIT_STEREO_PARITY_CLEARED',
+        message: 'Changing bond topology or order invalidated atom stereo parity.',
+        context: { atomId: atom.id }
+      })
+    }
+    return success(undefined)
+  }
+
   function apply(
     draft: Draft,
     command: EditCommand,
@@ -184,13 +411,32 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
         pending.add(id)
         return id
       }
-      const built = buildSupercell(draft, command.repetitions, {
-        atom: () => nextId('atom'),
-        bond: () => nextId('bond')
-      })
+      const built = buildSupercell(
+        draft,
+        'matrix' in command ? command.matrix : command.repetitions,
+        {
+          atom: () => nextId('atom'),
+          bond: () => nextId('bond')
+        }
+      )
       if (!built.ok) return built
       Object.assign(draft, copy(built.value.snapshot))
       return success(undefined, built.diagnostics)
+    }
+    if (
+      command.type === 'add-bond' ||
+      command.type === 'remove-bond' ||
+      command.type === 'set-bond-order'
+    )
+      return editBond(draft, command, addedBonds, diagnostics)
+    if (command.type === 'set-movable') {
+      if (draft.kind !== 'periodic')
+        return failure('EDIT_PERIODIC_REQUIRED', 'Mobility requires a periodic document.')
+      const atom = draft.atoms.find(({ id }) => id === command.atomId)
+      if (!atom) return failure('EDIT_ATOM_MISSING', 'The edit references a missing source atom.')
+      if (command.movable === undefined) delete atom.movable
+      else atom.movable = copy(command.movable)
+      return success(undefined)
     }
     if (command.type === 'add-atom') {
       const atom = command.atom
@@ -248,7 +494,10 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
     }
     if (!['remove-atom', 'set-element', 'set-position'].includes(command.type))
       return failure('EDIT_COMMAND', 'Unknown edit command type.')
-    const target = command as Extract<EditCommand, { atomId: string }>
+    const target = command as Extract<
+      EditCommand,
+      { type: 'remove-atom' | 'set-element' | 'set-position' }
+    >
     const index = draft.atoms.findIndex((entry) => entry.id === target.atomId)
     if (index < 0)
       return failure('EDIT_ATOM_MISSING', 'The edit references a missing source atom.', {
@@ -323,11 +572,24 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
       const addedBonds = new Set<string>()
       let draft: Draft
       try {
-        draft = copy(snapshot) as Draft
-        for (const command of commands) {
-          const result = apply(draft, command, diagnostics, added, addedBonds)
+        const construction = commands.find((command) => command?.type === 'apply-construction')
+        if (construction) {
+          if (commands.length !== 1)
+            return failure(
+              'EDIT_CONSTRUCTION_BATCH',
+              'Apply a construction as its own transaction.'
+            )
+          const result = replaceConstruction(construction, added, addedBonds)
+          if (!result.ok) return result
           diagnostics.push(...result.diagnostics)
-          if (!result.ok) return failureFrom(diagnostics)
+          draft = result.value
+        } else {
+          draft = copy(snapshot) as Draft
+          for (const command of commands) {
+            const result = apply(draft, command, diagnostics, added, addedBonds)
+            diagnostics.push(...result.diagnostics)
+            if (!result.ok) return failureFrom(diagnostics)
+          }
         }
       } catch (error) {
         return failure(
