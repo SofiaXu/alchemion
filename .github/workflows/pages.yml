@@ -1,0 +1,54 @@
+name: Publish GitHub Pages
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/**'
+      - 'packages/alchemion/**'
+      - 'scripts/**'
+      - '.node-version'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig*.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: '.node-version'
+      - run: npm install --global pnpm@12.16.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:site
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: apps/site/dist
+
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5.0.1
+        id: deployment
