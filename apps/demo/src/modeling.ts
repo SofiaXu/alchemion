@@ -2,6 +2,7 @@ import { BUILT_IN_FRAGMENTS, constructionSnapshot, slabBottomAtomIds } from 'alc
 import type {
   BondOrder,
   EditCommand,
+  JsonValue,
   Matrix3,
   MolecularFragment,
   MolecularStructureSnapshot,
@@ -12,6 +13,7 @@ import { parseStructure } from 'alchemion/formats'
 import { ComputationError, createModelingRuntime, createViewer } from 'alchemion/viewer'
 import type { InteractionMode, ModelingPreview, ModelingTask, Viewer } from 'alchemion/viewer'
 import { tr } from './i18n'
+import { installModelForms } from './model-forms'
 
 const exampleCell = { a: 4, b: 4, c: 4, alpha: 90, beta: 90, gamma: 90 }
 const templates = {
@@ -21,11 +23,7 @@ const templates = {
     atoms: [{ id: 'C1', element: 'C', fractional: [0, 0, 0] }]
   },
   symmetry: { output: 'recognition', distance: 0.001, angle: -1, hallNumber: 0 },
-  supercell: [
-    [2, 0, 0],
-    [1, 1, 0],
-    [0, 0, 1]
-  ],
+  supercell: [2, 1, 1],
   terminations: [1, 0, 0],
   slab: { hkl: [1, 0, 0], termination: 0, thickness: { repeats: 2 }, vacuum: 12 },
   interface: {
@@ -54,7 +52,7 @@ const templates = {
     distance: 1.54,
     torsionDegrees: 0
   },
-  hydrogens: {},
+  hydrogens: { scope: 'all' },
   polymer: { recipe: { kind: 'homopolymer', unit: 'ethylene', count: 3 } },
   packing: { counts: [4], density: 0.2, minimumDistance: 1.4, seed: 1 },
   nanotube: { walls: [{ n: 5, m: 5 }], boundary: { kind: 'periodic', repeats: 2, vacuum: 12 } },
@@ -79,6 +77,13 @@ const labels = {
   nanotube: 'modelNanotube',
   cluster: 'modelCluster'
 } as const
+const groups = {
+  modelCrystalGroup: ['crystal', 'symmetry', 'supercell'],
+  modelSurfaceGroup: ['terminations', 'slab', 'interface', 'adsorbate'],
+  modelDefectGroup: ['interstitials', 'defects'],
+  modelMoleculeGroup: ['fragment', 'hydrogens', 'polymer'],
+  modelNanoGroup: ['packing', 'nanotube', 'cluster']
+} satisfies Record<string, ModelKind[]>
 const modelElement = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T
 const value = (id: string) =>
@@ -90,26 +95,30 @@ const button = (id: string, label: Parameters<typeof tr>[0]) =>
   `<button id="${id}" type="button" data-i18n="${label}"></button>`
 
 export function appendModelingTools(): void {
-  document
-    .querySelector('.tools nav')!
-    .insertAdjacentHTML(
-      'beforeend',
-      '<button id="tab-model" type="button" data-panel="model" aria-pressed="false" data-i18n="modeling"></button>'
-    )
   document.querySelector('.tools')!.insertAdjacentHTML(
     'beforeend',
     `<section id="panel-model" class="tool-panel" hidden>
     <h1 data-i18n="modeling"></h1><p class="hint" data-i18n="modelHelp"></p>
     <label for="model-kind" data-i18n="modeling"></label><select id="model-kind">${Object.entries(
-      labels
+      groups
     )
-      .map(([kind, label]) => `<option value="${kind}" data-i18n="${label}"></option>`)
+      .map(
+        ([group, kinds]) =>
+          `<optgroup data-model-group="${group}">${kinds
+            .map((kind) => `<option value="${kind}" data-i18n="${labels[kind]}"></option>`)
+            .join('')}</optgroup>`
+      )
       .join('')}</select>
-    <label for="model-options" data-i18n="modelOptions"></label><textarea id="model-options" rows="8" spellcheck="false"></textarea>
+    <div id="model-fields"></div>
     <div id="model-file-field" hidden><label for="model-files" data-i18n="modelOther"></label><input id="model-files" type="file" accept=".mol,.cif,.poscar,.vasp,text/plain" multiple></div>
     <label class="check"><input id="model-new-document" type="checkbox"><span data-i18n="modelNewDocument"></span></label>
-    <div class="button-row">${button('model-preview', 'preview')}${button('model-cancel', 'cancel')}</div>
+    <div class="button-row">${button('model-preview', 'modelPreview')}${button('model-cancel', 'cancel')}</div>
     <output id="model-status" aria-live="polite"></output>
+    <details id="model-json-panel" class="model-json">
+      <summary data-i18n="modelOptions"></summary>
+      <label for="model-options" data-i18n="modelOptions"></label><textarea id="model-options" rows="8" spellcheck="false"></textarea>
+      <div class="button-row">${button('model-copy-json', 'modelCopyJson')}${button('model-fill-json', 'modelFillJson')}${button('model-preview-json', 'modelPreviewJson')}</div>
+    </details>
     <hr><h2 data-i18n="modelMobility"></h2>
     <label for="model-movable" data-i18n="modelMovableFlags"></label><input id="model-movable" value="F F F">
     <label for="model-bottom" data-i18n="modelBottomLayers"></label><input id="model-bottom" type="number" value="1" min="1" step="1">
@@ -123,7 +132,9 @@ export function appendModelingTools(): void {
   document.querySelector('#app')!.insertAdjacentHTML(
     'beforeend',
     `<dialog id="model-dialog" class="model-dialog" aria-labelledby="model-preview-title">
-    <h2 id="model-preview-title" data-i18n="preview"></h2><div id="model-canvas" class="model-canvas" hidden></div><pre id="model-result"></pre>
+    <h2 id="model-preview-title" data-i18n="modelPreview"></h2><div id="model-canvas" class="model-canvas" hidden></div>
+    <div id="model-candidates" hidden><h3 data-i18n="modelCandidates"></h3><ol id="model-candidate-list"></ol></div>
+    <pre id="model-result"></pre>
     <label id="model-loss-field" class="check" hidden><input id="model-accept-loss" type="checkbox"><span data-i18n="acceptLoss"></span></label>
     <div class="button-row">${button('model-apply', 'modelApply')}${button('model-close', 'modelClose')}</div></dialog>`
   )
@@ -134,6 +145,7 @@ interface ModelingHost {
   viewer(): Viewer
   on(id: string, event: string, listener: (event: Event) => void): void
   action(id: string, callback: () => unknown | Promise<unknown>): void
+  pending(value: boolean): void
   usePickedPoint(point: Vec3): void
 }
 
@@ -237,8 +249,17 @@ function modelingTask(
         }
       }
     }
-    case 'hydrogens':
-      return { kind, source: molecule(), atomIds: selection.length ? selection : undefined }
+    case 'hydrogens': {
+      const { scope, atomIds } = options<{
+        scope?: 'all' | 'selection' | 'ids'
+        atomIds?: Task<'hydrogens'>['atomIds']
+      }>()
+      const ids =
+        scope === 'all' ? undefined : scope === 'selection' ? selection : (atomIds ?? selection)
+      if ((scope === 'selection' && !selection.length) || (scope === 'ids' && !atomIds?.length))
+        throw new Error(tr('selectAtom'))
+      return { kind, source: molecule(), atomIds: ids?.length ? ids : undefined }
+    }
     case 'polymer': {
       type PolymerOptions = Task<'polymer'>['options']
       type End = NonNullable<PolymerOptions['ends']>[number]
@@ -308,22 +329,32 @@ function readOnly(task: ModelingTask): boolean {
   )
 }
 
-export function installModeling(host: ModelingHost): void {
+export function installModeling(host: ModelingHost) {
   const runtime = createModelingRuntime()
   const dialog = modelElement<HTMLDialogElement>('model-dialog')
   const surface = modelElement('model-canvas')
+  const candidateList = modelElement('model-candidate-list')
+  const recipe = modelElement<HTMLTextAreaElement>('model-options')
   let generation = 0
   let previewView: Viewer | undefined
   let unsubscribe: (() => void) | undefined
   let current: ModelingPreview | undefined
   let previousContext = ''
+  let previousSelection = ''
   let pickMode: InteractionMode | undefined
   let previewReady = false
   let manualNewDocument = false
   let bondSequence = 0
+  let searching = false
+  let chooseCandidate: ((index: number) => void) | undefined
   const newDocument = () => modelElement<HTMLInputElement>('model-new-document').checked
   const apply = modelElement<HTMLButtonElement>('model-apply')
   const loss = modelElement<HTMLInputElement>('model-accept-loss')
+  function setSearching(value: boolean) {
+    searching = value
+    host.pending(value)
+    modelElement('model-status').textContent = value ? tr('modelSearching') : ''
+  }
   function reset() {
     generation++
     runtime.invalidate()
@@ -331,22 +362,94 @@ export function installModeling(host: ModelingHost): void {
     previewView = undefined
     current = undefined
     previewReady = false
+    chooseCandidate = undefined
+    candidateList.replaceChildren()
     if (dialog.open) dialog.close()
-    modelElement('model-status').textContent = ''
+    setSearching(false)
   }
-  const choose = () => {
+  const forms = installModelForms(modelElement('model-fields'), {
+    signal: host.signal,
+    onInput() {
+      reset()
+      updatePackingDocument(forms.read)
+    }
+  })
+  function updatePackingDocument(read: () => unknown) {
+    if (value('model-kind') !== 'packing' || manualNewDocument) return
+    try {
+      const options = read() as { useSubstrate?: boolean }
+      modelElement<HTMLInputElement>('model-new-document').checked = !options.useSubstrate
+    } catch {
+      // Incomplete input is reported when the user requests a preview.
+    }
+  }
+  function choose(kind: ModelKind, input: unknown = templates[kind]) {
     reset()
     manualNewDocument = false
-    const kind = value('model-kind') as ModelKind
-    setValue('model-options', JSON.stringify(templates[kind], null, 2))
+    setValue('model-kind', kind)
+    forms.reset(kind, input)
+    recipe.value = JSON.stringify(input, null, 2)
     modelElement('model-file-field').hidden = !['interface', 'adsorbate', 'packing'].includes(kind)
-    setValue('model-files', '')
+    const files = modelElement<HTMLInputElement>('model-files')
+    files.multiple = kind === 'packing'
+    files.value = ''
     modelElement<HTMLInputElement>('model-new-document').checked = [
       'crystal',
       'polymer',
       'packing',
       'nanotube'
     ].includes(kind)
+    updatePackingDocument(() => input)
+  }
+  function renderCandidates(task: ModelingTask, result: ModelingPreview, input: unknown) {
+    const { terminations, matches, sites } = result.parameters
+    const candidates = terminations ?? matches ?? sites
+    const visible = readOnly(task) && Array.isArray(candidates)
+    modelElement('model-candidates').hidden = !visible
+    if (!visible) return
+    const entries = candidates as readonly Record<string, JsonValue>[]
+    chooseCandidate = (index) => {
+      const entry = entries[index]
+      if (!entry) return
+      if (task.kind === 'terminations') {
+        choose('slab', { ...templates.slab, hkl: task.hkl, termination: entry.index })
+      } else if (task.kind === 'interstitials') {
+        choose('defects', { kind: 'interstitial', element: 'C', fractional: entry.fractional })
+      } else {
+        const next = { ...(input as Record<string, unknown>), candidate: index }
+        reset()
+        recipe.value = JSON.stringify(next, null, 2)
+        try {
+          forms.apply(next)
+        } catch {
+          modelElement<HTMLDetailsElement>('model-json-panel').open = true
+          modelElement('model-status').textContent = tr('modelCandidateJson')
+          recipe.focus()
+          return
+        }
+      }
+      modelElement('model-kind').focus()
+    }
+    entries.forEach((entry, index) => {
+      const row = document.createElement('li')
+      const pick = document.createElement('button')
+      pick.type = 'button'
+      pick.dataset.modelCandidate = String(index)
+      const format = (item: JsonValue) =>
+        Array.isArray(item)
+          ? item.join(', ')
+          : typeof item === 'number'
+            ? +item.toPrecision(5)
+            : item
+      pick.textContent =
+        task.kind === 'terminations'
+          ? `#${entry.index} · ${format(entry.offset)} · ${format(entry.before)} / ${format(entry.after)}`
+          : task.kind === 'interstitials'
+            ? `#${index} · [${format(entry.fractional)}] · ${format(entry.nearestDistance)} Å`
+            : `#${index} · ${format(entry.area)} Å² · ${tr('modelStrain')} ${format(entry.strain)} · ${format(entry.rotation)}°`
+      row.append(pick)
+      candidateList.append(row)
+    })
   }
   try {
     unsubscribe = host.viewer().subscribe((event) => {
@@ -357,6 +460,10 @@ export function installModeling(host: ModelingHost): void {
           pickMode = undefined
         }
         previousContext = context
+      } else if (event.type === 'selection') {
+        const selection = JSON.stringify(event.selectedSourceAtomIds)
+        if (previousSelection !== selection) reset()
+        previousSelection = selection
       } else if (event.type === 'point' && pickMode !== undefined) {
         const mode = pickMode
         pickMode = undefined
@@ -380,9 +487,14 @@ export function installModeling(host: ModelingHost): void {
     { once: true }
   )
   host.on('model-dialog', 'close', () => {
-    if (!dialog.open && (current || previewView)) reset()
+    if (!dialog.open && (current || previewView || chooseCandidate)) reset()
   })
-  host.on('model-kind', 'change', choose)
+  host.on('model-kind', 'change', () => choose(value('model-kind') as ModelKind))
+  host.on('model-candidate-list', 'click', (event) => {
+    const index = (event.target as HTMLElement).closest('button')?.dataset.modelCandidate
+    const select = chooseCandidate
+    if (select && index !== undefined) select(Number(index))
+  })
   host.on('model-files', 'input', reset)
   host.on('model-new-document', 'input', () => {
     manualNewDocument = true
@@ -390,21 +502,29 @@ export function installModeling(host: ModelingHost): void {
   })
   host.on('model-options', 'input', () => {
     reset()
-    if (value('model-kind') !== 'packing' || manualNewDocument) return
+    updatePackingDocument(() => JSON.parse(recipe.value))
+  })
+  host.action('model-copy-json', async () => {
+    recipe.value = JSON.stringify(forms.read(), null, 2)
     try {
-      modelElement<HTMLInputElement>('model-new-document').checked = !JSON.parse(
-        value('model-options')
-      ).useSubstrate
+      if (!navigator.clipboard) throw new Error()
+      await navigator.clipboard.writeText(recipe.value)
     } catch {
-      // Wait for a complete recipe before choosing the default.
+      recipe.select()
     }
+  })
+  host.action('model-fill-json', () => {
+    const input: unknown = JSON.parse(recipe.value)
+    forms.apply(input)
+    reset()
+    updatePackingDocument(() => input)
   })
   host.on('model-accept-loss', 'change', () => {
     if (current) apply.disabled = !previewReady || !loss.checked
   })
   for (const id of ['model-cancel', 'model-close', 'cancel']) host.on(id, 'click', reset)
-  choose()
-  host.action('model-preview', async () => {
+  choose('crystal')
+  async function preview(fromJson: boolean) {
     reset()
     const token = generation
     const view = host.viewer()
@@ -412,11 +532,12 @@ export function installModeling(host: ModelingHost): void {
     const context = { documentId: state.documentId ?? 'empty', revision: state.revision }
     const kind = value('model-kind') as ModelKind
     const files = [...(modelElement<HTMLInputElement>('model-files').files ?? [])]
-    modelElement('model-status').textContent = tr('modelSearching')
+    const input: unknown = fromJson ? JSON.parse(recipe.value) : forms.read()
+    setSearching(true)
     try {
       const sources = await Promise.all(files.map(readModel))
       if (generation !== token) return false
-      const task = modelingTask(kind, view, JSON.parse(value('model-options')), sources)
+      const task = modelingTask(kind, view, input, sources)
       const result = await runtime.preview({ ...context, task })
       if (generation !== token) return false
       const editable = !readOnly(task)
@@ -437,6 +558,7 @@ export function installModeling(host: ModelingHost): void {
         2
       )
       loss.checked = false
+      renderCandidates(task, result, input)
       const requiresLoss =
         editable && result.diagnostics.some(({ severity }) => severity === 'warning')
       modelElement('model-loss-field').hidden = !requiresLoss
@@ -455,10 +577,16 @@ export function installModeling(host: ModelingHost): void {
         apply.disabled = requiresLoss && !loss.checked
       }
       return generation === token
+    } catch (error) {
+      if (generation !== token) return false
+      reset()
+      throw error
     } finally {
-      if (generation === token) modelElement('model-status').textContent = ''
+      if (generation === token) setSearching(false)
     }
-  })
+  }
+  host.action('model-preview', () => preview(false))
+  host.action('model-preview-json', () => preview(true))
   host.action('model-apply', async () => {
     const result = current
     if (!result || apply.disabled) return false
@@ -538,4 +666,13 @@ export function installModeling(host: ModelingHost): void {
   host.action('model-remove-bond', () =>
     editPickedBond((bondId) => ({ type: 'remove-bond', bondId }))
   )
+  return {
+    choose,
+    localize() {
+      forms.localize()
+      for (const group of modelElement('model-kind').querySelectorAll('optgroup'))
+        group.label = tr(group.dataset.modelGroup as keyof typeof groups)
+      if (searching) modelElement('model-status').textContent = tr('modelSearching')
+    }
+  }
 }

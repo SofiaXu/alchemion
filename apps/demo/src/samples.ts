@@ -1,3 +1,5 @@
+import teachingResult from './teaching-result.json' with { type: 'json' }
+
 /** Project-authored synthetic teaching geometry, MIT; not experimental structures. */
 export const molecularSample = `Synthetic non-coplanar molecule
 Alchemion project-authored teaching geometry
@@ -19,7 +21,7 @@ M  V30 END BOND
 M  V30 END CTAB
 M  END
 `
-export const crystalSample = `# Project-authored teaching cells, MIT; not experimental structures.
+export const orthogonalCrystalSample = `# Project-authored teaching cells, MIT; not experimental structures.
 data_orthogonal
 _cell_length_a 8
 _cell_length_b 6
@@ -41,7 +43,9 @@ _atom_site_fract_z
 _atom_site_occupancy
 C1 C 0.25 0.25 0.25 1
 O1 O 0.5 0.25 0.25 1
+`
 
+export const crystalSample = `${orthogonalCrystalSample}
 data_oblique
 _cell_length_a 8
 _cell_length_b 6
@@ -64,3 +68,17 @@ _atom_site_occupancy
 C1 C 0.25 0.25 0.25 1
 O1 O 0.5 0.25 0.25 1
 `
+
+// SHA-256 of the compact JSON payload. The demo asset build verifies it against the source.
+const calculationSourceDigest = '565022ca6fec0a211ebf4d9d683a3ad48b2ef4898beb6e25af416ed12b9ae311'
+export const calculationSampleName = 'alchemion-teaching-result.json'
+export const calculationSample = JSON.stringify({
+  ...teachingResult,
+  sources: [
+    {
+      name: 'Alchemion analytical teaching dataset (MIT)',
+      format: 'generated',
+      sha256: calculationSourceDigest
+    }
+  ]
+})

@@ -31,13 +31,21 @@ for (const [path, hash] of [
 ])
   if (sha256(await readFile(join(sdk, path))) !== hash)
     throw new Error(`Distributed data or licence differs from its manifest: ${path}`)
-await source(join(root, 'apps/demo/src/samples.ts'))
+const sampleSource = 'apps/demo/src/samples.ts'
+const sampleCode = await source(join(root, sampleSource))
+const calculationSource = 'apps/demo/src/teaching-result.json'
+const calculation = JSON.parse(await source(join(root, calculationSource)))
+const calculationDigest = sha256(JSON.stringify(calculation))
+if (!sampleCode.includes(`'${calculationDigest}'`))
+  throw new Error('Analytical teaching result differs from its source digest.')
 const three = resolve(dirname(fileURLToPath(import.meta.resolve('three'))), '..')
 const threeManifest = JSON.parse(await readFile(join(three, 'package.json'), 'utf8'))
 if (threeManifest.version !== '0.186.1') throw new Error('Unexpected Three version in demo assets.')
 const notices = [
   'Alchemion demo — offline licence and scientific data notices',
-  'Built-in CIF/MOL examples are project-authored analytic structures under the project MIT licence; they are not experimental database records.',
+  'Built-in CIF/MOL examples and the versioned analytical result are project-authored teaching datasets under the project MIT licence.',
+  'The result contains a 4 Å cubic cell with one Si site, two illustrative energies, a periodic cosine field, and illustrative bands and density of states.',
+  `Teaching result source: ${calculationSource}. SHA-256 of the compact JSON payload: ${calculationDigest}.`,
   '\n=== Alchemion MIT licence ===\n',
   await source(join(sdk, 'LICENSE')),
   '\n=== Scientific data and format notices ===\n',
@@ -51,10 +59,15 @@ const notices = [
 const data = {
   schemaVersion: 1,
   samples: {
-    source: 'apps/demo/src/samples.ts',
+    source: sampleSource,
     author: 'Alchemion project',
     license: 'MIT',
-    sha256: inputs['apps/demo/src/samples.ts']
+    sha256: inputs[sampleSource],
+    calculation: {
+      source: calculationSource,
+      sha256: inputs[calculationSource],
+      payloadSha256: calculationDigest
+    }
   },
   manifests: { scientific, vdw, formats, spglib },
   sourceHashes: inputs

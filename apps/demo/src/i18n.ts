@@ -1,6 +1,6 @@
 export type Locale = 'en' | 'zh'
 const messages = {
-  workbench: ['Structure workbench', '结构工作台'],
+  workbench: ['Crystal research workbench', '晶体科研工作台'],
   camera: ['Camera', '相机'],
   molecular: ['Molecular', '分子'],
   periodic: ['Periodic', '周期结构'],
@@ -375,9 +375,21 @@ const messages = {
   ],
   modeling: ['Model', '建模'],
   modelHelp: [
-    'Choose a tool, edit its example recipe, then preview before applying. Recipe keys follow the SDK.',
-    '选择工具，编辑示例配方，再预览并应用。配方字段沿用 SDK。'
+    'Choose a tool and set its parameters. Preview the result before applying it.',
+    '选择工具并填写参数。先预览结果，再应用。'
   ],
+  modelCrystalGroup: ['Crystal and symmetry', '晶体与对称'],
+  modelSurfaceGroup: ['Surfaces and interfaces', '表面与界面'],
+  modelDefectGroup: ['Defects', '缺陷'],
+  modelMoleculeGroup: ['Molecules and polymers', '分子与聚合物'],
+  modelNanoGroup: ['Packing and nanostructures', '填充与纳米结构'],
+  modelCopyJson: ['Copy form recipe', '复制表单配方'],
+  modelFillJson: ['Fill form from JSON', '从 JSON 填入表单'],
+  modelPreview: ['Preview model', '预览模型'],
+  modelPreviewJson: ['Preview JSON recipe', '预览 JSON 配方'],
+  modelCandidates: ['Use a candidate', '使用候选'],
+  modelCandidateJson: ['Candidate added to the original JSON recipe.', '候选已填入原 JSON 配方。'],
+  modelStrain: ['strain', '应变'],
   modelCrystal: ['Create a crystal', '创建晶体'],
   modelSymmetry: ['Recognize or convert crystal symmetry', '识别对称或转换晶胞'],
   modelMatrix: ['Integer matrix supercell', '整数矩阵超胞'],
@@ -428,7 +440,25 @@ const messages = {
   modelSearching: ['Calculating preview…', '正在计算预览…'],
   modelApply: ['Apply model', '应用构建结果'],
   modelClose: ['Close preview', '关闭预览'],
-  modelStale: ['The source changed. Recalculate the preview.', '源结构已改变，请重新计算预览。']
+  modelStale: ['The source changed. Recalculate the preview.', '源结构已改变，请重新计算预览。'],
+  kitExamples: ['Examples', '示例库'],
+  kitTutorials: ['Tutorials', '教程'],
+  kitHistory: ['Document actions', '文档操作'],
+  kitTools: ['Workbench tools', '工作台工具'],
+  kitInputGroup: ['Setup', '准备'],
+  kitResearchGroup: ['Research', '研究'],
+  kitOutputGroup: ['Output', '输出'],
+  kitView: ['3D view', '三维视图'],
+  kitViewportHint: ['Drag to rotate · Scroll to zoom', '拖动旋转 · 滚轮缩放'],
+  kitOrthogonalSample: ['Orthogonal teaching crystal', '正交教学晶体'],
+  kitReplaceExample: [
+    'Loading this example replaces the current structure and clears its undo and redo history. Continue?',
+    '载入此示例会替换当前结构并清除撤销和重做历史。继续吗？'
+  ],
+  kitOpenResultFrame: [
+    'Opening this result frame replaces the current structure and clears its undo and redo history. Continue?',
+    '打开结果帧会替换当前结构并清除撤销和重做历史。继续吗？'
+  ]
 } satisfies Record<string, readonly [string, string]>
 export type Message = keyof typeof messages
 let locale: Locale

@@ -1,6 +1,6 @@
 # Alchemion
 
-Alchemion 是面向晶体与分子结构的浏览器 TypeScript SDK，提供独立的中英双语 demo。运行目标是现代桌面 WebGL2；Node.js 用于开发和验证。
+Alchemion 是面向晶体与分子结构的浏览器 TypeScript SDK，提供独立的中英双语科研工作台、离线示例库和跟做教程。运行目标是现代桌面 WebGL2；Node.js 用于开发和验证。
 
 SDK 提供 `alchemion/core`、`alchemion/formats`、`alchemion/viewer` 三个公开入口，支持 CIF1/2、MOL V2000/V3000 和含 Selective Dynamics 的 VASP5 POSCAR 读写。结构工具覆盖晶体创建与对称、倒易晶格与第一布里渊区、测量与配位，以及[周期、分子和纳米建模](docs/api/modeling.md)。viewer 提供可取消的建模预览、撤销重做、PNG 导出和视图保存恢复。格式边界见[产品规范](docs/product.md)。
 

@@ -12,19 +12,55 @@ const option = (value: string, key: Message) =>
   `<option value="${value}" data-i18n="${key}"></option>`
 const panel = (id: Message, content: string) =>
   `<section id="panel-${id}" class="tool-panel" ${id === 'import' ? '' : 'hidden'}>${content}</section>`
+const glyphs = {
+  import: 'M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4',
+  display: 'M4 7h16M4 17h16M9 4v6m6 4v6',
+  measure: 'm3 15 12-12 6 6L9 21Zm5-5 2 2m2-6 2 2m-10 6 2 2',
+  edit: 'm4 15 11-11 5 5L9 20H4Zm8-8 5 5',
+  model: 'm12 3 8 4.5v9L12 21l-8-4.5v-9Zm-8 4.5 8 4.5 8-4.5M12 12v9',
+  results: 'M4 4v16h16M7 15l4-5 4 2 4-6',
+  export: 'M12 16V4m-4 4 4-4 4 4M5 16v4h14v-4',
+  examples: 'M4 5h7v6H4zm9 0h7v6h-7zm-9 8h7v6H4zm9 0h7v6h-7z',
+  tutorials: 'M12 6v14m0-14c-2-2-6-2-9-1v13c3-1 7-1 9 2 2-3 6-3 9-2V5c-3-1-7-1-9 1'
+} as const
+const icon = (name: keyof typeof glyphs) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${glyphs[name]}"/></svg>`
+type Tool = Exclude<keyof typeof glyphs, 'examples' | 'tutorials'>
+const toolLabels = {
+  import: 'import',
+  display: 'display',
+  measure: 'measure',
+  edit: 'edit',
+  model: 'modeling',
+  results: 'results',
+  export: 'export'
+} satisfies Record<Tool, Message>
+const toolGroup = (label: Message, tools: readonly Tool[]) =>
+  `<div class="tool-group"><span class="tool-group-label" data-i18n="${label}"></span><div class="tool-buttons">${tools
+    .map(
+      (id) =>
+        `<button id="tab-${id}" type="button" data-panel="${id}" aria-controls="panel-${id}" aria-pressed="${id === 'import'}">${icon(id)}${word(toolLabels[id])}</button>`
+    )
+    .join('')}</div></div>`
 export const markup = `
-<header class="topbar"><div><strong class="brand">Alchemion</strong><span class="eyebrow" data-i18n="workbench"></span></div>
-<div class="history-tools">${button('undo', 'undo')}${button('redo', 'redo')}${button('cancel', 'cancel')}${button('recompute', 'recompute')}${button('clear', 'clear')}</div>
+<header class="topbar">
+<div class="identity"><span class="brand-mark">${icon('model')}</span><div><strong class="brand">Alchemion</strong><span class="eyebrow" data-i18n="workbench"></span></div></div>
+<div class="kit-links"><button id="kit-examples" type="button">${icon('examples')}${word('kitExamples')}</button><button id="kit-tutorials" type="button">${icon('tutorials')}${word('kitTutorials')}</button></div>
+<div class="history-tools" role="group" aria-labelledby="kit-history-label"><span class="visually-hidden" id="kit-history-label" data-i18n="kitHistory"></span>${button('undo', 'undo')}${button('redo', 'redo')}${button('cancel', 'cancel')}${button('recompute', 'recompute')}${button('clear', 'clear')}</div>
 <label class="language">${word('language')}<select id="language-select"><option value="en">English</option><option value="zh">中文</option></select></label></header>
-<main class="workspace"><aside class="tools"><nav aria-label="Tools">${(['import', 'display', 'measure', 'edit', 'export'] as const).map((id) => `<button id="tab-${id}" type="button" data-panel="${id}" aria-pressed="${id === 'import'}" data-i18n="${id}"></button>`).join('')}</nav>
+<main class="workspace"><aside class="tools"><nav aria-labelledby="kit-tools-label">
+<span class="visually-hidden" id="kit-tools-label" data-i18n="kitTools"></span>
+${toolGroup('kitInputGroup', ['import', 'display'])}
+${toolGroup('kitResearchGroup', ['measure', 'edit', 'model', 'results'])}
+${toolGroup('kitOutputGroup', ['export'])}</nav>
 ${panel(
   'import',
-  `<h1 data-i18n="import"></h1><p data-i18n="tagline"></p>
-${field('sample-select', 'sample', `<select id="sample-select">${option('molecule', 'moleculeSample')}${option('crystal', 'crystalSample')}</select>`)}${button('load-sample', 'loadSample')}<p class="hint" data-i18n="sampleNote"></p>
-<hr>${field('file-input', 'file', '<input id="file-input" type="file" accept=".cif,.mol,.vasp,.poscar,text/plain">')}
+  `<h1 data-i18n="import"></h1><p class="hint" data-i18n="importHelp"></p>
+${field('file-input', 'file', '<input id="file-input" type="file" accept=".cif,.mol,.vasp,.poscar,text/plain">')}
 ${field('import-format', 'format', '<select id="import-format"><option value="cif">CIF</option><option value="mol" selected>MOL</option><option value="poscar">POSCAR</option></select>')}
 ${field('import-text', 'input', '<textarea id="import-text" rows="9" spellcheck="false"></textarea>')}
-<div id="block-field" hidden>${field('block-select', 'block', '<select id="block-select"></select>')}</div><p>${word('version')}: <output id="import-version">—</output></p>${button('import-button', 'importText')}<p class="hint" data-i18n="importHelp"></p>`
+<div id="block-field" hidden>${field('block-select', 'block', '<select id="block-select"></select>')}</div><p>${word('version')} <output id="import-version">—</output></p>${button('import-button', 'importText')}
+<hr>${field('sample-select', 'sample', `<select id="sample-select">${option('orthogonal', 'kitOrthogonalSample')}${option('molecule', 'moleculeSample')}${option('crystal', 'crystalSample')}</select>`)}${button('load-sample', 'loadSample')}<p class="hint" data-i18n="sampleNote"></p>`
 )}
 ${panel(
   'display',
@@ -50,5 +86,17 @@ ${panel(
   `<h1 data-i18n="export"></h1><p class="hint" data-i18n="exportHelp"></p><form id="export-form">${field('export-format', 'format', '<select id="export-format"><option value="mol">MOL</option><option value="cif">CIF</option><option value="poscar">POSCAR</option></select>')}${field('export-version', 'exportVersion', '<select id="export-version"><option value="V3000">V3000</option><option value="V2000">V2000</option></select>')}
 <div id="finite-fields">${field('finite-kind', 'finite', `<select id="finite-kind">${option('none', 'finiteNone')}${option('source', 'finiteSource')}${option('instances', 'finiteInstances')}</select>`)}${field('finite-source-ids', 'sourceIds', '<textarea id="finite-source-ids" rows="2"></textarea>')}${button('finite-all', 'useAll')}${button('collect-instance', 'collectInstance')}${button('clear-instances', 'clearInstances')}<p>${word('count')}: <output id="instance-count">0</output></p></div>${button('preview-export', 'preview', 'submit')}${button('accept-loss', 'acceptLoss')}</form><div class="button-row">${button('download-export', 'download')}${button('reimport-export', 'reimport')}</div>${field('export-output', 'output', '<textarea id="export-output" rows="9" readonly spellcheck="false"></textarea>')}<details><summary data-i18n="mapping"></summary><pre id="export-mapping"></pre></details>`
 )}
-</aside><section class="stage"><div class="document-bar"><output id="demo-status" role="status" aria-live="polite"></output><output id="document-summary"></output></div><div id="viewer" class="viewer"></div><div id="webgl-unavailable" role="alert" hidden><p data-i18n="unavailable"></p><pre id="webgl-details"></pre></div><p id="operation-note" role="status" class="operation-note"></p></section>
-<aside class="inspector"><h2 data-i18n="inspection"></h2><h3 data-i18n="selection"></h3><pre id="selection-details"></pre><h3 data-i18n="pointResult"></h3><pre id="point-details"></pre><h3 data-i18n="measurement"></h3><output id="measurement-result"></output><pre id="measurement-details"></pre><hr><h2 data-i18n="diagnostics"></h2>${(['import', 'runtime', 'export'] as const).map((id) => `<details open><summary data-i18n="${id}Diagnostics"></summary><pre id="${id}-diagnostics" class="diagnostics"></pre></details>`).join('')}<a id="sources-link" href="./generated/notices.txt" target="_blank" rel="noopener" data-i18n="sources"></a></aside></main>`
+</aside>
+<section class="stage" aria-labelledby="kit-view-label">
+  <div class="document-bar"><span class="view-title" id="kit-view-label">${icon('model')}${word('kitView')}</span><output id="document-summary"></output><output id="demo-status" role="status" aria-live="polite"></output></div>
+  <div id="viewer" class="viewer" aria-describedby="kit-viewport-hint"></div>
+  <div id="webgl-unavailable" role="alert" hidden><p data-i18n="unavailable"></p><pre id="webgl-details"></pre></div>
+  <div class="stage-footer"><p id="operation-note" role="status" class="operation-note"></p><p id="kit-viewport-hint" class="viewport-hint" data-i18n="kitViewportHint"></p><a id="sources-link" href="./generated/notices.txt" target="_blank" rel="noopener" data-i18n="sources"></a></div>
+</section>
+<details class="inspector" id="kit-inspector" open>
+  <summary class="inspector-toggle" id="kit-inspector-toggle" data-i18n="inspection"></summary>
+  <div class="inspector-body">
+    <section class="inspector-selection"><h3 data-i18n="selection"></h3><pre id="selection-details"></pre><h3 data-i18n="pointResult"></h3><pre id="point-details"></pre><h3 data-i18n="measurement"></h3><output id="measurement-result"></output><pre id="measurement-details"></pre></section>
+    <section class="inspector-diagnostics"><h2 data-i18n="diagnostics"></h2>${(['import', 'runtime', 'export'] as const).map((id) => `<details open><summary data-i18n="${id}Diagnostics"></summary><pre id="${id}-diagnostics" class="diagnostics"></pre></details>`).join('')}</section>
+  </div>
+</details></main>`
