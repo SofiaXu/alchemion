@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
-import type { CameraPose } from 'alchemion/viewer'
+import type { CameraPose, ViewerViewState } from 'alchemion/viewer'
+import type { CoordinationResult } from 'alchemion/core'
 import { crystalSample, molecularSample } from '../apps/demo/src/samples'
 import { readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 
 type Triple = readonly [number, number, number]
 const browserErrors = new WeakMap<Page, string[]>()
@@ -84,6 +86,300 @@ async function loadCrystal(page: Page) {
   await page.locator('#import-button').click()
   await ready(page)
   expect((await summary(page)).kind).toBe('periodic')
+}
+
+// Experimental COD inputs, kept byte-for-byte with references and independent
+// crystallographic arithmetic in fixtures/crystals/README.md.
+const quartzMetric = (x: number, y: number, z: number) =>
+  Math.sqrt(4.916 ** 2 * (x * x + y * y - x * y) + (5.4054 * z) ** 2)
+const realCrystals = [
+  {
+    id: '9003308',
+    name: 'halite',
+    sha256: '34ae2391f7417c12a800a0afddf56995c5b69c1fb7c73fc5509a432e230e48a3',
+    elements: ['Na', 'Cl'],
+    positions: [
+      [0, 0, 0],
+      [0.5, 0.5, 0.5]
+    ],
+    cell: [5.6401, 5.6401, 5.6401, 90, 90, 90],
+    expanded: 8,
+    cutoff: 3,
+    distances: Array<number>(6).fill(5.6401 / 2),
+    vertices: 6
+  },
+  {
+    id: '9000775',
+    name: 'quartz',
+    sha256: '573e4a570f2cf9e5c338cfb4f23c94fe6c6254de5ee90d9851204d912aa5ea48',
+    elements: ['Si', 'O'],
+    positions: [
+      [0.4697, 0, 0],
+      [0.4135, 0.2669, 0.1191]
+    ],
+    cell: [4.916, 4.916, 5.4054, 90, 90, 120],
+    expanded: 9,
+    cutoff: 1.7,
+    distances: [
+      ...Array<number>(2).fill(quartzMetric(0.2634, 0.1466, 0.1191 - 1 / 3)),
+      ...Array<number>(2).fill(quartzMetric(-0.0562, 0.2669, 0.1191))
+    ].sort((a, b) => a - b),
+    vertices: 4
+  },
+  {
+    id: '9004143',
+    name: 'rutile at 600 C',
+    sha256: '34d130609f9662d03522aa25547e8aef8fc32f5fcb2692e7e0c529e5f7ca9b95',
+    elements: ['Ti', 'O'],
+    positions: [
+      [0, 0, 0],
+      [0.3045, 0.3045, 0]
+    ],
+    cell: [4.616, 4.616, 2.977, 90, 90, 90],
+    expanded: 6,
+    cutoff: 2.1,
+    distances: [
+      ...Array<number>(4).fill(Math.hypot(Math.SQRT2 * 4.616 * (0.5 - 0.3045), 2.977 / 2)),
+      ...Array<number>(2).fill(Math.SQRT2 * 4.616 * 0.3045)
+    ].sort((a, b) => a - b),
+    vertices: 6
+  }
+] as const
+
+for (const crystal of realCrystals) {
+  test(`@demo @real-crystals experimental ${crystal.name}: symmetry, coordination, supercell and roundtrips`, async ({
+    page,
+    browser
+  }, info) => {
+    const input = await readFile(`tests/fixtures/crystals/${crystal.id}.cif`)
+    expect(createHash('sha256').update(input).digest('hex')).toBe(crystal.sha256)
+    await open(page)
+    await page.locator('#file-input').setInputFiles({
+      name: `${crystal.id}.cif`,
+      mimeType: 'text/plain',
+      buffer: input
+    })
+    await ready(page)
+    await expect(page.locator('#import-version')).toHaveText('1')
+    const original = await summary(page)
+    expect(original).toMatchObject({ kind: 'periodic', atomCount: '2' })
+    await expect(page.locator('#import-diagnostics')).not.toHaveAttribute('data-severity', 'error')
+    await expect(page.locator('#import-diagnostics')).toContainText('CIF_ELEMENT_FROM_LABEL')
+    await expect(page.locator('#import-diagnostics')).toContainText('CIF_UNMAPPED_SCIENCE')
+    if (crystal.id === '9000775')
+      await expect(page.locator('#import-diagnostics')).toContainText(
+        'SYMMETRY_IDENTIFIER_CONFLICT'
+      )
+    await tab(page, 'edit')
+    for (let i = 0; i < 2; i++) {
+      expect((await row(page, i)).element).toBe(crystal.elements[i])
+      expect(JSON.parse((await row(page, i)).position!)).toEqual(crystal.positions[i])
+    }
+    for (const [i, key] of ['a', 'b', 'c', 'alpha', 'beta', 'gamma'].entries())
+      expect(Number(await page.locator(`#cell-${key}`).inputValue())).toBeCloseTo(
+        crystal.cell[i],
+        8
+      )
+    await tab(page, 'display')
+    for (const id of ['show-lattice', 'show-reciprocal', 'show-bz', 'show-performance'])
+      await page.locator(`#${id}`).check()
+    await page.locator('#render-mode').selectOption('ball-and-stick')
+    await page.locator('#apply-display').click()
+    await ready(page)
+    const count = (n: number) =>
+      expect(page.locator('[data-alchemion-performance]')).toContainText(`· ${n} atoms`)
+    await count(crystal.expanded)
+    await info.attach('unit-cell', {
+      body: await page.locator('#viewer').screenshot(),
+      contentType: 'image/png'
+    })
+    await page.locator('#render-mode').selectOption('space-filling')
+    await page.locator('#apply-display').click()
+    await ready(page)
+    await count(crystal.expanded)
+    await info.attach('space-filling', {
+      body: await page.locator('#viewer').screenshot(),
+      contentType: 'image/png'
+    })
+    await page.locator('#render-mode').selectOption('ball-and-stick')
+    await page.locator('#show-symmetry').uncheck()
+    await page.locator('#apply-display').click()
+    await ready(page)
+    await count(2)
+    await page.locator('#show-symmetry').check()
+    await page.locator('#neighbor-cells').fill('1 0 0')
+    await page.locator('#apply-display').click()
+    await ready(page)
+    await count(2 * crystal.expanded)
+
+    if (crystal.id === '9003308') {
+      // Look down +z at the exposed z=a/2 layer. Points across neighboring
+      // cells must retain their actual separation, rather than minimum image.
+      const download = page.waitForEvent('download')
+      await page.locator('#download-view').click()
+      const view = JSON.parse(
+        await readFile((await (await download).path())!, 'utf8')
+      ) as ViewerViewState
+      const a = crystal.cell[0]
+      const camera: CameraPose = {
+        ...view.camera,
+        position: [a / 2, a / 4, 4 * a],
+        target: [a / 2, a / 4, a / 2],
+        up: [0, 1, 0]
+      }
+      await page.locator('#import-view').setInputFiles({
+        name: 'halite-view.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify({ ...view, camera }))
+      })
+      await ready(page)
+      await expect.poll(() => details(page, 'camera-details')).toEqual(camera)
+      const points: Triple[] = [
+        [0, a / 2, a / 2],
+        [a / 2, a / 2, a / 2],
+        [a / 2, 0, a / 2]
+      ]
+      await tool(page, 'select')
+      await clickAtom(page, [a, a / 2, a / 2])
+      expect((await details(page, 'selection-details')).instance).toMatchObject({
+        sourceAtomId: (await row(page)).atomId,
+        integerCellOffset: [1, 0, 0]
+      })
+      await tool(page, 'measure-distance')
+      await clickAtom(page, points[0])
+      await clickAtom(page, [a, a / 2, a / 2])
+      expect((await details(page, 'measurement-details')).value).toBeCloseTo(a, 8)
+      await info.attach('cross-cell-measurement', {
+        body: await page.locator('#viewer').screenshot(),
+        contentType: 'image/png'
+      })
+      await tool(page, 'measure-angle')
+      for (const point of points) await clickAtom(page, point)
+      expect((await details(page, 'measurement-details')).value).toBeCloseTo(90, 8)
+      await tool(page, 'pick-point')
+      await clickAtom(page, points[1])
+      const picked = await details(page, 'point-details')
+      expect(picked).toMatchObject({ source: 'surface', unit: 'angstrom' })
+      for (let i = 0; i < 3; i++)
+        expect(picked.cartesian[i]).toBeCloseTo(a * picked.fractional[i], 8)
+      await tab(page, 'display')
+    }
+    await page.locator('#neighbor-cells').fill('')
+    await page.locator('#apply-display').click()
+    await ready(page)
+    await page.locator('#center').click()
+    await tab(page, 'edit')
+    await page.locator('#batch-element').selectOption(crystal.elements[0])
+    await page.locator('#select-element').click()
+    await expect(page.locator('#selected-count')).toHaveText('1')
+    await tab(page, 'measure')
+    await page
+      .locator('#coordination-rules')
+      .fill(`${crystal.elements.join(' ')} ${crystal.cutoff}`)
+    await page.locator('#show-polyhedra').check()
+    await page.locator('#analyze-coordination').click()
+    await ready(page)
+    const coordination = (await details(page, 'coordination-details')) as CoordinationResult
+    expect(coordination.centers).toHaveLength(1)
+    const center = coordination.centers[0]
+    expect(center.coordinationNumber).toBe(crystal.distances.length)
+    const distances = center.neighbors.map((n) => n.distance).sort((a, b) => a - b)
+    for (const [i, distance] of distances.entries())
+      expect(distance).toBeCloseTo(crystal.distances[i], 8)
+    expect(center.polyhedron?.vertices).toHaveLength(crystal.vertices)
+    expect(center.polyhedron!.volume).toBeGreaterThan(0)
+    if (crystal.id === '9003308')
+      expect(center.polyhedron!.volume).toBeCloseTo(crystal.cell[0] ** 3 / 6, 8)
+    expect(await summary(page)).toEqual(original)
+    await expect(page.locator('#undo')).toBeDisabled()
+    await info.attach('coordination', {
+      body: JSON.stringify(coordination),
+      contentType: 'application/json'
+    })
+    await info.attach('polyhedron', {
+      body: await page.locator('#viewer').screenshot(),
+      contentType: 'image/png'
+    })
+
+    await tab(page, 'export')
+    await page.locator('#image-width').fill('800')
+    await page.locator('#image-height').fill('600')
+    const imageDownload = page.waitForEvent('download')
+    await page.locator('#download-png').click()
+    const png = await readFile((await (await imageDownload).path())!)
+    expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([800, 600])
+    await info.attach('exported-crystal', { body: png, contentType: 'image/png' })
+    for (const version of ['1', '2']) {
+      await preview(page, 'cif', version)
+      if (version === '1') {
+        await expect(page.locator('#accept-loss')).toBeEnabled()
+        await expect(page.locator('#export-output')).toHaveValue('')
+      }
+      await acceptLossIfPresent(page)
+      await expect(page.locator('#export-output')).toHaveValue(/data_/)
+      await page.locator('#reimport-export').click()
+      await ready(page)
+      expect((await summary(page)).atomCount).toBe('2')
+      await count(crystal.expanded)
+    }
+    await tab(page, 'edit')
+    const beforeSupercell = await summary(page)
+    await page.locator('#supercell-repetitions').fill('2 2 1')
+    await page.locator('#build-supercell').click()
+    await ready(page)
+    expect((await summary(page)).atomCount).toBe(String(4 * crystal.expanded))
+    expect((await summary(page)).documentId).toBe(beforeSupercell.documentId)
+    expect(Number((await summary(page)).revision)).toBe(Number(beforeSupercell.revision) + 1)
+    for (const key of ['a', 'b'])
+      expect(Number(await page.locator(`#cell-${key}`).inputValue())).toBeCloseTo(
+        2 * crystal.cell[0],
+        8
+      )
+    const supercellRows = await page
+      .locator('#atom-rows tr')
+      .evaluateAll((rows) => rows.map((r) => ({ ...(r as HTMLElement).dataset })))
+    await page.locator('#undo').click()
+    await ready(page)
+    expect((await summary(page)).atomCount).toBe('2')
+    await page.locator('#redo').click()
+    await ready(page)
+    expect(
+      await page
+        .locator('#atom-rows tr')
+        .evaluateAll((rows) => rows.map((r) => ({ ...(r as HTMLElement).dataset })))
+    ).toEqual(supercellRows)
+    await page.locator('#atom-rows tr').first().locator('button').click()
+    await page.locator('#delete-atom').click()
+    await ready(page)
+    expect((await summary(page)).atomCount).toBe(String(4 * crystal.expanded - 1))
+    await page.locator('#undo').click()
+    await ready(page)
+    expect((await row(page)).atomId).toBe(supercellRows[0].atomId)
+    await preview(page, 'poscar')
+    await acceptLossIfPresent(page)
+    await expect(page.locator('#export-output')).toHaveValue(/Direct/)
+    const poscar = await page.locator('#export-output').inputValue()
+    await page.locator('#reimport-export').click()
+    await ready(page)
+    expect((await summary(page)).atomCount).toBe(String(4 * crystal.expanded))
+    await count(4 * crystal.expanded)
+    await expect(page.locator('#undo')).toBeDisabled()
+    await expect(page.locator('#runtime-diagnostics')).not.toHaveAttribute('data-severity', 'error')
+    await page.locator('#language-select').selectOption('zh')
+    await info.attach('supercell', { body: await page.screenshot(), contentType: 'image/png' })
+    await info.attach('environment', {
+      body: JSON.stringify({
+        browser: browser.version(),
+        cod: crystal.id,
+        sha256: crystal.sha256,
+        original,
+        final: await summary(page),
+        poscar
+      }),
+      contentType: 'application/json'
+    })
+  })
 }
 
 test('@demo @features POSCAR, source batches, supercell defects, coordination and portable views', async ({

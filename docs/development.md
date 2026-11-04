@@ -44,6 +44,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 
 `--prepared` 只复用本轮已构建且输入匹配的 SDK；不能依赖上个会话的 dist。`--project=chromium|firefox|webkit` 和 `--grep=<正则>` 定向选择浏览器或场景，不能用子集宣称完整集合通过。普通场景默认4进程，可配置 `TEST_WORKERS`，无自动重试。
 
+真实晶体页面回归可执行 `pnpm test:browser -- --suite=demo --grep=@real-crystals`，默认在三个浏览器检查[固定 COD 实验 CIF](../tests/fixtures/crystals/README.md)，无需运行时联网。原始文件也可直接从该目录选择导入 demo；样例的实验条件、预期与诊断边界见夹具说明。
+
 `--phase`、`check:m1` 和 `bench --smoke` 已删除，调用时明确报错，不兼容转发到其他 suite。按功能选择 runtime/viewer/demo，包消费者和正式基准各只有一个入口。
 
 五项结构工作台能力使用 `@features` 浏览器标签，viewer 另保留直接受影响的派生编辑/历史回归。CI 在已知功能实现与入口增量的 diff 内输出对应 `*_grep`，本地通过同一 `--grep` 选择；未知共享修改保留保守路由。只检查 POSCAR 时不因新增 `ParseOptions` 联合而默认执行全部 CIF/MOL 用例。单元可显式 `--maxWorkers=8`，浏览器 `TEST_WORKERS=4`；不为凑并行复制单场景。

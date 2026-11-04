@@ -7,4 +7,33 @@
 | [采集器中文电源编码](2026-10-30-benchmark-power-encoding/README.md)      | 未开始 | 在 Windows 对照同一电源 GUID 验证文本编码 |
 | [工具链升级后跨平台验证](2026-10-30-cross-platform-validation/README.md) | 未开始 | 需要对应 CI、macOS 与真实 Safari 环境     |
 
-npm/站点发布尚未立项；明确排除的格式能力见[产品边界](../product.md)。
+## 建模工具
+
+| 任务                                                                                   | 状态   | 依赖与下一步                                   |
+| -------------------------------------------------------------------------------------- | ------ | ---------------------------------------------- |
+| [晶体创建与对称识别](2026-11-04-crystal-builder-and-symmetry/README.md)                | 未开始 | 先定义创建入口及空间群识别的容差和原胞转换契约 |
+| [整数矩阵超胞](2026-11-04-matrix-supercells/README.md)                                 | 未开始 | 基于现有超胞，先验证斜变换的陪集枚举与键映射   |
+| [缺陷与无序构型](2026-11-04-defect-and-disorder-builder/README.md)                     | 未开始 | 可从现有对角超胞开始，先定义间隙候选和占位约束 |
+| [晶面切割与真空薄层](2026-11-04-surface-slab-builder/README.md)                        | 未开始 | 依赖整数矩阵超胞，先定义晶面和终止层参数       |
+| [叠层界面与吸附构型放置](2026-11-04-layer-and-adsorbate-builder/README.md)             | 未开始 | 复用矩阵超胞和 slab，先定义晶格匹配与刚体放置  |
+| [原子约束与 POSCAR Selective Dynamics](2026-11-04-poscar-selective-dynamics/README.md) | 未开始 | 格式与源约束可独立推进，固定底层场景使用 slab  |
+| [分子草绘与片段拼装](2026-11-04-molecular-sketcher/README.md)                          | 未开始 | 先定义显式键事务及片段连接点                   |
+| [聚合物构建](2026-11-04-polymer-builder/README.md)                                     | 未开始 | 复用分子片段连接，先定义重复单元与端基         |
+| [非晶胞与分子填充](2026-11-04-amorphous-cell-packing/README.md)                        | 未开始 | 可用导入分子独立开始，表面溶剂填充使用 slab    |
+| [纳米与介观构建](2026-11-04-nano-and-mesoscale-builders/README.md)                     | 未开始 | 可先定义纳米几何，介观组装先确定粗粒化模型     |
+| [吸附位点能量搜索评估](2026-11-04-adsorption-site-search/README.md)                    | 未开始 | 使用吸附初始构型，先评估是否扩展产品范围       |
+
+## 计算结果可视化
+
+| 任务                                                                        | 状态   | 依赖与下一步                                                 |
+| --------------------------------------------------------------------------- | ------ | ------------------------------------------------------------ |
+| [计算结果导入与结构配准](2026-11-04-calculation-result-import/README.md)    | 未开始 | 从本地计算产物导入，先定义结果标识、结构帧与 POSCAR 原子映射 |
+| [结果图层与显示生命周期](2026-11-04-calculation-result-layers/README.md)    | 未开始 | 依赖结果导入契约，先定义多图层、显示状态和资源预算           |
+| [优化前后结构对比](2026-11-04-relaxation-structure-comparison/README.md)    | 未开始 | 复用结构配准和图层，先定义周期位移与晶胞变化口径             |
+| [体数据等值面与切片](2026-11-04-volumetric-field-overlays/README.md)        | 未开始 | 复用结果导入和图层，以 VASP 电荷密度验证第一条完整路径       |
+| [逐原子属性与矢量图层](2026-11-04-atomic-property-overlays/README.md)       | 未开始 | 复用原子映射和图层，先定义标量、矢量与缺失值                 |
+| [轨迹播放与反应路径](2026-11-04-trajectory-and-reaction-playback/README.md) | 未开始 | 复用结构帧和图层，先定义离子步、时间和路径坐标               |
+| [振动模式与声子显示](2026-11-04-vibration-and-phonon-overlays/README.md)    | 未开始 | 复用结构配准和图层，先用 Γ 点模式验证位移与动画              |
+| [能带、态密度与费米面](2026-11-04-electronic-structure-views/README.md)     | 未开始 | 复用结果导入和第一布里渊区，先定义能量基准和 k 点联动        |
+
+npm/站点发布尚未立项。当前能力与格式支持以[产品规范](../product.md)为准。

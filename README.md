@@ -18,7 +18,7 @@ Windows 本机已有 `.tools/pnpm.cmd` 时可用它调用固定工具。SDK 与 
 
 ## 文档
 
-- [文档导航](docs/README.md)与[工作台指南](docs/demo.md)
+- [文档导航](docs/README.md)、[集成说明](docs/integration.md)与[工作台指南](docs/demo.md)
 - API：[core](docs/api/core.md)、[formats](docs/api/formats.md)、[viewer](docs/api/viewer.md)
 - 规范：[产品](docs/product.md)、[科学领域](docs/domain.md)、[架构](docs/architecture.md)
 - 维护：[开发指南](docs/development.md)、[质量与独立参考](docs/quality.md)、[数据来源与许可](docs/data-sources.md)
