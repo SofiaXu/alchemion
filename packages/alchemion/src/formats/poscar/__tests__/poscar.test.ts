@@ -243,6 +243,24 @@ describe('T-FMT-03 periodic POSCAR and scientific losses', () => {
       '0.1 0.2 0.3',
       '0.25 0.5 0.75'
     ])
+    expect(
+      result.atomMapping?.map(({ fileAtomNumber, source }) => [fileAtomNumber, source.sourceAtomId])
+    ).toEqual([
+      [1, 'o-1'],
+      [2, 'o-2'],
+      [3, 'c']
+    ])
+    expect(result.poscarReceipt).toEqual({
+      version: 1,
+      cell: input.cell,
+      atoms: [
+        { fileAtomNumber: 1, atomId: 'o-1', element: 'O', fractional: [1.25, -0.25, 0.5] },
+        { fileAtomNumber: 2, atomId: 'o-2', element: 'O', fractional: [0.1, 0.2, 0.3] },
+        { fileAtomNumber: 3, atomId: 'c', element: 'C', fractional: [0.25, 0.5, 0.75] }
+      ]
+    })
+    expect(result.poscarReceipt?.cell.basis[0]).not.toBe(input.cell.basis[0])
+    expect(result.poscarReceipt?.atoms[0].fractional).not.toBe(input.atoms[0].fractional)
     expect(JSON.stringify(input)).toBe(before)
   })
   test('molecules, invalid cells, empty and non-full occupancies are hard failures', () => {

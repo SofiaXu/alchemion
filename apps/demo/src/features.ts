@@ -1,6 +1,7 @@
 import { ELEMENTS, cartesianToFractional } from 'alchemion/core'
 import type { CoordinationRule, EditCommand, StructureSnapshot, Vec3 } from 'alchemion/core'
-import type { Viewer, ViewerState, ViewerViewState } from 'alchemion/viewer'
+import type { Viewer, ViewerState, ViewerResultViewState, ViewerViewState } from 'alchemion/viewer'
+import { validatePortableViewState } from 'alchemion/viewer'
 import { tr } from './i18n'
 import type { Message } from './i18n'
 import { NamedViews } from './views'
@@ -123,11 +124,22 @@ export function installFeatures(host: FeatureHost) {
     'zoom-out',
     'import-button',
     'load-sample',
-    'reset-style'
+    'reset-style',
+    'result-open',
+    'result-bind',
+    'result-remove',
+    'result-preview-frame',
+    'result-exit-preview',
+    'result-apply-layer',
+    'result-toggle-layer',
+    'result-remove-layer'
   ])
     host.on(id, 'click', supersedeView)
-  for (const id of ['display-form', 'style-form']) host.on(id, 'submit', supersedeView)
+  for (const id of ['display-form', 'style-form', 'result-layer-form'])
+    host.on(id, 'submit', supersedeView)
   host.on('file-input', 'change', supersedeView)
+  host.on('result-frame', 'change', supersedeView)
+  host.on('result-frame-slider', 'input', supersedeView)
   host.on('viewer', 'pointerdown', supersedeView)
   host.on('viewer', 'wheel', supersedeView)
   const selected = () => {
@@ -204,7 +216,7 @@ export function installFeatures(host: FeatureHost) {
       coordination: { rules, showPolyhedra: el<HTMLInputElement>('show-polyhedra').checked }
     })
   })
-  const restore = async (state: ViewerViewState, generation: number) => {
+  const restore = async (state: ViewerViewState | ViewerResultViewState, generation: number) => {
     if (host.signal.aborted || generation !== viewGeneration) return false
     await host.viewer().restoreViewState(state)
     if (host.signal.aborted || generation !== viewGeneration) return false
@@ -242,9 +254,15 @@ export function installFeatures(host: FeatureHost) {
     if (!result) throw new Error(tr('viewName'))
     return result
   }
+  const currentView = () => {
+    const viewer = host.viewer()
+    return viewer.results.getState().layers.length
+      ? viewer.getViewState({ includeResults: true })
+      : viewer.getViewState()
+  }
   host.action('save-view', () => {
     const key = name()
-    slots.slots.set(key, host.viewer().getViewState())
+    slots.slots.set(key, currentView())
     slots.persist()
     refreshSlots(key)
   })
@@ -270,7 +288,7 @@ export function installFeatures(host: FeatureHost) {
   })
   host.action('download-view', () =>
     host.download(
-      new Blob([JSON.stringify(host.viewer().getViewState(), null, 2)], {
+      new Blob([JSON.stringify(currentView(), null, 2)], {
         type: 'application/json'
       }),
       'alchemion-view.json'
@@ -283,7 +301,7 @@ export function installFeatures(host: FeatureHost) {
       void host.run(async () => {
         const text = await file.text()
         if (host.signal.aborted || generation !== viewGeneration) return false
-        return restore(JSON.parse(text) as ViewerViewState, generation)
+        return restore(validatePortableViewState(JSON.parse(text)), generation)
       })
   })
   host.form('image-form', async () =>

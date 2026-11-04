@@ -1,10 +1,14 @@
-import { validateViewState, type ViewerViewState } from 'alchemion/viewer'
+import {
+  validatePortableViewState,
+  type ViewerResultViewState,
+  type ViewerViewState
+} from 'alchemion/viewer'
 import type { Message } from './i18n'
 
 const KEY = 'alchemion.demo.views.v1'
 /** Browser persistence belongs to the demo, not to an SDK viewer. */
 export class NamedViews {
-  readonly slots = new Map<string, ViewerViewState>()
+  readonly slots = new Map<string, ViewerViewState | ViewerResultViewState>()
   notice: Message = 'persistentViews'
   private writable = true
   constructor() {
@@ -19,13 +23,11 @@ export class NamedViews {
           !entry.name.trim() ||
           entry.name !== entry.name.trim() ||
           this.slots.has(entry.name) ||
-          entry.view?.version !== 1 ||
-          !entry.view.camera ||
-          !entry.view.options
+          !entry.view
         )
           throw new Error('VIEW_STORAGE')
         try {
-          this.slots.set(entry.name, validateViewState(entry.view))
+          this.slots.set(entry.name, validatePortableViewState(entry.view))
         } catch {
           throw new Error('VIEW_STORAGE')
         }

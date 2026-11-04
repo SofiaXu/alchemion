@@ -1,6 +1,29 @@
 import { expect, test } from '@playwright/test'
 
 const zero = { gpuObjects: 0, workers: 0, rafs: 0, observers: 0, listeners: 0, canvases: 0 }
+test('@package @calculation-results installed result declarations, nested Worker and disposal', async ({
+  page
+}) => {
+  const workers: string[] = []
+  const errors: string[] = []
+  page.on('worker', (worker) => workers.push(worker.url()))
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('./')
+  await page.waitForFunction(() => !!window.consumerHarness)
+  expect(await page.evaluate(() => window.consumerHarness.calculationResults())).toEqual({
+    layer: 'ready',
+    viewVersion: 2,
+    source: 'CHG',
+    map: 'silicon'
+  })
+  expect(workers).toHaveLength(2)
+  for (const worker of workers)
+    expect(new URL(worker).pathname).toMatch(
+      /^\/installed\/nested\/assets\/computation-worker-.*\.js$/
+    )
+  expect(await page.evaluate(() => window.consumerHarness.modelingResources())).toEqual(zero)
+  expect(errors).toEqual([])
+})
 test('@package @modeling installed symmetry WASM, superseded requests and release', async ({
   page
 }) => {

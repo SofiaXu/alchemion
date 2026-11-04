@@ -1124,6 +1124,97 @@ async function dispose() {
   await pause(20)
   return ledger.snapshot()
 }
+async function calculationLayers() {
+  await open('orthogonal', { interactionMode: 'pick-result' })
+  const viewer = current()
+  const structure = viewer.getSnapshot()!
+  const result = await viewer.results.register({
+    version: 1,
+    id: 'layer-fixture',
+    sources: [{ name: 'analytic', format: 'fixture', sha256: 'a'.repeat(64) }],
+    termination: 'unknown',
+    convergence: 'unknown',
+    initialFrameId: 'initial',
+    frames: [{ id: 'initial', structure }],
+    data: [
+      {
+        kind: 'grid',
+        id: 'density',
+        frameId: 'initial',
+        quantity: 'density',
+        unit: 'Å⁻³',
+        grid: {
+          origin: [0, 0, 0],
+          steps: [
+            [4, 0, 0],
+            [0, 3, 0],
+            [0, 0, 3.5]
+          ],
+          dimensions: [2, 2, 2],
+          periodic: [true, true, true],
+          values: [0, 1, 0, 1, 0, 1, 0, 1]
+        }
+      }
+    ]
+  })
+  await viewer.results.bind(result.id)
+  const [surface, slice] = await Promise.all([
+    viewer.results.addLayer({
+      kind: 'surface',
+      resultId: result.id,
+      datasetId: 'density',
+      threshold: 0.5
+    }),
+    viewer.results.addLayer({
+      kind: 'slice',
+      resultId: result.id,
+      datasetId: 'density',
+      plane: { point: [0, 0, 2], normal: [0, 0, 1] }
+    })
+  ])
+  await Promise.all([
+    viewer.results.updateLayer(surface, { threshold: 0.25 }),
+    viewer.results.updateLayer(surface, { threshold: 0.75 }),
+    viewer.results.updateLayer(slice, { opacity: 0.8 })
+  ])
+  return viewer.results.getState()
+}
+async function calculationLifecycle() {
+  const viewer = current()
+  const picked = viewer.results.getState().pick
+  const canvas = container.querySelector('canvas')!
+  const extension = canvas.getContext('webgl2')!.getExtension('WEBGL_lose_context')
+  if (!extension) throw new Error('WEBGL_lose_context unavailable')
+  extension.loseContext()
+  await until(() => viewer.getState().status === 'error', 'Context loss was not observed')
+  const lost = viewer.results.getState().layers.map((layer) => layer.status)
+  extension.restoreContext()
+  await until(
+    () => viewer.results.getState().layers.every((layer) => layer.status === 'ready'),
+    'Result layers did not restore'
+  )
+  const layers = viewer.results.getState().layers
+  const work = viewer.results.updateLayer(layers[0].id, { threshold: 0.625 })
+  const revision = viewer.getState().revision
+  await viewer.execute({
+    type: 'set-element',
+    atomId: viewer.getSnapshot()!.atoms[0].id,
+    element: 'Ne'
+  })
+  await work
+  const edited = viewer.results.getState().layers.map((layer) => layer.status)
+  await viewer.undo()
+  await until(
+    () => viewer.results.getState().layers.every((layer) => layer.status === 'ready'),
+    'Undo did not revalidate layers'
+  )
+  const undo = viewer.getState().revision
+  const cancelled = viewer.results.updateLayer(layers[0].id, { threshold: 0.5 })
+  viewer.cancel()
+  await cancelled
+  const afterCancel = viewer.results.getState().layers.map((layer) => layer.status)
+  return { picked, lost, edited, revision, undo, afterCancel, resources: await dispose() }
+}
 window.viewerHarness = {
   open,
   inspect,
@@ -1147,6 +1238,9 @@ window.viewerHarness = {
   updates,
   updateProbe,
   features,
+  calculationLayers,
+  calculationLifecycle,
+  calculationState: () => current().results.getState(),
   dispose,
   clear: () => {
     current().clear()
@@ -1180,6 +1274,9 @@ declare global {
       updates: typeof updates
       updateProbe: typeof updateProbe
       features: typeof features
+      calculationLayers: typeof calculationLayers
+      calculationLifecycle: typeof calculationLifecycle
+      calculationState: () => ReturnType<Viewer['results']['getState']>
       dispose: typeof dispose
       clear: () => ReturnType<typeof inspect>
       resourceDetails: () => ReturnType<typeof ledger.listenerDetails>

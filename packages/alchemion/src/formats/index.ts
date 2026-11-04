@@ -9,6 +9,8 @@ import type { ParseOptions, ParseResult, WriteOptions, WriteResult } from './con
 export type * from './contracts'
 export { parseCifDocument, writeCifDocument } from './cif'
 export type * from './cif/types'
+export { parseCalculationResult, parseNebImages } from './calculation'
+export type { CalculationParseOptions, NebImageInput } from './calculation'
 
 export function parseStructure(text: string, options: ParseOptions): ParseResult {
   if (typeof text !== 'string' || !options || !['cif', 'mol', 'poscar'].includes(options.format))

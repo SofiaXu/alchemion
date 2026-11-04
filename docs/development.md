@@ -54,6 +54,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 
 ## 测试宿主、脚本与 CI
 
+计算结果的浏览器路径使用 `--grep=@calculation-results`。用同轮 `pnpm build` 产物运行 `pnpm test:browser -- --suite=viewer --prepared --grep=@calculation-results`、`pnpm test:browser -- --suite=demo --prepared --grep=@calculation-results` 与 `pnpm test:package -- --prepared --grep=@calculation-results`。共享呈现或 Worker 有改动时，按 CI 路由补充直接受影响的旧场景。科学与解析按对应 Vitest 文件或用例选择。
+
 建模浏览器路径使用 `--grep=@modeling`，真实 CIF 兼容回归使用 `--grep=@real-crystals`。`pnpm test:package -- --prepared --grep=@modeling` 使用本轮生产 SDK 验证真实 tarball 的对称 WASM 与释放。单元验证按相关文件或用例选择，CI 根据已识别的建模变更路由。
 
 | 位置                                                  | 用途                                                  |

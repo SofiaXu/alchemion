@@ -326,6 +326,48 @@ async function modeling() {
     runtime.dispose()
   }
 }
+async function calculationResults() {
+  const { createViewer, validatePortableViewState } = await import('alchemion/viewer')
+  const structure = {
+    kind: 'periodic' as const,
+    cell: {
+      basis: [
+        [4, 0, 0],
+        [0, 4, 0],
+        [0, 0, 4]
+      ] as const
+    },
+    atoms: [{ id: 'silicon', element: 'Si', fractional: [-1e-20, 0.25, 0.25] as const }],
+    bonds: []
+  }
+  const written = formats.writeStructure(structure, { format: 'poscar' })
+  if (!written.text || !written.poscarReceipt) throw new Error('Missing POSCAR mapping.')
+  const target = document.querySelector<HTMLElement>('#first')!
+  const viewer = createViewer(target)
+  try {
+    await viewer.load(structure)
+    const file = new File([`${written.text}\n2 2 2\n0 1 0 1 0 1 0 1\n`], 'CHG')
+    const result = await viewer.results.import(file, { format: 'chg' })
+    await viewer.results.bind(result.id, {
+      receipt: written.poscarReceipt,
+      frameId: result.frames[0].id
+    })
+    await viewer.results.bind(result.id)
+    await viewer.results.addLayer({ kind: 'surface', resultId: result.id, threshold: 1 / 128 })
+    const view = validatePortableViewState(
+      JSON.parse(JSON.stringify(viewer.getViewState({ includeResults: true })))
+    )
+    return {
+      layer: viewer.results.getState().layers[0].status,
+      viewVersion: view.version,
+      source: result.sources[0].name,
+      map: written.poscarReceipt.atoms[0].atomId
+    }
+  } finally {
+    viewer.dispose()
+    viewer.dispose()
+  }
+}
 window.consumerHarness = {
   headless,
   run,
@@ -334,6 +376,7 @@ window.consumerHarness = {
   finish,
   features,
   modeling,
+  calculationResults,
   modelingResources: () => resources.snapshot()
 }
 declare global {
@@ -346,6 +389,7 @@ declare global {
       finish: typeof finish
       features: typeof features
       modeling: typeof modeling
+      calculationResults: typeof calculationResults
       modelingResources: () => ReturnType<typeof resources.snapshot>
     }
   }

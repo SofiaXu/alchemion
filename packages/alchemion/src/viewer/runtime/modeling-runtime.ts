@@ -30,7 +30,7 @@ export interface ModelingRuntime {
 export function createModelingRuntime(
   options: { readonly timeoutMs?: number } = {}
 ): ModelingRuntime {
-  const runtime = createRuntimeWithTransport(options, moduleWorker, true)
+  const runtime = createRuntimeWithTransport(options, moduleWorker, 'modeling')
   return {
     async preview({ documentId, revision, task }, requestOptions) {
       const result = await runtime.compute(

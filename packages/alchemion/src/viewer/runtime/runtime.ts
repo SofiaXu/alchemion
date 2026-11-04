@@ -1,18 +1,21 @@
 import type { Diagnostic } from '../../core/types'
-import type { ComputationTransport, WorkerReply, WorkerRequest } from './protocol'
+import type {
+  ComputationTransport,
+  TransportContext,
+  TransportRequest,
+  TransportResult,
+  TransportRuntime,
+  WorkerReply,
+  WorkerRequest
+} from './protocol'
 import { runComputationTask } from './task'
 import { abortError, ComputationError } from './types'
-import type {
-  ComputationContext,
-  ComputationRequest,
-  ComputationResult,
-  ComputationRuntime,
-  ComputationRuntimeOptions
-} from './types'
+import type { ComputationRuntime, ComputationRuntimeOptions } from './types'
 
 interface Pending {
-  readonly context: ComputationContext
-  readonly resolve: (value: ComputationResult) => void
+  readonly context: TransportContext
+  readonly key: string
+  readonly resolve: (value: TransportResult) => void
   readonly reject: (error: Error) => void
   readonly timer: ReturnType<typeof setTimeout>
   readonly deadline: number
@@ -30,9 +33,18 @@ function validDiagnostic(input: unknown): input is Diagnostic {
   )
 }
 
-function validResultValue(category: ComputationContext['category'], input: unknown): boolean {
+function validResultValue(category: TransportContext['category'], input: unknown): boolean {
   if (!input || typeof input !== 'object') return false
   const value = input as Record<string, unknown>
+  if (category === 'result-import')
+    return value.version === 1 && Array.isArray(value.frames) && Array.isArray(value.data)
+  if (category === 'result-layer')
+    return (
+      typeof value.quantity === 'string' &&
+      typeof value.unit === 'string' &&
+      (Array.isArray(value.meshes) || Array.isArray(value.glyphs))
+    )
+  if (category === 'result-unfold') return Array.isArray(input)
   if (category === 'derive') return Array.isArray(value.atoms) && Array.isArray(value.bonds)
   if (category === 'construction')
     return (
@@ -78,6 +90,7 @@ function validResultValue(category: ComputationContext['category'], input: unkno
 function synchronousTransport(): ComputationTransport {
   const events = new EventTarget()
   const scheduled = new Map<number, ReturnType<typeof setTimeout>>()
+  const active = new Set<number>()
   let disposed = false
   return {
     addEventListener: (type, listener) => events.addEventListener(type, listener),
@@ -87,17 +100,30 @@ function synchronousTransport(): ComputationTransport {
       if (request.kind === 'cancel') {
         clearTimeout(scheduled.get(request.requestId))
         scheduled.delete(request.requestId)
+        active.delete(request.requestId)
         return
       }
       scheduled.set(
         request.requestId,
-        setTimeout(() => {
+        setTimeout(async () => {
           scheduled.delete(request.requestId)
+          active.add(request.requestId)
           const { requestId, documentId, revision, category } = request
           const context = { requestId, documentId, revision, category }
           let reply: WorkerReply
           try {
-            const result = runComputationTask(request.task)
+            const task = request.task
+            const result =
+              task.kind === 'result-import' ||
+              task.kind === 'result-layer' ||
+              task.kind === 'result-unfold'
+                ? await (
+                    await import('../results/task')
+                  ).runResultTask(task, async () => {
+                    await new Promise<void>((done) => setTimeout(done, 0))
+                    if (!active.has(requestId)) throw abortError()
+                  })
+                : runComputationTask(task)
             reply = result.ok
               ? { ...context, kind: 'result', value: result.value, diagnostics: result.diagnostics }
               : { ...context, kind: 'error', diagnostics: result.diagnostics }
@@ -115,7 +141,8 @@ function synchronousTransport(): ComputationTransport {
               ]
             }
           }
-          events.dispatchEvent(new MessageEvent('message', { data: reply }))
+          if (active.delete(requestId))
+            events.dispatchEvent(new MessageEvent('message', { data: reply }))
         }, 0)
       )
     },
@@ -123,6 +150,7 @@ function synchronousTransport(): ComputationTransport {
       disposed = true
       for (const timer of scheduled.values()) clearTimeout(timer)
       scheduled.clear()
+      active.clear()
     }
   }
 }
@@ -143,12 +171,31 @@ export function moduleWorker(): Worker {
   return new Worker(new URL('./computation-worker.ts', import.meta.url), { type: 'module' })
 }
 
+export function createResultRuntime(options: ComputationRuntimeOptions): TransportRuntime {
+  return createRuntimeWithTransport(
+    options,
+    options.mode === 'sync' ? synchronousTransport : moduleWorker,
+    'results'
+  )
+}
+
 /** Internal injection seam; deliberately omitted from the public entry point. */
 export function createRuntimeWithTransport(
   options: ComputationRuntimeOptions,
   factory: () => ComputationTransport,
-  modeling = false
-): ComputationRuntime {
+  role?: 'computation' | 'modeling'
+): ComputationRuntime
+export function createRuntimeWithTransport(
+  options: ComputationRuntimeOptions,
+  factory: () => ComputationTransport,
+  role: 'results'
+): TransportRuntime
+export function createRuntimeWithTransport(
+  options: ComputationRuntimeOptions,
+  factory: () => ComputationTransport,
+  role: 'computation' | 'modeling' | 'results' = 'computation'
+): TransportRuntime {
+  const modeling = role === 'modeling'
   const timeoutMs = options.timeoutMs ?? 30_000
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
     throw new RangeError('timeoutMs must be a positive finite browser timer interval.')
@@ -160,11 +207,11 @@ export function createRuntimeWithTransport(
   const pending = new Map<number, Pending>()
   const latest = new Map<string, number>()
 
-  function finish(requestId: number, error?: Error, result?: ComputationResult) {
+  function finish(requestId: number, error?: Error, result?: TransportResult) {
     const record = pending.get(requestId)
     if (!record) return
     pending.delete(requestId)
-    if (latest.get(record.context.category) === requestId) latest.delete(record.context.category)
+    if (latest.get(record.key) === requestId) latest.delete(record.key)
     clearTimeout(record.timer)
     if (record.abort) record.signal?.removeEventListener('abort', record.abort)
     if (error) record.reject(error)
@@ -180,7 +227,7 @@ export function createRuntimeWithTransport(
     for (const id of [...pending.keys()]) finish(id, error)
     releaseTransport()
   }
-  function timeoutError(context: ComputationContext): ComputationError {
+  function timeoutError(context: TransportContext): ComputationError {
     return new ComputationError('COMPUTATION_TIMEOUT', 'The computation exceeded its timeout.', [
       {
         severity: 'error',
@@ -221,7 +268,7 @@ export function createRuntimeWithTransport(
       reply.documentId !== record.context.documentId ||
       reply.revision !== record.context.revision ||
       reply.category !== record.context.category ||
-      latest.get(reply.category) !== reply.requestId
+      latest.get(record.key) !== reply.requestId
     )
       return
     // A synchronous algorithm can block the timer queue, then deliver a result before
@@ -267,7 +314,7 @@ export function createRuntimeWithTransport(
         ...record.context,
         value: reply.value,
         diagnostics: reply.diagnostics
-      } as ComputationResult)
+      } as TransportResult)
     }
   }
   const onError: EventListener = (event) => {
@@ -288,7 +335,7 @@ export function createRuntimeWithTransport(
   ]
   function invalidate() {
     for (const id of [...pending.keys()]) cancel(id)
-    if (modeling) releaseTransport()
+    if (role !== 'computation') releaseTransport()
     documentId = undefined
     revision = -1
   }
@@ -305,9 +352,13 @@ export function createRuntimeWithTransport(
         !input.documentId.trim() ||
         !Number.isSafeInteger(input.revision) ||
         input.revision < 0 ||
-        (modeling
-          ? input.task?.kind !== 'construction'
-          : !['derive', 'reciprocal', 'brillouin-zone', 'coordination'].includes(input.task?.kind))
+        (role === 'results'
+          ? !['result-import', 'result-layer', 'result-unfold', 'derive'].includes(input.task?.kind)
+          : modeling
+            ? input.task?.kind !== 'construction'
+            : !['derive', 'reciprocal', 'brillouin-zone', 'coordination'].includes(
+                input.task?.kind
+              ))
       )
         return Promise.reject(
           new ComputationError(
@@ -315,7 +366,7 @@ export function createRuntimeWithTransport(
             'Computation requests require a document ID, nonnegative revision and known task.'
           )
         )
-      let request: ComputationRequest
+      let request: TransportRequest
       try {
         request = structuredClone(input)
       } catch {
@@ -336,20 +387,23 @@ export function createRuntimeWithTransport(
       if (request.documentId !== documentId || request.revision !== revision) invalidate()
       documentId = request.documentId
       revision = request.revision
-      const replaced = latest.get(request.task.kind)
+      const key =
+        role === 'results' ? JSON.stringify([request.task.kind, request.scope]) : request.task.kind
+      const replaced = latest.get(key)
       if (replaced !== undefined) cancel(replaced)
-      const context: ComputationContext = {
+      const context: TransportContext = {
         requestId: ++sequence,
         documentId,
         revision,
         category: request.task.kind
       }
-      return new Promise<ComputationResult>((resolve, reject) => {
+      return new Promise<TransportResult>((resolve, reject) => {
         const abort = () => cancel(context.requestId)
         const deadline = performance.now() + timeoutMs
         const timer = setTimeout(() => failTransport(timeoutError(context)), timeoutMs)
         pending.set(context.requestId, {
           context,
+          key,
           resolve,
           reject,
           timer,
@@ -357,7 +411,7 @@ export function createRuntimeWithTransport(
           signal: requestOptions.signal,
           abort
         })
-        latest.set(context.category, context.requestId)
+        latest.set(key, context.requestId)
         requestOptions.signal?.addEventListener('abort', abort, { once: true })
         try {
           if (!transport) {

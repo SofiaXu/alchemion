@@ -132,6 +132,18 @@ select 拾取原子/键并保留源映射。pick-point 点击几何时返回表�
 
 切换工具、load、clear 会清理临时交互。源修订清测量；仍有效的稳定实例选择可重新解析，无效选择会清除。晶胞、倒易/BZ 和交互辅助图形不参与主原子/键拾取。默认拖动旋转、滚轮缩放。
 
+## 计算结果和图层
+
+每个 Viewer 的 `results` 接受本地 `File` 或文本，也可用 `register(result)` 注册[版本 1 结果](formats.md#计算结果读入)。导入返回结果快照，`get(id)` 返回隔离副本；`getState()` 和 `subscribe(listener)` 提供无大型采样缓冲的摘要、导入状态、图层状态、当前帧及拾取。
+
+`bind(id, { receipt?, frameId?, atomIds? })` 用文件初始结构或所选帧核对当前结构。只有最终几何时，应用 POSCAR 凭据须显式确认帧。可传入按结果顺序排列的源 ID，或用 `open(id, frameId?)` 建立独立结构。绑定受文档、晶胞、原子坐标与元素约束。文档切换需重新绑定，编辑后图层进入失配状态，恢复到相容几何可重新显示。`remove(id)` 释放已注册结果。
+
+`setFrame(id, frameId, { continuous? })` 选择预览帧；无参调用退出。预览保留源快照和历史，退出后可编辑源结构。连续播放使用当前帧晶胞度量和有界展开缓存。宿主调度播放和图表交互。
+
+`addLayer(spec)` 返回图层 ID，`updateLayer(id, patch)` 和 `removeLayer(id)` 操作同一层。类型包括 `surface`、`slice`、`atomic`、`comparison`、`vibration`、`fermi` 和 `k-point`。可按类型指定阈值、平面、配色及色标、第二场、原子筛选、矢量比例、配对、相位或 k 点。不同结果的对比需要显式原子配对。第二场来自其他结果时也须配准到当前帧。通过 `interactionMode: 'pick-result'` 拾取图层，读取坐标系、物理量、值、单位和可用的源原子 ID。
+
+`getViewState({ includeResults: true })` 返回版本 2 视图。它包含版本 1 的相机与选项，以及图层配置和各结果的 SHA-256 引用。`validatePortableViewState` 校验任一版本，`restoreViewState` 接受任一版本。恢复缺失数据的图层会等待重新导入和配准。无参 `getViewState()` 继续生成版本 1。PNG 采集当前已提交的图层和有单位的图例。
+
 ## 无画布编辑控制器
 
 [`createEditorController(options?)`](../../packages/alchemion/src/viewer/runtime/controller.ts) 返回 `EditorController`，拥有与 Viewer 相同的源事务、历史和独立计算运行时，不创建画布。选项 `EditorControllerOptions` 包含：

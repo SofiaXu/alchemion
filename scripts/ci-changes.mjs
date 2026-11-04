@@ -44,6 +44,19 @@ const tooling = has(
   /^(package\.json|pnpm-(lock|workspace)\.yaml|\.node-version|tsconfig.*|eslint\.config\.mjs|vitest\.config\.ts)$/
 )
 const shared = tasks || tooling || harness || has(/^tests\/shared\//)
+const calculationPaths = [
+  /^(?:docs\/|README\.md$|apps\/demo\/|pnpm-lock\.yaml$)/,
+  /^packages\/alchemion\/(?:package\.json$|THIRD_PARTY_NOTICES\.md$|src\/core\/(?:calculation|result-(?:geometry|structure)|construction-periodic|derivation|bonds|index)\.ts$)/,
+  /^packages\/alchemion\/src\/core\/__tests__\/(?:calculation|result-(?:grid|structure))\.test\.ts$/,
+  /^packages\/alchemion\/src\/formats\/(?:calculation\/|poscar\/|(?:contracts|index)\.ts$)/,
+  /^packages\/alchemion\/src\/viewer\/(?:results\/|backend\/(?:result-layer|three|capture)\.ts$|runtime\/(?:computation-worker|modeling-runtime|protocol|runtime|task)\.ts$|(?:index|internal-contracts|options|types|view-state|viewer)\.ts$|__tests__\/presentation\.test\.ts$)/,
+  /^tests\/(?:viewer\/main\.ts$|consumer\/main\.ts$|fixtures\/calculation\/|(?:viewer|demo|package)\.spec\.ts$)/,
+  /^scripts\/ci-changes\.mjs$/
+]
+const calculationDelivery =
+  has(
+    /^packages\/alchemion\/src\/(?:core\/calculation\.ts|formats\/calculation\/|viewer\/results\/)/
+  ) && changed.every((file) => calculationPaths.some((pattern) => pattern.test(file)))
 const modelingPaths = [
   /^(?:docs\/|README\.md$|apps\/demo\/)/,
   /^packages\/alchemion\/(?:THIRD_PARTY_NOTICES\.md$|src\/(?:core\/|viewer\/(?:index\.ts$|runtime\/)))/,
@@ -109,22 +122,33 @@ if (process.argv.includes('--scope')) {
     demo,
     package: pkg,
     viewer,
-    runtime_grep: modelingDelivery
-      ? '@features|public sync/worker scientific tasks agree'
-      : featureDelivery
-        ? '@features'
-        : '@workspace',
-    viewer_grep:
-      modelingDelivery || featureDelivery
+    runtime_grep: calculationDelivery
+      ? 'public sync/worker scientific tasks agree|real-worker late replies'
+      : modelingDelivery
+        ? '@features|public sync/worker scientific tasks agree'
+        : featureDelivery
+          ? '@features'
+          : '@workspace',
+    viewer_grep: calculationDelivery
+      ? '@calculation-results|atom and bond identities|decoded 4K PNG alpha'
+      : modelingDelivery || featureDelivery
         ? '@features|derived-instance edits, selection retention'
         : '@workspace',
-    demo_grep: modelingDelivery
-      ? '@modeling|@real-crystals'
-      : featureDelivery
-        ? '@features'
-        : '@demo',
-    package_grep: modelingDelivery ? '@modeling' : featureDelivery ? '@features' : '@package',
-    dev_smoke: demo && !featureDelivery && !modelingDelivery,
+    demo_grep: calculationDelivery
+      ? '@calculation-results'
+      : modelingDelivery
+        ? '@modeling|@real-crystals'
+        : featureDelivery
+          ? '@features'
+          : '@demo',
+    package_grep: calculationDelivery
+      ? '@calculation-results'
+      : modelingDelivery
+        ? '@modeling'
+        : featureDelivery
+          ? '@features'
+          : '@package',
+    dev_smoke: demo && !calculationDelivery && !featureDelivery && !modelingDelivery,
     base
   }
   if (process.env.GITHUB_OUTPUT)
@@ -141,12 +165,12 @@ if (process.argv.includes('--scope')) {
     for (const file of walk(directory)) if (file.endsWith('.test.ts')) tests.add(file)
   }
   const core = 'packages/alchemion/src/core/'
-  if (tooling) addDirectory('packages/alchemion/src')
+  if (tooling && !calculationDelivery) addDirectory('packages/alchemion/src')
   for (const file of changed) {
     if (file.startsWith('packages/alchemion/src/formats/')) {
       const section = file.split('/')[4]
       addDirectory(
-        (featureDelivery || modelingDelivery) && section.includes('.')
+        (featureDelivery || modelingDelivery || calculationDelivery) && section.includes('.')
           ? 'packages/alchemion/src/formats/poscar'
           : section.includes('.')
             ? 'packages/alchemion/src/formats'
@@ -189,7 +213,9 @@ if (process.argv.includes('--scope')) {
         file
       )
     )
-      addDirectory('packages/alchemion/src/viewer/runtime/__tests__')
+      if (calculationDelivery)
+        tests.add('packages/alchemion/src/viewer/runtime/__tests__/runtime.test.ts')
+      else addDirectory('packages/alchemion/src/viewer/runtime/__tests__')
     else if (
       /^packages\/alchemion\/src\/viewer\//.test(file) &&
       !(

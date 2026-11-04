@@ -1,5 +1,7 @@
 import { DEFAULT_OPTIONS, immutable, mergeOptions, validateCamera } from './options'
 import type { PngExportOptions, ViewerViewState } from './types'
+import { validateResultViewLayers } from './results/spec'
+import type { ViewerResultViewState } from './results/types'
 
 /** Validate the whole portable configuration before touching the live viewer. */
 export function validateViewState(value: unknown): ViewerViewState {
@@ -28,6 +30,15 @@ export function validateViewState(value: unknown): ViewerViewState {
     camera: structuredClone(input.camera),
     options: mergeOptions(DEFAULT_OPTIONS, input.options)
   })
+}
+
+export function validatePortableViewState(value: unknown): ViewerViewState | ViewerResultViewState {
+  const input = value as ViewerResultViewState
+  if (input?.version !== 2) return validateViewState(value)
+  if (Object.keys(input).some((key) => !['version', 'camera', 'options', 'layers'].includes(key)))
+    throw new TypeError('RESULT_VIEW: unknown portable result view fields.')
+  const base = validateViewState({ version: 1, camera: input.camera, options: input.options })
+  return immutable({ ...base, version: 2, layers: validateResultViewLayers(input.layers) })
 }
 
 export function pngOptions(input: PngExportOptions, width: number, height: number) {

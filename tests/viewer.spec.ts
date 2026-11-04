@@ -4,6 +4,31 @@ import type { ViewerHarnessApi } from './viewer/main'
 
 const browserErrors = new WeakMap<Page, string[]>()
 
+test('@workspace @calculation-results independent layers, picking, stale replies and restoration', async ({
+  page
+}) => {
+  const state = await page.evaluate(() => window.viewerHarness.calculationLayers())
+  expect(state.layers.map(({ status }) => status)).toEqual(['ready', 'ready'])
+  expect(state.layers[0].spec.threshold).toBe(0.75)
+  expect(state.layers[1].spec.opacity).toBe(0.8)
+  await expect(page.locator('[data-alchemion-result-legend]')).toHaveCount(2)
+  await click(page, [1, 1, 2])
+  await expect
+    .poll(() => page.evaluate(() => window.viewerHarness.calculationState().pick?.unit))
+    .toBe('Å⁻³')
+  const lifecycle = await page.evaluate(() => window.viewerHarness.calculationLifecycle())
+  expect(lifecycle.picked).toMatchObject({
+    resultId: 'layer-fixture',
+    frameId: 'initial',
+    datasetId: 'density'
+  })
+  expect(lifecycle.lost).toEqual(['waiting', 'waiting'])
+  expect(lifecycle.edited).toEqual(['incompatible', 'incompatible'])
+  expect(lifecycle.undo).toBe(lifecycle.revision + 2)
+  expect(lifecycle.afterCancel).toEqual(['waiting', 'waiting'])
+  released(lifecycle.resources)
+})
+
 // Real browser interaction validates the public viewer boundary independently
 // of numerical unit tests and the headless runtime suite.
 test.beforeEach(async ({ page }) => {

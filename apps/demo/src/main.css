@@ -221,6 +221,35 @@ a:focus-visible {
 .tool-panel button {
   margin-top: 9px;
 }
+#result-chart-plots canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #dce5e8;
+}
+#result-chart-plots canvas[data-chart='energy'],
+#result-chart-plots canvas[data-chart='bands'],
+#result-chart-plots canvas[data-chart='spectrum'] {
+  cursor: crosshair;
+}
+#result-import-status,
+#result-binding-status,
+#result-layer-status {
+  display: block;
+  margin: 8px 0;
+  font-size: 12px;
+}
+#result-import-status[data-state='error'],
+#result-layer-status[data-state='error'] {
+  color: #a32632;
+}
+#result-layer-status[data-state='incompatible'],
+#result-layer-status[data-state='waiting'] {
+  color: #8e5d10;
+}
+#result-mapping-preview {
+  white-space: pre-line;
+}
 .stage {
   display: flex;
   flex-direction: column;

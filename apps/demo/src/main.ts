@@ -28,11 +28,13 @@ import { crystalSample, molecularSample } from './samples'
 import { markup } from './ui'
 import { appendFeatureTools, installFeatures, renderFeatures } from './features'
 import { appendModelingTools, installModeling } from './modeling'
+import { appendResultTools, installResultTools } from './results'
 import './main.css'
 
 document.querySelector<HTMLElement>('#app')!.innerHTML = markup
 appendFeatureTools()
 appendModelingTools()
+appendResultTools()
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T
 const value = (id: string) =>
   el<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id).value
@@ -68,6 +70,8 @@ let usedAtomIds = new Set<string>()
 let collected: BondEndpoint[] = []
 let lastExport: { fingerprint: string; options: WriteOptions; result: WriteResult } | undefined
 let candidateSignature = ''
+let renderResults = () => {}
+let resultsPending = false
 
 class InputError extends Error {
   constructor(readonly key: Message) {
@@ -133,7 +137,7 @@ function status() {
     ? `${tr(source.kind)} · ${source.atoms.length} ${tr('atoms')} · ${tr('revision')} ${state?.revision}`
     : ''
   const busy = reading || state?.status === 'computing'
-  disable('cancel', !busy)
+  disable('cancel', !busy && !resultsPending)
   disable('undo', !state?.canUndo || busy)
   disable('redo', !state?.canRedo || busy)
   disable('recompute', !source || busy)
@@ -165,6 +169,7 @@ function invalidateExport() {
   el('export-mapping').textContent = ''
   disable('accept-loss', true)
   disable('download-export', true)
+  disable('download-poscar-receipt', true)
   disable('reimport-export', true)
   showDiagnostics()
 }
@@ -257,6 +262,7 @@ function language() {
   status()
   showDiagnostics()
   inspect()
+  renderResults()
   const placeholder = el<HTMLSelectElement>('block-select').options[0]
   if (placeholder?.value === '') placeholder.textContent = tr('chooseBlock')
 }
@@ -442,6 +448,7 @@ function checkExport(accept = false) {
   // from hard format requirements. A hard error must never offer an override.
   disable('accept-loss', !!result.text || !onlyLossErrors(result.diagnostics) || accept)
   disable('download-export', !result.text)
+  disable('download-poscar-receipt', !result.poscarReceipt)
   disable('reimport-export', !result.text)
   showDiagnostics()
   return !!result.text
@@ -501,6 +508,7 @@ try {
       status()
       showDiagnostics()
       inspect()
+      renderResults()
     } else if (event.type === 'selection') {
       selection = event.selection
       selectedInstance =
@@ -792,6 +800,11 @@ action('download-export', () => {
     current.options.format === 'poscar' ? 'POSCAR' : `alchemion.${current.options.format}`
   )
 })
+action('download-poscar-receipt', () => {
+  const receipt = currentExport().result.poscarReceipt
+  if (!receipt) throw new InputError('exportChanged')
+  download(new Blob([json(receipt)], { type: 'application/json' }), 'POSCAR.alchemion.json')
+})
 action('reimport-export', () => {
   const current = currentExport()
   resetCandidates()
@@ -836,6 +849,20 @@ installModeling({
     put('coordinate-frame', 'cartesian')
     put('atom-position', pickedPoint.join(' '))
     tab('edit')
+  }
+})
+renderResults = installResultTools({
+  signal: lifetime.signal,
+  viewer: () => viewer,
+  action,
+  form,
+  on,
+  run,
+  vector,
+  pending(next) {
+    if (next === resultsPending) return
+    resultsPending = next
+    status()
   }
 })
 status()

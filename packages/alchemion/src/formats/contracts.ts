@@ -1,3 +1,4 @@
+import type { PoscarExportReceipt } from '../core/calculation'
 import type { AtomId, BondEndpoint, Diagnostic, StructureSnapshot } from '../core/types'
 
 export type BlockSelector = { readonly name: string } | { readonly index: number }
@@ -45,4 +46,5 @@ export interface WriteResult {
   readonly text?: string
   readonly diagnostics: readonly Diagnostic[]
   readonly atomMapping?: readonly ExportAtomMapping[]
+  readonly poscarReceipt?: PoscarExportReceipt
 }

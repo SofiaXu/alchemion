@@ -24,6 +24,8 @@ import type {
 
 export interface DerivationOptions {
   readonly applySymmetry?: boolean
+  /** False preserves source images for continuous trajectory previews. */
+  readonly wrapFractional?: boolean
   readonly neighborCells?: readonly Vec3[]
   readonly cutoff?:
     | { readonly kind: 'none' }
@@ -296,7 +298,8 @@ export function deriveStructure(
     !options ||
     typeof options !== 'object' ||
     (options.inferBonds !== undefined && typeof options.inferBonds !== 'boolean') ||
-    (options.applySymmetry !== undefined && typeof options.applySymmetry !== 'boolean')
+    (options.applySymmetry !== undefined && typeof options.applySymmetry !== 'boolean') ||
+    (options.wrapFractional !== undefined && typeof options.wrapFractional !== 'boolean')
   )
     return failure('DERIVATION_OPTIONS', 'Invalid structure derivation options.')
   if (
@@ -308,8 +311,14 @@ export function deriveStructure(
     return failure('CUTOFF_KIND', 'Unknown cutoff kind.')
   if (snapshot.kind === 'molecular' && options.cutoff?.kind === 'bond')
     return failure('MOLECULAR_PERIODIC_OPTIONS', 'Bond cutoff requires a periodic structure.')
+  if (options.wrapFractional === false && options.cutoff?.kind === 'bond')
+    return failure(
+      'CONTINUOUS_CUTOFF',
+      'Unwrapped display requires a view without primary-cell cutoffs.'
+    )
   const instances = deriveInstances(snapshot, {
     applySymmetry: options.applySymmetry,
+    wrapFractional: options.wrapFractional,
     neighborCells: options.neighborCells,
     cutoff: options.cutoff?.kind === 'bond' ? undefined : options.cutoff
   })

@@ -1,5 +1,6 @@
 export { createViewer } from './viewer'
-export { validateViewState } from './view-state'
+export { validateViewState, validatePortableViewState } from './view-state'
+export type * from './results/types'
 export { createModelingRuntime } from './runtime/modeling-runtime'
 export type { ModelingRequest, ModelingPreview, ModelingRuntime } from './runtime/modeling-runtime'
 export type { ModelingTask } from './runtime/modeling-task'
