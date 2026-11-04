@@ -1,13 +1,15 @@
 # formats API
 
-`alchemion/formats` 在文本与科学源结构之间转换，不读取文件、不下载文件，也不创建 DOM 或 Worker。[公开入口](../../packages/alchemion/src/formats/index.ts)只提供四个函数及本文列出的类型；完整签名以入口导出的声明为准。科学字段的支持范围以[产品格式矩阵](../product.md)为准，单位和身份规则见[领域规范](../domain.md)。
+`alchemion/formats` 提供文本与科学源结构之间的转换，以及由调用者提供文本的计算结果解析。[公开入口](../../packages/alchemion/src/formats/index.ts)的声明为完整签名，科学字段的支持范围以[产品格式矩阵](../product.md)为准，单位和身份规则见[领域规范](../domain.md)。
 
 ```ts
 import {
   parseStructure,
   writeStructure,
   parseCifDocument,
-  writeCifDocument
+  writeCifDocument,
+  parseCalculationResult,
+  parseNebImages
 } from 'alchemion/formats'
 import type { ParseOptions, WriteOptions } from 'alchemion/formats'
 ```
@@ -17,7 +19,7 @@ import type { ParseOptions, WriteOptions } from 'alchemion/formats'
 | 函数                                                                                 | 参数与结果                                                                                                                                                                                      |
 | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`parseStructure(text, options)`](../../packages/alchemion/src/formats/index.ts)     | 输入文本及必需的 `ParseOptions`，返回 `ParseResult`：可选 `structure`、必有 `diagnostics`，CIF 需要选择时另有 `candidates`。只接受显式 `format: 'cif' \| 'mol' \| 'poscar'`，不按扩展名猜格式。 |
-| [`writeStructure(snapshot, options)`](../../packages/alchemion/src/formats/index.ts) | 输入 `StructureSnapshot` 及必需的 `WriteOptions`，返回 `WriteResult`：可选 `text`、必有 `diagnostics`，MOL 可带 `atomMapping`。写出前先验证源结构。                                             |
+| [`writeStructure(snapshot, options)`](../../packages/alchemion/src/formats/index.ts) | 输入 `StructureSnapshot` 及必需的 `WriteOptions`，返回 `WriteResult`，含可选 `text`、必有 `diagnostics`、适用时的 `atomMapping` 和 POSCAR 凭据。写出前先验证源结构。                            |
 
 这些函数不返回 `ScientificResult`；先检查 `structure` 或 `text` 是否存在，再使用结果。失败由 error 诊断说明，成功也可能有 warning/info。`Diagnostic` 类型从 `alchemion/core` 导入，包含严重级别、稳定代码、说明、上下文及可用的行列定位。宿主负责呈现诊断，不能只把所有结果都当成字符串。
 
@@ -76,13 +78,34 @@ MOL 读取单个分子的 V2000 或 V3000，包括元素、Å 坐标、电荷、
 | `MolWriteOptions`    | `{ format: 'mol', version?: 'V2000' \| 'V3000', allowLoss?: boolean, finite?: MolFiniteSelection }`；版本默认 `V3000`。 |
 | `PoscarWriteOptions` | `{ format: 'poscar', allowLoss?: boolean }`。                                                                           |
 | `WriteOptions`       | 上述三种选项的判别联合。                                                                                                |
-| `WriteResult`        | `{ text?, diagnostics, atomMapping? }`；只有实际生成的文本才出现在 `text` 中。                                          |
+| `WriteResult`        | `{ text?, diagnostics, atomMapping?, poscarReceipt? }`；只有实际生成的文本才出现在 `text` 中。                          |
 
 CIF1/2 输出都以结构模型重新序列化，CIF2 输出带标准版本标识。MOL 不自动从 V2000 切换 V3000，不拆分或截断超限数据；V2000 原子和键各不超过 999，其他字段也必须可表示。CIF 结构编解码不承诺任意原文、未知字典或注释的无损编辑。
 
 POSCAR 仅输出有有效晶胞且非空的周期源。采用 VASP5 元素名/数量行、缩放因子 `1.0`、`Direct` 分数坐标，元素分组按源原子中首次出现顺序，组内保留原顺序。它不自动展开显示实例、不造真空晶胞、不接受部分或未知占位；输出可由上述导入接口重新读取，源 ID 不写入 POSCAR 文件。
 
 存在显式移动标志时，POSCAR 为分组后的每个原子写出对应标志，缺省项写成 `T T T`。CIF 和有限 MOL 对不能表达的移动约束走科学损失确认。MOL 能存储聚合物的展开拓扑，单元配方以 `MOL_POLYMER_RECIPE_LOSS` 诊断。
+
+成功写出 POSCAR 时，`poscarReceipt` 包含 `version: 1`、实际写出的晶胞，以及每行的一基 `fileAtomNumber`、源 `atomId`、元素和分数坐标。宿主可把凭据作为独立 JSON 与 POSCAR 一起保存，供计算结果配准使用。没有显式对称信息的周期源也提供以恒等端点表示的 `atomMapping`。
+
+## 计算结果读入
+
+`parseCalculationResult(text, options)` 和 `parseNebImages(images)` 返回 `ScientificResult<CalculationResult>`。调用者显式选择格式，可附文件名；文本按 UTF-8 计算 SHA-256，已对原始字节求散列的调用者可提供小写十六进制 `sha256`。结果和诊断含可用的文件、字段或行列信息。浏览器宿主可通过 [viewer 的结果入口](viewer.md)处理大文件和结果配准。
+
+| `CalculationParseOptions.format` | 当前子集                                                                                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chg`、`chgcar`                  | 一份 VASP5 几何，周期 FFT 网格的总密度和可选的共线自旋差。CHGCAR 按声明长度跳过 PAW 增广占据块。样本按 x 最快顺序存储，除以晶胞体积，单位 Å⁻³。                                                         |
+| `locpot`                         | 一份 VASP5 几何和一个周期标量电势网格，保留 eV 数值。                                                                                                                                                   |
+| `cube`                           | 单个标量或单轨道数据集，正的 Bohr 网格计数，外层 x、中层 y、内层 z。几何从 Bohr 转为 Å，数组改为 x 最快顺序，数值保留调用者明确提供的 `quantity` 和 `unit`。                                            |
+| `contcar`                        | VASP5 基础几何和 Selective Dynamics，沿用 [POSCAR 导入契约](#poscar-导入)。                                                                                                                             |
+| `xdatcar`                        | 固定晶胞、显式元素和编号递增的 Direct 帧。保留原分数坐标，步号来自文件。                                                                                                                                |
+| `vasprun`                        | 显式初始与逐步结构、离子步 TOTEN、同帧力、带线模式 k 路径的本征能，以及同一电子记录中的总 DOS、投影 DOS 和文件报告的费米能。`path` 可给每个文件 k 点提供可选 `label` 和 `breakBefore`，条目数量须匹配。 |
+| `outcar`                         | 由元素、晶胞和位置凭据识别的结构，末步力、`LORBIT` 投影电子布居和磁矩，以及 Γ 点振动模式。矢量磁矩要求可核对的 SAXIS 变换。可传 `reference` 核对文件中至少一个帧的元素顺序、晶胞和位置。                |
+| `alchemion-result`               | 版本 1 结果 JSON，保留原结果身份和来源并追加该 JSON 文件的来源。网格 `values` 使用普通 JSON 数组。                                                                                                      |
+
+`parseNebImages` 接收至少两条 `NebImageInput`，每条提供唯一非负整数 `image`、`text`、可选 `name` 和已知时的 `energyEv`。按图像编号排序，检查文件元素顺序与固定晶胞，并保留原文件的分数位置和移动标志。能量解释为对应几何的 VASP TOTEN。
+
+是否正常终止和是否收敛分别呈现。导入器只用文件的明确报告填入对应状态，缺少证据时为 `unknown`。配准由结果消费者使用源凭据和显式映射完成。
 
 ## 科学损失与有限 MOL
 
@@ -116,13 +139,14 @@ MOL 的 `WriteResult.atomMapping` 为 `ExportAtomMapping[]`。每项包含从 `1
 
 ## 公开类型索引
 
-| 声明来源                                                            | 导出类型及作用                                                                                     |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [读选项](../../packages/alchemion/src/formats/contracts.ts)         | `BlockSelector`、`CifParseOptions`、`MolParseOptions`、`PoscarParseOptions`、`ParseOptions`。      |
-| [写选项](../../packages/alchemion/src/formats/contracts.ts)         | `CifWriteOptions`、`MolFiniteSelection`、`MolWriteOptions`、`PoscarWriteOptions`、`WriteOptions`。 |
-| [结果](../../packages/alchemion/src/formats/contracts.ts)           | `ParseResult`、`ExportAtomMapping`、`WriteResult`。                                                |
-| [文档版本与位置](../../packages/alchemion/src/formats/cif/types.ts) | `CifVersion`（`'1' \| '2'`）、`CifLocation`（行列及可选 offset）。                                 |
-| [文档值和条目](../../packages/alchemion/src/formats/cif/types.ts)   | `CifValue`（scalar、unknown、not-applicable、list、table）、`CifTag`、`CifEntry`（item 或 loop）。 |
-| [文档容器与结果](../../packages/alchemion/src/formats/cif/types.ts) | `CifSaveFrame`、`CifDataBlock`、`CifDocument`、`CifDocumentResult`。                               |
+| 声明来源                                                              | 导出类型及作用                                                                                     |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [读选项](../../packages/alchemion/src/formats/contracts.ts)           | `BlockSelector`、`CifParseOptions`、`MolParseOptions`、`PoscarParseOptions`、`ParseOptions`。      |
+| [写选项](../../packages/alchemion/src/formats/contracts.ts)           | `CifWriteOptions`、`MolFiniteSelection`、`MolWriteOptions`、`PoscarWriteOptions`、`WriteOptions`。 |
+| [结果](../../packages/alchemion/src/formats/contracts.ts)             | `ParseResult`、`ExportAtomMapping`、`WriteResult`。                                                |
+| [结果导入](../../packages/alchemion/src/formats/calculation/index.ts) | `CalculationParseOptions`、`NebImageInput`，结果和 POSCAR 凭据类型来自 `alchemion/core`。          |
+| [文档版本与位置](../../packages/alchemion/src/formats/cif/types.ts)   | `CifVersion`（`'1' \| '2'`）、`CifLocation`（行列及可选 offset）。                                 |
+| [文档值和条目](../../packages/alchemion/src/formats/cif/types.ts)     | `CifValue`（scalar、unknown、not-applicable、list、table）、`CifTag`、`CifEntry`（item 或 loop）。 |
+| [文档容器与结果](../../packages/alchemion/src/formats/cif/types.ts)   | `CifSaveFrame`、`CifDataBlock`、`CifDocument`、`CifDocumentResult`。                               |
 
 `parseCifStructure`、`writeCifStructure`、MOL/POSCAR 专用实现和有限转换辅助函数不从正式子路径公开；通过统一入口调用，避免深层导入。

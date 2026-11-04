@@ -1,7 +1,14 @@
 import { cartesianToFractional, cellVolume, createCell } from '../../core/cell'
 import { getElement } from '../../core/data'
 import { createStructureSnapshot } from '../../core/structure'
-import type { Diagnostic, Matrix3, Mobility, PeriodicAtom, Vec3 } from '../../core/types'
+import type {
+  Diagnostic,
+  Matrix3,
+  Mobility,
+  PeriodicAtom,
+  PeriodicStructureSnapshot,
+  Vec3
+} from '../../core/types'
 import type { ParseResult } from '../contracts'
 
 const numeric = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][+-]?\d+)?$/
@@ -11,14 +18,50 @@ const tokens = (line: string): string[] =>
   line.split(/[!#]/, 1)[0].trim().split(/\s+/).filter(Boolean)
 
 /** VASP5 geometry and Direct mobility. Unmodelled scientific sections are hard failures. */
-export function parsePoscarStructure(text: string): ParseResult {
+export function parsePoscarStructure(text: string, maxAtoms = Infinity): ParseResult {
   const lines = text.replace(/^\uFEFF/, '').split(/\r\n?|\n/)
+  let index = 0
+  const parsed = parsePoscarGeometry(() => lines[index++], maxAtoms)
+  if (!parsed.structure) return parsed
+  const trailing = lines.findIndex((line, i) => i >= index && line.trim().length > 0)
+  if (trailing < 0) return parsed
+  return {
+    diagnostics: [
+      ...parsed.diagnostics,
+      {
+        severity: 'error',
+        code: /^\s*[lL]/.test(lines[trailing])
+          ? 'POSCAR_LATTICE_VELOCITIES_UNSUPPORTED'
+          : 'POSCAR_TRAILING_DATA_UNSUPPORTED',
+        message:
+          'Velocities, predictor-corrector and other trailing scientific sections are not represented by the structure model.',
+        sourceLocation: { line: trailing + 1, column: 1 },
+        context: { format: 'poscar', field: 'trailingData' }
+      }
+    ]
+  }
+}
+
+/** Read one geometry prefix. The result reader owns any following format-specific blocks. */
+export function parsePoscarGeometry(
+  next: () => string | undefined,
+  maxAtoms = Infinity
+): {
+  readonly structure?: PeriodicStructureSnapshot
+  readonly diagnostics: readonly Diagnostic[]
+} {
+  const lines: string[] = []
+  for (let i = 0; i < 8; i++) {
+    const line = next()
+    if (line === undefined) break
+    lines.push(line)
+  }
   const diagnostics: Diagnostic[] = []
-  const fail = (code: string, message: string, line: number, field?: string): ParseResult => ({
+  const fail = (code: string, message: string, line: number, field?: string) => ({
     diagnostics: [
       ...diagnostics,
       {
-        severity: 'error',
+        severity: 'error' as const,
         code,
         message,
         context: { format: 'poscar', ...(field ? { field } : {}) },
@@ -115,7 +158,7 @@ export function parsePoscarStructure(text: string): ParseResult {
     )
   const selective = /^[sS]/.test(tokens(lines[7])[0] ?? '')
   const modeIndex = selective ? 8 : 7
-  const mode = tokens(lines[modeIndex] ?? '')[0]?.toLowerCase()
+  const mode = tokens((selective ? next() : lines[modeIndex]) ?? '')[0]?.toLowerCase()
   if (!mode || !/^[dck]/.test(mode))
     return fail(
       'POSCAR_COORDINATE_MODE',
@@ -125,13 +168,16 @@ export function parsePoscarStructure(text: string): ParseResult {
     )
   const cartesian = /^[ck]/.test(mode)
   const total = counts.reduce((sum, value) => sum + value, 0)
+  if (total > maxAtoms)
+    return fail('POSCAR_ATOM_BUDGET', 'The structure exceeds the result atom budget.', 7, 'counts')
   const atoms: PeriodicAtom[] = []
   let group = 0,
     groupEnd = counts[0]
   for (let index = 0; index < total; index++) {
     const lineIndex = index + modeIndex + 1
     const lineNumber = lineIndex + 1
-    if (lines[lineIndex] === undefined || !lines[lineIndex].trim())
+    const line = next()
+    if (line === undefined || !line.trim())
       return fail(
         'POSCAR_TRUNCATED',
         'The coordinate section contains fewer atom records than declared.',
@@ -139,7 +185,7 @@ export function parsePoscarStructure(text: string): ParseResult {
         'coordinates'
       )
     while (index >= groupEnd) groupEnd += counts[++group]
-    const fields = tokens(lines[lineIndex])
+    const fields = tokens(line)
     const values = fields.slice(0, 3).map(number)
     if (values.length !== 3 || !values.every(Number.isFinite))
       return fail(
@@ -194,18 +240,6 @@ export function parsePoscarStructure(text: string): ParseResult {
       occupancy: { kind: 'known', value: 1, provenance: { source: 'POSCAR', version: 'VASP5' } }
     })
   }
-  const trailing = lines.findIndex(
-    (line, index) => index >= total + modeIndex + 1 && line.trim().length > 0
-  )
-  if (trailing >= 0)
-    return fail(
-      /^\s*[lL]/.test(lines[trailing])
-        ? 'POSCAR_LATTICE_VELOCITIES_UNSUPPORTED'
-        : 'POSCAR_TRAILING_DATA_UNSUPPORTED',
-      'Velocities, predictor-corrector and other trailing scientific sections are not represented by the structure model.',
-      trailing + 1,
-      'trailingData'
-    )
   const created = createStructureSnapshot({
     kind: 'periodic',
     title: lines[0],
@@ -217,5 +251,8 @@ export function parsePoscarStructure(text: string): ParseResult {
     }
   })
   if (!created.ok) return { diagnostics: [...diagnostics, ...created.diagnostics] }
-  return { structure: created.value, diagnostics: [...diagnostics, ...created.diagnostics] }
+  return {
+    structure: created.value as PeriodicStructureSnapshot,
+    diagnostics: [...diagnostics, ...created.diagnostics]
+  }
 }

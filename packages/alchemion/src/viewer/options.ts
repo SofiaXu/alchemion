@@ -89,6 +89,7 @@ export function mergeOptions(current: ViewerOptions, patch: Partial<ViewerOption
       'select',
       'box-select',
       'pick-point',
+      'pick-result',
       'measure-distance',
       'measure-angle',
       'measure-torsion'

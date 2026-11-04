@@ -21,6 +21,8 @@ import type { AtomInstance, BondEndpoint, ScientificResult, StructureSnapshot, V
 export interface InstanceOptions {
   /** False displays only actual identity operations, without changing source symmetry. */
   readonly applySymmetry?: boolean
+  /** False preserves source images for continuous trajectory previews. */
+  readonly wrapFractional?: boolean
   readonly neighborCells?: readonly Vec3[]
   readonly cutoff?: { readonly kind: 'none' } | { readonly kind: 'fraction'; readonly width: Vec3 }
 }
@@ -113,7 +115,8 @@ export function deriveInstances(
   if (
     !options ||
     typeof options !== 'object' ||
-    (options.applySymmetry !== undefined && typeof options.applySymmetry !== 'boolean')
+    (options.applySymmetry !== undefined && typeof options.applySymmetry !== 'boolean') ||
+    (options.wrapFractional !== undefined && typeof options.wrapFractional !== 'boolean')
   )
     return failure('DERIVATION_OPTIONS', 'Instance options must be an object.')
   const cells = selectedCells(options.neighborCells)
@@ -131,6 +134,11 @@ export function deriveInstances(
     (!isFiniteVector(fraction) || fraction.some((value) => value < 0))
   )
     return failure('CUTOFF_FRACTION', 'Fraction cutoff widths must be finite and nonnegative.')
+  if (fraction && options.wrapFractional === false)
+    return failure(
+      'CONTINUOUS_CUTOFF',
+      'Unwrapped display requires a view without primary-cell cutoffs.'
+    )
   const ids = new Set<string>()
   for (const atom of snapshot.atoms) {
     if (!atom || typeof atom.id !== 'string' || !atom.id || ids.has(atom.id))
@@ -194,7 +202,10 @@ export function deriveInstances(
       const raw = applySymmetry(operation, atom.fractional)
       if (!isFiniteVector(raw))
         return failure('COORDINATE_OVERFLOW', 'Symmetry operation overflowed.', { atomId: atom.id })
-      const wrapOffset = raw.map(Math.floor) as unknown as Vec3
+      const wrapOffset: Vec3 =
+        options.wrapFractional === false
+          ? [0, 0, 0]
+          : [Math.floor(raw[0]), Math.floor(raw[1]), Math.floor(raw[2])]
       if (!isIntegerVector(wrapOffset))
         return failure('COORDINATE_RANGE', 'Source normalization exceeds exact integer range.', {
           atomId: atom.id

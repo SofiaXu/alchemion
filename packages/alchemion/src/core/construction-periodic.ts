@@ -49,7 +49,7 @@ export function periodicDistance(
   cutoff: number,
   budget: DistanceBudget,
   excludeUntranslated = false,
-  nearestImage?: { offset?: Vec3 }
+  nearestImage?: { offset?: Vec3; ambiguous?: boolean }
 ): number | undefined {
   const reach = fractionalReach(inverse, cutoff)
   const lower = reach.map((width, axis) => Math.ceil(delta[axis] - width - 1e-12))
@@ -63,9 +63,18 @@ export function periodicDistance(
         if (excludeUntranslated && x === 0 && y === 0 && z === 0) continue
         const offset: Vec3 = [x, y, z]
         const distance = norm(multiplyMatrixVector(basis, subtract(delta, offset)))
+        const tied =
+          nearestImage &&
+          Number.isFinite(nearest) &&
+          Math.abs(distance - nearest) <= 64 * Number.EPSILON * Math.max(distance, nearest)
         if (distance < nearest) {
           nearest = distance
-          if (nearestImage) nearestImage.offset = offset
+          if (nearestImage) {
+            nearestImage.offset = offset
+            nearestImage.ambiguous = !!tied
+          }
+        } else if (tied) {
+          nearestImage.ambiguous = true
         }
       }
   return nearest

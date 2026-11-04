@@ -1,7 +1,9 @@
-import { validateStructure } from '../../core'
+import { validateStructure } from '../../core/structure'
 import { ALL_MOVABLE } from '../../core/mobility'
+import { IDENTITY_OPERATION } from '../../core/symmetry'
+import type { PoscarExportReceipt } from '../../core/calculation'
 import type { Diagnostic, StructureSnapshot } from '../../core/types'
-import type { PoscarWriteOptions, WriteResult } from '../contracts'
+import type { ExportAtomMapping, PoscarWriteOptions, WriteResult } from '../contracts'
 import { hasErrors, inheritedLossDiagnostics, lossDiagnostic } from '../loss'
 
 export { parsePoscarStructure } from './reader'
@@ -105,11 +107,36 @@ export function writePoscarStructure(
     ...(selective ? ['Selective dynamics'] : []),
     'Direct'
   ]
+  const receiptAtoms: PoscarExportReceipt['atoms'][number][] = []
+  const atomMapping: ExportAtomMapping[] = []
   for (const atoms of groups.values())
     for (const atom of atoms) {
       const coordinate = atom.fractional.map(String).join(' ')
       const flags = (atom.movable ?? ALL_MOVABLE).map((value) => (value ? 'T' : 'F')).join(' ')
       lines.push(selective ? `${coordinate} ${flags}` : coordinate)
+      const fileAtomNumber = receiptAtoms.length + 1
+      receiptAtoms.push({
+        fileAtomNumber,
+        atomId: atom.id,
+        element: atom.element,
+        fractional: [...atom.fractional]
+      })
+      if (!snapshot.symmetry)
+        atomMapping.push({
+          fileAtomNumber,
+          exportAtomId: `poscar:atom:${fileAtomNumber}`,
+          source: {
+            sourceAtomId: atom.id,
+            symmetryOperationId: IDENTITY_OPERATION.id,
+            integerCellOffset: [0, 0, 0]
+          }
+        })
     }
-  return { text: `${lines.join('\n')}\n`, diagnostics }
+  const [a, b, c] = snapshot.cell.basis
+  return {
+    text: `${lines.join('\n')}\n`,
+    diagnostics,
+    ...(atomMapping.length ? { atomMapping } : {}),
+    poscarReceipt: { version: 1, cell: { basis: [[...a], [...b], [...c]] }, atoms: receiptAtoms }
+  }
 }

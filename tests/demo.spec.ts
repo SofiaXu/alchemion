@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 import type { CameraPose, ViewerViewState } from 'alchemion/viewer'
-import type { CoordinationResult } from 'alchemion/core'
+import type { CalculationResult, CoordinationResult, StructureSnapshot } from 'alchemion/core'
 import { crystalSample, molecularSample } from '../apps/demo/src/samples'
 import { readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
+import { gunzipSync } from 'node:zlib'
 
 type Triple = readonly [number, number, number]
 const browserErrors = new WeakMap<Page, string[]>()
@@ -86,6 +87,21 @@ async function loadCrystal(page: Page) {
   await page.locator('#import-button').click()
   await ready(page)
   expect((await summary(page)).kind).toBe('periodic')
+}
+
+async function openCalculationResult(page: Page, result: CalculationResult) {
+  await tab(page, 'results')
+  await page.locator('#result-format').selectOption('alchemion-result')
+  await page.locator('#result-file').setInputFiles({
+    name: 'analytical.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(result))
+  })
+  await page.locator('#result-import').click()
+  await expect(page.locator('#result-import-status')).toHaveAttribute('data-state', 'ready')
+  await page.locator('#result-open').click()
+  await ready(page)
+  await expect(page.locator('#result-binding-status')).toHaveAttribute('data-state', 'bound')
 }
 
 // Experimental COD inputs, kept byte-for-byte with references and independent
@@ -712,6 +728,361 @@ test('@demo @features damaged and unavailable view storage preserves data and fa
   await page.locator('#save-view').click()
   await expect(page.locator('#view-storage-notice')).toContainText('page only')
   await expect(page.locator('#view-slot option')).toHaveCount(1)
+})
+
+test('@demo @calculation-results POSCAR receipt binds real density, restores layers and diagnoses edited geometry', async ({
+  page
+}) => {
+  await open(page)
+  const density = gunzipSync(await readFile('tests/fixtures/calculation/CHGCAR.nospin.gz'))
+  const poscar = Buffer.from(density.toString('utf8').split(/\r?\n/).slice(0, 9).join('\n') + '\n')
+  await page
+    .locator('#file-input')
+    .setInputFiles({ name: 'POSCAR', mimeType: 'text/plain', buffer: poscar })
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '1')
+  await ready(page)
+  const original = await summary(page)
+
+  await preview(page, 'poscar')
+  await acceptLossIfPresent(page)
+  const receiptEvent = page.waitForEvent('download')
+  await page.locator('#download-poscar-receipt').click()
+  const receipt = await receiptEvent
+  const receiptBytes = await readFile((await receipt.path())!)
+  expect(JSON.parse(receiptBytes.toString('utf8')).atoms).toMatchObject([
+    { fileAtomNumber: 1, element: 'Li', fractional: [0, 0, 0] }
+  ])
+
+  const uploadResult = async (buffer: Buffer) => {
+    await page
+      .locator('#result-file')
+      .setInputFiles({ name: 'CHGCAR', mimeType: 'text/plain', buffer })
+    await page.locator('#result-import').click()
+  }
+  const bind = async () => {
+    const details = page.locator('#result-binding-fields')
+    if ((await details.getAttribute('open')) === null) await details.locator('summary').click()
+    await page.locator('#result-receipt').setInputFiles({
+      name: receipt.suggestedFilename(),
+      mimeType: 'application/json',
+      buffer: receiptBytes
+    })
+    await page.locator('#result-bind').click()
+    await expect(page.locator('#result-binding-status')).toHaveAttribute('data-state', 'bound')
+  }
+  await tab(page, 'results')
+  await uploadResult(density)
+  await expect(page.locator('#result-import-status')).toHaveAttribute('data-state', 'ready')
+  expect(await summary(page)).toEqual(original)
+  await bind()
+  await page.locator('#result-threshold').fill('0.045')
+  await page.locator('#result-add-layer').click()
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'ready')
+  await page.locator('#result-layer-kind').selectOption('slice')
+  await page.locator('#result-plane-point').fill('0 0 0.6')
+  await page.locator('#result-add-layer').click()
+  await expect(page.locator('#result-layer-choice option')).toHaveCount(2)
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'ready')
+  await expect(
+    page.locator('#viewer [data-alchemion-result-legend]').filter({ hasText: '1/Å³' })
+  ).toHaveCount(2)
+
+  await tab(page, 'export')
+  await page.locator('#image-width').fill('640')
+  await page.locator('#image-height').fill('480')
+  await page.locator('#image-transparent').check()
+  await page.evaluate(() => {
+    const context = CanvasRenderingContext2D.prototype
+    const fillText = context.fillText
+    context.fillText = function (text, x, y, maxWidth) {
+      if (this.canvas.width === 640 && this.canvas.height === 480 && text.includes('1/Å³'))
+        document.documentElement.dataset.capturedResultLegend = text
+      if (maxWidth === undefined) fillText.call(this, text, x, y)
+      else fillText.call(this, text, x, y, maxWidth)
+    }
+  })
+  const pngEvent = page.waitForEvent('download')
+  await page.locator('#download-png').click()
+  const png = await readFile((await (await pngEvent).path())!)
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([640, 480])
+  await expect(page.locator('html')).toHaveAttribute('data-captured-result-legend', /1\/Å³/)
+
+  await tab(page, 'display')
+  const viewEvent = page.waitForEvent('download')
+  await page.locator('#download-view').click()
+  const view = await readFile((await (await viewEvent).path())!)
+  expect(JSON.parse(view.toString('utf8'))).toMatchObject({
+    version: 2,
+    layers: [
+      { spec: { kind: 'surface', threshold: 0.045 } },
+      { spec: { kind: 'slice', plane: { point: [0, 0, 0.6] } } }
+    ]
+  })
+  await tab(page, 'results')
+  await uploadResult(poscar)
+  await expect(page.locator('#result-import-status')).toHaveAttribute('data-state', 'error')
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'ready')
+  expect(await summary(page)).toEqual(original)
+
+  await tab(page, 'edit')
+  await page.locator('#atom-rows tr button').click()
+  await page.locator('#coordinate-frame').selectOption('fractional')
+  await page.locator('#atom-position').fill('0.12 0 0')
+  await page.locator('#apply-atom').click()
+  await ready(page)
+  await tab(page, 'results')
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'incompatible')
+
+  await page.reload()
+  await ready(page)
+  await page
+    .locator('#file-input')
+    .setInputFiles({ name: 'POSCAR', mimeType: 'text/plain', buffer: poscar })
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '1')
+  await ready(page)
+  await tab(page, 'display')
+  await page.locator('#import-view').setInputFiles({
+    name: 'result-view.json',
+    mimeType: 'application/json',
+    buffer: view
+  })
+  await tab(page, 'results')
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'waiting')
+  await uploadResult(density)
+  await expect(page.locator('#result-import-status')).toHaveAttribute('data-state', 'ready')
+  await bind()
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'ready')
+})
+
+test('@demo @calculation-results energy curve selects a frame and bands select a reciprocal marker', async ({
+  page
+}) => {
+  await open(page)
+  const structure: StructureSnapshot = {
+    kind: 'periodic',
+    cell: {
+      basis: [
+        [4, 0, 0],
+        [1, 4, 0],
+        [0, 0, 4]
+      ]
+    },
+    atoms: [{ id: 'Si1', element: 'Si', fractional: [0, 0, 0] }],
+    bonds: []
+  }
+  const result: CalculationResult = {
+    version: 1,
+    id: 'analytical-demo',
+    termination: 'completed',
+    convergence: 'unknown',
+    sources: [{ name: 'Analytical reference', format: 'generated', sha256: '0'.repeat(64) }],
+    initialFrameId: 'first',
+    frames: [
+      { id: 'first', step: 1, energyEv: -5, structure },
+      {
+        id: 'last',
+        step: 2,
+        energyEv: -6,
+        structure: { ...structure, atoms: [{ id: 'Si1', element: 'Si', fractional: [0.2, 0, 0] }] }
+      }
+    ],
+    data: [
+      {
+        id: 'bands',
+        frameId: 'first',
+        kind: 'bands',
+        quantity: 'band-energy',
+        unit: 'eV',
+        fermi: { value: 2, source: 'Analytical reference' },
+        points: [
+          { fractional: [0, 0, 0], label: 'Γ' },
+          { fractional: [0.5, 0, 0], label: 'X' },
+          { fractional: [0, 0.5, 0], label: 'Y', breakBefore: true },
+          { fractional: [0, 0.5, 0.5], label: 'T' }
+        ],
+        bands: [{ band: 1, energies: [1.5, 2, 2.2, 2.8] }]
+      },
+      {
+        id: 'dos',
+        frameId: 'first',
+        kind: 'dos',
+        quantity: 'density-of-states',
+        unit: 'states/eV',
+        fermi: { value: 2, source: 'Analytical reference' },
+        energies: [1, 2, 3],
+        series: [{ label: 'total', values: [0, 1, 0] }]
+      }
+    ]
+  }
+  await openCalculationResult(page, result)
+  const initial = await summary(page)
+
+  const energyPlot = page.locator('#result-chart-plots canvas[data-chart=energy]')
+  const box = (await energyPlot.boundingBox())!
+  await energyPlot.click({ position: { x: box.width * 0.95, y: box.height * 0.4 } })
+  await expect(page.locator('#result-frame')).toHaveValue('last')
+  await expect(page.locator('#result-exit-preview')).toBeEnabled()
+  await page.locator('#result-exit-preview').click()
+  await ready(page)
+  expect(await summary(page)).toEqual(initial)
+  await page.locator('#result-frame').selectOption('first')
+  await expect(page.locator('#result-chart-plots canvas[data-chart=bands]')).toBeVisible()
+  await expect(page.locator('#result-chart-plots canvas[data-chart=dos]')).toBeVisible()
+  await page.locator('#result-energy-basis').selectOption('2')
+  await page.locator('#result-k-index').selectOption('2')
+  await expect(page.locator('#result-layer-choice option')).toContainText('Reciprocal k point')
+  await expect(page.locator('#result-layer-status')).toHaveAttribute('data-state', 'ready')
+  await expect(page.locator('#show-bz')).toBeChecked()
+})
+
+test('@demo @calculation-results comparison, atom picking, mode playback and Fermi layers share the workbench', async ({
+  page
+}) => {
+  await open(page)
+  const structure: Extract<StructureSnapshot, { kind: 'periodic' }> = {
+    kind: 'periodic',
+    cell: {
+      basis: [
+        [4, 0, 0],
+        [0, 4, 0],
+        [0, 0, 4]
+      ]
+    },
+    atoms: [
+      { id: 'Si1', element: 'Si', fractional: [0.05, 0.05, 0.05] },
+      { id: 'O1', element: 'O', fractional: [0.55, 0.55, 0.55] }
+    ],
+    bonds: []
+  }
+  const step = Math.PI / 8
+  await openCalculationResult(page, {
+    version: 1,
+    id: 'analytical-layers',
+    sources: [{ name: 'Analytical reference', format: 'generated', sha256: '1'.repeat(64) }],
+    termination: 'completed',
+    convergence: 'unknown',
+    initialFrameId: 'reference',
+    frames: [
+      { id: 'reference', structure },
+      {
+        id: 'relaxed',
+        structure: {
+          ...structure,
+          atoms: structure.atoms.map((atom) => ({
+            ...atom,
+            fractional: [atom.fractional[0] + 0.1, atom.fractional[1], atom.fractional[2]] as const
+          }))
+        }
+      }
+    ],
+    data: [
+      {
+        id: 'forces',
+        frameId: 'reference',
+        kind: 'atomic',
+        quantity: 'force',
+        unit: 'eV/Å',
+        vector: 'polar',
+        values: [[0.2, 0, 0], null]
+      },
+      {
+        id: 'phonons',
+        frameId: 'reference',
+        kind: 'vibration',
+        quantity: 'mode-frequency',
+        unit: 'THz',
+        modes: [
+          {
+            id: 'stretch',
+            frequencyThz: 12,
+            imaginary: false,
+            real: [
+              [1, 0, 0],
+              [-1, 0, 0]
+            ]
+          },
+          {
+            id: 'bend',
+            frequencyThz: 2,
+            imaginary: true,
+            real: [
+              [0, 1, 0],
+              [0, -1, 0]
+            ]
+          }
+        ]
+      },
+      {
+        id: 'grid-up-1',
+        frameId: 'reference',
+        kind: 'fermi-grid',
+        quantity: 'band energy',
+        unit: 'eV',
+        spin: 'up',
+        band: 1,
+        fermi: { value: 0, source: 'Analytical reference' },
+        grid: {
+          origin: [0, 0, 0],
+          steps: [
+            [step, 0, 0],
+            [0, step, 0],
+            [0, 0, step]
+          ],
+          dimensions: [4, 4, 4],
+          periodic: [true, true, true],
+          values: Array.from({ length: 64 }, (_, i) => [1, -1, -1, 1][i % 4])
+        }
+      }
+    ]
+  })
+  const initial = await summary(page)
+  const layerStatus = page.locator('#result-layer-status')
+  const selectedLayer = page.locator('#result-layer-choice option:checked')
+  const addLayer = async (kind: string, label: string) => {
+    await page.locator('#result-layer-kind').selectOption(kind)
+    await page.locator('#result-add-layer').click()
+    await expect(selectedLayer).toContainText(label)
+    await expect(layerStatus).toHaveAttribute('data-state', 'ready')
+  }
+
+  await page.locator('#result-layer-kind').selectOption('comparison')
+  await page.locator('#result-target-frame').selectOption('relaxed')
+  await addLayer('comparison', 'Structure comparison')
+  await expect(layerStatus).toContainText('RMSD 0.40000 Å')
+  await page.locator('#result-toggle-layer').click()
+  await expect(layerStatus).toHaveAttribute('data-state', 'hidden')
+
+  await page.locator('#result-layer-kind').selectOption('atomic')
+  await page.locator('#result-labels').check()
+  await addLayer('atomic', 'Atomic property')
+  await expect(page.locator('#viewer').getByText('0.2000 eV/Å', { exact: true })).toBeVisible()
+  await page.locator('#result-pick').click()
+  await ready(page)
+  await clickAtom(page, [0.2, 0.2, 0.2])
+  await expect(page.locator('#result-pick-details')).toContainText('"atomId": "Si1"')
+  expect(await details(page, 'result-pick-details')).toMatchObject({
+    value: [0.2, 0, 0],
+    unit: 'eV/Å'
+  })
+
+  await addLayer('vibration', 'Vibration mode')
+  const spectrum = page.locator('#result-chart-plots canvas[data-chart=spectrum]')
+  await expect(spectrum).toBeVisible()
+  const box = (await spectrum.boundingBox())!
+  await spectrum.click({ position: { x: box.width * 0.95, y: box.height * 0.4 } })
+  await expect(page.locator('#result-mode')).toHaveValue('bend')
+  await expect(layerStatus).toContainText('illustrative phase')
+  await page.locator('#result-animate').click()
+  await expect(page.locator('#result-pause-animation')).toBeEnabled()
+  await page.locator('#result-pause-animation').click()
+  await expect(page.locator('#result-pause-animation')).toBeDisabled()
+  await page.locator('#result-stop-animation').click()
+  await expect(page.locator('#result-layer-choice option')).toHaveCount(2)
+
+  await addLayer('fermi', 'Fermi surface')
+  await expect(layerStatus).toContainText('E_F = 0 eV')
+  expect(await summary(page)).toEqual(initial)
 })
 
 test('@demo molecular file, display, all measurements, atomic edits, history and MOL roundtrip', async ({

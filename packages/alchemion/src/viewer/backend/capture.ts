@@ -9,6 +9,7 @@ export interface CaptureText {
   readonly scale: number
   readonly clip: ScreenRectangle
   readonly title?: boolean
+  readonly swatch?: readonly [string, string]
 }
 
 function aborted(): DOMException {
@@ -71,7 +72,19 @@ export async function encodePng(
         context.fillRect(left, top, width, scale)
       }
       context.fillStyle = item.color
-      context.fillText(item.text, left + paddingX, top + height / 2)
+      if (item.swatch) {
+        const ramp = context.createLinearGradient(left, top, left + 14 * scale, top)
+        ramp.addColorStop(0, item.swatch[0])
+        ramp.addColorStop(1, item.swatch[1])
+        context.fillStyle = ramp
+        context.fillRect(left, top, 14 * scale, height)
+        context.fillStyle = item.color
+      }
+      context.fillText(
+        item.text,
+        left + paddingX + (item.swatch ? 14 * scale : 0),
+        top + height / 2
+      )
       context.restore()
     }
     if (signal.aborted) throw aborted()

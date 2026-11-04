@@ -3,11 +3,19 @@ import { measureAngle, measureDistance, measureTorsion } from '../core/measureme
 import type { BrillouinZone } from '../core/brillouin-zone'
 import type { ReciprocalLattice } from '../core/reciprocal'
 import type { CoordinationResult } from '../core/coordination'
-import type { AtomInstance, DerivedStructure, Diagnostic, ScientificResult } from '../core/types'
+import type {
+  AtomInstance,
+  DerivedStructure,
+  Diagnostic,
+  ScientificResult,
+  StructureSnapshot
+} from '../core/types'
 import { createThreeBackend } from './backend/three'
 import { createRenderFrame } from './frame'
 import type { PointerModifiers } from './internal-contracts'
-import { pngOptions, validateViewState } from './view-state'
+import { pngOptions, validatePortableViewState } from './view-state'
+import { createViewerResults } from './results/controller'
+import type { ViewerResultViewState } from './results/types'
 import { createControllerWithRuntime } from './runtime/controller'
 import { createComputationRuntime } from './runtime/runtime'
 import { abortError, ComputationError } from './runtime/types'
@@ -27,7 +35,8 @@ import type {
   ViewerMeasurement,
   ViewerOptions,
   ViewerSelection,
-  ViewerState
+  ViewerState,
+  ViewerViewState
 } from './types'
 
 const cancelled = (error: unknown) => error instanceof Error && error.name === 'AbortError'
@@ -94,6 +103,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
   let measurePoints: AtomInstance[] = []
   let prepared: { derived: DerivedStructure; context: ComputationContext } | undefined
   let shown: typeof prepared
+  let resultPreview: { snapshot: StructureSnapshot; derived: DerivedStructure } | undefined
+  let resultPreviewRevision = 0
   let state: EditorState
   let sourceCalls = 0
   let sourceGeneration = 0
@@ -297,6 +308,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       changed: invalidateExport,
       contextLost() {
         if (disposed) return
+        results?.invalidate()
+        resultPreview = undefined
         invalidateFrame()
         viewFailure = [
           {
@@ -359,15 +372,17 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
             source.revision !== request.revision
           )
             throw abortError()
-          const key = `${request.documentId}:${request.revision}`
+          const displaySource = resultPreview?.snapshot ?? source.snapshot
+          const displayDerived = resultPreview?.derived ?? derived
+          const key = `${request.documentId}:${request.revision}${resultPreview ? ':preview:' + resultPreviewRevision : ''}`
           if (auxiliary?.key !== key) auxiliary = { key }
-          if (source.snapshot.kind === 'periodic') {
+          if (displaySource.kind === 'periodic') {
             if (
               (nextOptions.showReciprocalLattice || nextOptions.showBrillouinZone) &&
               !auxiliary.reciprocal
             ) {
               const result = await controller.compute(
-                { kind: 'reciprocal', cell: source.snapshot.cell },
+                { kind: 'reciprocal', cell: displaySource.cell },
                 { signal }
               )
               if (result.category !== 'reciprocal')
@@ -376,7 +391,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
             }
             if (nextOptions.showBrillouinZone && !auxiliary.zone) {
               const result = await controller.compute(
-                { kind: 'brillouin-zone', cell: source.snapshot.cell },
+                { kind: 'brillouin-zone', cell: displaySource.cell },
                 { signal }
               )
               if (result.category !== 'brillouin-zone')
@@ -386,8 +401,10 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
           }
           if (signal.aborted || sequence !== frameSequence || version !== viewRevision)
             throw abortError()
-          const availableCenters = new Set(source.snapshot.atoms.map((atom) => atom.id))
-          const centers = selectedSourceAtomIds.filter((id) => availableCenters.has(id))
+          const availableCenters = new Set(displaySource.atoms.map((atom) => atom.id))
+          const centers = resultPreview
+            ? []
+            : selectedSourceAtomIds.filter((id) => availableCenters.has(id))
           const analysisKey = JSON.stringify([key, centers, nextOptions.coordination.rules])
           if (analysisKey !== coordinationKey) {
             let analysis: CoordinationResult | undefined
@@ -412,7 +429,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
             coordinationDiagnostics = diagnostics
             coordinationKey = analysisKey
           }
-          const built = createRenderFrame(source.snapshot, derived, nextOptions, {
+          const built = createRenderFrame(displaySource, displayDerived, nextOptions, {
             ...(nextOptions.showReciprocalLattice ? { reciprocal: auxiliary.reciprocal } : {}),
             ...(nextOptions.showBrillouinZone ? { zone: auxiliary.zone } : {})
           })
@@ -429,9 +446,9 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
           if (signal.aborted || sequence !== frameSequence || version !== viewRevision)
             throw abortError()
           displayDiagnostics = built.diagnostics
-          shown = { derived, context: request }
+          shown = { derived: displayDerived, context: request }
           pendingCamera = undefined
-          restoreSelection(derived)
+          restoreSelection(displayDerived)
           if (signal.aborted || sequence !== frameSequence || version !== viewRevision)
             throw abortError()
           centerDocument = request.documentId
@@ -485,10 +502,50 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     throw error
   }
   state = controller.getState()
+  const results = createViewerResults(
+    {
+      scene: () => ({
+        ...context(),
+        source: state.snapshot,
+        display: resultPreview?.snapshot ?? state.snapshot,
+        derived: shown?.derived,
+        selected: selectedSourceAtomIds,
+        ready: getState().status === 'ready'
+      }),
+      load: (snapshot) => sourceOperation(() => controller.load(snapshot)),
+      deriveOptions: (snapshot) => derivationOptions(snapshot, options),
+      async showFrame(snapshot, derived, signal) {
+        if (!prepared)
+          throw new ComputationError('RESULT_NO_FRAME', 'A committed source frame is required.')
+        const previous = resultPreview
+        resultPreview = snapshot && derived ? { snapshot, derived } : undefined
+        const version = ++resultPreviewRevision
+        backend.clearResultLayers()
+        invalidateCoordination()
+        resetInteraction(false)
+        try {
+          await present(prepared.derived, prepared.context, signal)
+        } catch (error) {
+          if (version === resultPreviewRevision) resultPreview = previous
+          throw error
+        }
+      },
+      render: (layers, signal) => backend.setResultLayers(layers, signal),
+      clearGeometry: () => backend.clearResultLayers(),
+      enableReciprocal: async () => {
+        if (!options.showBrillouinZone)
+          await changePresentation(mergeOptions(options, { showBrillouinZone: true }))
+      }
+    },
+    { mode, timeoutMs }
+  )
   const unsubscribe = controller.subscribe((next) => {
     const previous = state
     state = next
     if (next.status === 'computing') {
+      resultPreview = undefined
+      resultPreviewRevision++
+      results?.sourceChanged(next.documentId !== previous.documentId)
       invalidateFrame()
       invalidateCoordination()
       viewCancelled = false
@@ -511,6 +568,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
       backend.clear()
       shown = undefined
       emit({ type: 'error', diagnostics: next.diagnostics, ...context() })
+    } else if (next.status === 'ready') {
+      void results?.refresh()
     }
     if (
       next.canUndo !== previous.canUndo ||
@@ -559,6 +618,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
         (error) => report(error, true)
       )
     publish()
+    if (!viewBusy) void results?.refresh()
   }
   function changeSelection(ids: readonly string[], modifiers?: PointerModifiers) {
     const next = new Set(selectedSourceAtomIds)
@@ -587,10 +647,14 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     if (disposed || getState().status !== 'ready' || !shown) return
     const mode = options.interactionMode
     if (mode === 'none') return
+    if (mode === 'pick-result') {
+      results?.pick(backend.pickResult(x, y))
+      return
+    }
     if (mode === 'pick-point') {
       const point = backend.point(x, y)
       if (!point) return
-      const snapshot = controller.getState().snapshot!
+      const snapshot = resultPreview?.snapshot ?? controller.getState().snapshot!
       const fractional =
         snapshot.kind === 'periodic'
           ? resultValue(cartesianToFractional(snapshot.cell, point.cartesian))
@@ -704,13 +768,35 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     else if (prepared) {
       try {
         await present(prepared.derived, prepared.context, new AbortController().signal)
+        void results?.refresh()
       } catch (error) {
         report(error, true)
         throw error
       }
     }
   }
+  function getViewState(): ViewerViewState
+  function getViewState(input: { readonly includeResults: true }): ViewerResultViewState
+  function getViewState(input?: {
+    readonly includeResults: true
+  }): ViewerViewState | ViewerResultViewState {
+    const base = { camera: backend.getCamera(), options }
+    return input?.includeResults
+      ? immutable({ version: 2, ...base, layers: results!.viewLayers() })
+      : immutable({ version: 1, ...base })
+  }
+  function edit(action: () => Promise<void>) {
+    if (results?.previewing)
+      return Promise.reject(
+        new ComputationError(
+          'RESULT_FRAME_PREVIEW',
+          'Exit the result frame preview to edit the source structure.'
+        )
+      )
+    return sourceOperation(action)
+  }
   return {
+    results: results.api,
     load: (snapshot) => sourceOperation(() => controller.load(snapshot)),
     getSnapshot: () => controller.getState().snapshot,
     getState,
@@ -739,20 +825,26 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     async setOptions(patch: Partial<ViewerOptions>) {
       await changePresentation(mergeOptions(options, patch))
     },
-    execute: (command) => sourceOperation(() => controller.execute(command)),
-    undo: () => sourceOperation(() => controller.undo()),
-    redo: () => sourceOperation(() => controller.redo()),
+    execute: (command) => edit(() => controller.execute(command)),
+    undo: () => edit(() => controller.undo()),
+    redo: () => edit(() => controller.redo()),
     cancel() {
+      if (disposed) return
+      const previewing = results?.previewing
       if (
-        disposed ||
         (viewCancelled && sourceCalls === 0) ||
-        (state.status !== 'computing' &&
+        (!previewing &&
+          state.status !== 'computing' &&
           !viewBusy &&
           sourceCalls === 0 &&
           waiters.size === 0 &&
           !activeExport)
-      )
+      ) {
+        if (results?.pending) results.invalidate()
         return
+      }
+      results?.invalidate()
+      resultPreview = undefined
       viewCancelled = true
       sourceGeneration++
       sourceCalls = 0
@@ -771,11 +863,12 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     },
     recompute: () => sourceOperation(() => controller.recompute()),
     getCamera: () => backend.getCamera(),
-    getViewState: () => immutable({ version: 1, camera: backend.getCamera(), options }),
+    getViewState,
     async restoreViewState(input) {
       open()
-      const next = validateViewState(input)
+      const next = validatePortableViewState(input)
       await changePresentation(next.options, next.camera)
+      if (next.version === 2) await results?.restore(next.layers)
     },
     async exportPng(input = {}) {
       open()
@@ -831,6 +924,8 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     },
     clear() {
       if (disposed) return
+      resultPreview = undefined
+      results?.sourceChanged(true)
       invalidateFrame()
       viewCancelled = false
       sourceGeneration++
@@ -853,6 +948,7 @@ export function createViewer(container: HTMLElement, initial: ViewerCreateOption
     dispose() {
       if (disposed) return
       disposed = true
+      results?.dispose()
       sourceGeneration++
       sourceCalls = 0
       invalidateFrame()

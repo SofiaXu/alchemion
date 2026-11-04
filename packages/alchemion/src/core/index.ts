@@ -71,3 +71,10 @@ export type {
   DocumentState,
   DocumentChange
 } from './editing'
+export {
+  CALCULATION_LIMITS,
+  validateCalculationResult,
+  registerResultFrame,
+  matchResultFrame
+} from './calculation'
+export type * from './calculation'

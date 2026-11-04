@@ -3,7 +3,7 @@ import { deriveStructure } from '../../core/bonds'
 import type { ScientificResult, StructureSnapshot } from '../../core/types'
 import { createRenderFrame } from '../frame'
 import { DEFAULT_OPTIONS, derivationOptions, mergeOptions, validateCamera } from '../options'
-import { pngOptions, validateViewState } from '../view-state'
+import { pngOptions, validatePortableViewState, validateViewState } from '../view-state'
 const value = <T>(result: ScientificResult<T>): T => {
   if (!result.ok) throw new Error(result.diagnostics[0].message)
   return result.value
@@ -26,6 +26,20 @@ describe('M5 presentation logic', () => {
     expect(result).toEqual(input)
     expect(result.options).not.toBe(input.options)
     expect(() => validateViewState({ ...input, version: 2 } as never)).toThrow('VIEW_STATE')
+    const layers = [
+      {
+        id: 'layer',
+        spec: { kind: 'surface', resultId: 'calculation', threshold: 1 },
+        sources: ['a'.repeat(64)]
+      }
+    ]
+    const v2 = validatePortableViewState({ ...input, version: 2, layers })
+    expect(v2).toMatchObject({ version: 2, layers })
+    layers[0].spec.threshold = 4
+    expect(v2).toMatchObject({ layers: [{ spec: { threshold: 1 } }] })
+    expect(() =>
+      validatePortableViewState({ ...input, version: 2, layers: [...layers, ...layers] })
+    ).toThrow('RESULT_VIEW')
     expect(() =>
       validateViewState({ ...input, options: { renderMode: 'ball-and-stick' } } as never)
     ).toThrow('VIEW_STATE')

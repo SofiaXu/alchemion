@@ -4,12 +4,14 @@ import type { CoordinationResult, CoordinationRule } from '../core/coordination'
 import type { Measurement } from '../core/measurements'
 import type { AtomInstance, DerivedBond, Diagnostic, StructureSnapshot, Vec3 } from '../core/types'
 import type { ComputationRuntimeOptions, EditorState } from './runtime/types'
+import type { ViewerResults, ViewerResultViewState } from './results/types'
 
 export type InteractionMode =
   | 'none'
   | 'select'
   | 'box-select'
   | 'pick-point'
+  | 'pick-result'
   | 'measure-distance'
   | 'measure-angle'
   | 'measure-torsion'
@@ -118,6 +120,7 @@ export type ViewerEvent =
     })
   | (ViewerEventContext & { readonly type: 'error'; readonly diagnostics: readonly Diagnostic[] })
 export interface Viewer {
+  readonly results: ViewerResults
   load(snapshot: StructureSnapshot): Promise<void>
   getSnapshot(): StructureSnapshot | undefined
   getState(): ViewerState
@@ -137,7 +140,8 @@ export interface Viewer {
   center(): void
   exportPng(options?: PngExportOptions): Promise<Blob>
   getViewState(): ViewerViewState
-  restoreViewState(state: ViewerViewState): Promise<void>
+  getViewState(options: { readonly includeResults: true }): ViewerResultViewState
+  restoreViewState(state: ViewerViewState | ViewerResultViewState): Promise<void>
   subscribe(listener: (event: ViewerEvent) => void): () => void
   clear(): void
   dispose(): void

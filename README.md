@@ -4,6 +4,8 @@ Alchemion 是面向晶体与分子结构的浏览器 TypeScript SDK，提供独�
 
 SDK 提供 `alchemion/core`、`alchemion/formats`、`alchemion/viewer` 三个公开入口，支持 CIF1/2、MOL V2000/V3000 和含 Selective Dynamics 的 VASP5 POSCAR 读写。结构工具覆盖晶体创建与对称、倒易晶格与第一布里渊区、测量与配位，以及[周期、分子和纳米建模](docs/api/modeling.md)。viewer 提供可取消的建模预览、撤销重做、PNG 导出和视图保存恢复。格式边界见[产品规范](docs/product.md)。
 
+[计算结果工作台](docs/demo.md#计算结果)可配准本地 VASP 和版本化结果，叠加等值面、切片、结构差异、原子属性、振动和费米面，并联动轨迹、频谱、能带及 DOS。
+
 ## 开始使用
 
 使用 [.node-version](.node-version) 固定的 Node **26.13.0** 和 [package.json](package.json) 固定的 pnpm **12.16.1**：

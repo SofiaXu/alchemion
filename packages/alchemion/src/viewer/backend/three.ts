@@ -48,6 +48,9 @@ import type { CameraPose } from '../types'
 import { attachPointerInteraction } from '../interaction/pointer'
 import { cylinderGeometry, instanceMaterial, sphereGeometry } from './geometry'
 import { encodePng, type CaptureText } from './capture'
+import { prepareResultDrawing, type ResultDrawing } from './result-layer'
+import type { RenderResultLayer } from '../results/controller'
+import type { ResultPick } from '../results/types'
 
 interface InstanceLayer {
   readonly group: Group
@@ -302,6 +305,8 @@ class ThreeBackend implements ViewerBackend {
   private readonly cylinderUp = new Vector3(0, 1, 0)
   private readonly color = new Color()
   private readonly labelsRoot: HTMLDivElement
+  private readonly resultScene = new Scene()
+  private readonly resultDrawings = new Map<string, ResultDrawing & { labels: readonly Label[] }>()
   private readonly performanceLabel: HTMLOutputElement
   private readonly pointerInteraction: ReturnType<typeof attachPointerInteraction>
   private layer?: InstanceLayer
@@ -551,6 +556,81 @@ class ThreeBackend implements ViewerBackend {
     }
   }
 
+  private resultInset(inset: Inset) {
+    return this.frame?.options.showBrillouinZone && inset === this.auxiliary?.insets.at(-1)
+  }
+
+  pickResult(x: number, y: number): ResultPick | undefined {
+    const insets = this.auxiliary?.insets ?? []
+    const inset = insets.at(-1)
+    let reciprocal = false
+    if (inset && this.resultInset(inset)) {
+      const rect = this.insetRectangle(this.width, this.height, insets.length - 1, insets.length)
+      if (x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height) {
+        this.pointer.set(((x - rect.x) / rect.width) * 2 - 1, 1 - ((y - rect.y) / rect.height) * 2)
+        this.raycaster.setFromCamera(this.pointer, inset.camera)
+        reciprocal = true
+      }
+    }
+    if (!reciprocal && !this.prepareRay(x, y)) return
+    const candidates = [...this.resultDrawings.values()].filter(
+      (drawing) => !!drawing.layer.geometry.reciprocal === reciprocal
+    )
+    const hit = this.raycaster.intersectObjects(
+      candidates.map((drawing) => drawing.group),
+      true
+    )[0]
+    if (hit)
+      return candidates.find((drawing) => drawing.group.children.includes(hit.object))?.read(hit)
+  }
+
+  async setResultLayers(layers: readonly RenderResultLayer[], signal: AbortSignal): Promise<void> {
+    this.assertActive()
+    if (signal.aborted || this.lost || !this.frame) throw aborted()
+    const next = new Map(layers.map((layer) => [layer.id, layer]))
+    if (
+      next.size === this.resultDrawings.size &&
+      [...next].every(([id, layer]) => this.resultDrawings.get(id)?.layer === layer)
+    )
+      return
+    for (const [id, drawing] of this.resultDrawings) {
+      if (next.get(id) !== drawing.layer) {
+        this.releaseResultDrawing(drawing)
+        this.resultDrawings.delete(id)
+      }
+    }
+    for (const layer of layers) {
+      if (this.resultDrawings.has(layer.id)) continue
+      const drawing = prepareResultDrawing(layer, this.canvas.ownerDocument)
+      const labels = drawing.glyphs
+        .filter((glyph) => glyph.label)
+        .slice(0, 256)
+        .map((glyph) => this.label(glyph.label!, glyph.position))
+      this.resultDrawings.set(layer.id, { ...drawing, labels })
+      const scene = layer.geometry.reciprocal ? this.resultScene : this.scene
+      scene.add(drawing.group)
+      for (const label of labels) this.labelsRoot.appendChild(label.node)
+      this.labelsRoot.appendChild(drawing.node)
+    }
+    this.callbacks.changed()
+    this.draw()
+    await this.gpuComplete(signal)
+  }
+
+  private releaseResultDrawing(drawing: ResultDrawing & { labels: readonly Label[] }) {
+    disposeTree(drawing.group)
+    drawing.node.remove()
+    for (const label of drawing.labels) label.node.remove()
+  }
+
+  clearResultLayers(): void {
+    if (!this.resultDrawings.size) return
+    for (const drawing of this.resultDrawings.values()) this.releaseResultDrawing(drawing)
+    this.resultDrawings.clear()
+    this.callbacks.changed()
+    if (!this.lost && !this.disposed) this.schedule()
+  }
+
   selectBox(rectangle: ScreenRectangle): readonly string[] {
     this.assertActive()
     const { x, y, width, height } = rectangle
@@ -626,6 +706,28 @@ class ThreeBackend implements ViewerBackend {
         this.captureLabel(texts, label, camera, fullRect, scale)
       if (this.interactionLabel)
         this.captureLabel(texts, this.interactionLabel, camera, fullRect, scale)
+      let legendIndex = 0
+      for (const drawing of this.orderedResultDrawings()) {
+        const rect = {
+          x: 8 * scale,
+          y: 8 * scale + 22 * scale * legendIndex++,
+          width: Math.min(width - 8 * scale, 450 * scale),
+          height: 20 * scale
+        }
+        texts.push({
+          text: drawing.legend,
+          color: '#172033',
+          x: rect.x,
+          y: rect.y,
+          clip: rect,
+          scale,
+          title: true,
+          swatch: drawing.colors
+        })
+        if (!drawing.layer.geometry.reciprocal)
+          for (const label of drawing.labels)
+            this.captureLabel(texts, label, camera, fullRect, scale)
+      }
       const insets = this.auxiliary?.insets ?? []
       for (let index = 0; index < insets.length; index++) {
         const inset = insets[index]
@@ -642,6 +744,13 @@ class ThreeBackend implements ViewerBackend {
         )
         renderer.clear(true, true, true)
         renderer.render(inset.scene, insetCamera)
+        if (this.resultInset(inset) && this.resultScene.children.length) {
+          renderer.render(this.resultScene, insetCamera)
+          for (const drawing of this.resultDrawings.values())
+            if (drawing.layer.geometry.reciprocal)
+              for (const label of drawing.labels)
+                this.captureLabel(texts, label, insetCamera, rect, scale)
+        }
         texts.push({
           text: inset.title.textContent ?? '',
           color: '#172033',
@@ -840,6 +949,7 @@ class ThreeBackend implements ViewerBackend {
     if (this.layer) disposeTree(this.layer.group)
     this.layer = undefined
     this.releaseAuxiliary()
+    this.clearResultLayers()
     this.releaseInteraction()
     if (this.coordinationGroup) disposeTree(this.coordinationGroup)
     this.coordinationGroup = undefined
@@ -1323,6 +1433,11 @@ class ThreeBackend implements ViewerBackend {
     camera.updateProjectionMatrix()
     camera.updateMatrixWorld(true)
   }
+  private orderedResultDrawings() {
+    return [...this.resultDrawings.values()].sort(
+      (a, b) => (a.layer.spec.order ?? 0) - (b.layer.spec.order ?? 0)
+    )
+  }
   private draw() {
     if (this.disposed || this.lost) return
     this.renderer.setScissorTest(false)
@@ -1332,6 +1447,15 @@ class ThreeBackend implements ViewerBackend {
     this.renderer.render(this.scene, this.camera)
     const fullRect = { x: 0, y: 0, width: this.width, height: this.height }
     for (const label of this.auxiliary?.labels ?? []) this.placeLabel(label, this.camera, fullRect)
+    for (const [index, drawing] of this.orderedResultDrawings().entries()) {
+      Object.assign(drawing.node.style, {
+        position: 'absolute',
+        left: '8px',
+        top: `${8 + 22 * index}px`
+      })
+      if (!drawing.layer.geometry.reciprocal)
+        for (const label of drawing.labels) this.placeLabel(label, this.camera, fullRect)
+    }
     if (this.interactionLabel) this.placeLabel(this.interactionLabel, this.camera, fullRect)
     const insets = this.auxiliary?.insets ?? []
     for (let index = 0; index < insets.length; index++) {
@@ -1345,6 +1469,12 @@ class ThreeBackend implements ViewerBackend {
       this.renderer.setClearColor(new Color().setRGB(0.965, 0.972, 0.99), 1)
       this.renderer.clear(true, true, true)
       this.renderer.render(inset.scene, inset.camera)
+      if (this.resultInset(inset) && this.resultScene.children.length) {
+        this.renderer.render(this.resultScene, inset.camera)
+        for (const drawing of this.resultDrawings.values())
+          if (drawing.layer.geometry.reciprocal)
+            for (const label of drawing.labels) this.placeLabel(label, inset.camera, rect)
+      }
       Object.assign(inset.title.style, {
         left: `${rect.x}px`,
         top: `${rect.y}px`,

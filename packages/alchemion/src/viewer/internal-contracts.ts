@@ -5,6 +5,8 @@ import type { CoordinationResult } from '../core/coordination'
 import type { AtomInstance, Cell, DerivedBond, Vec3 } from '../core/types'
 import type { ComputationContext } from './runtime/types'
 import type { CameraPose, ViewerOptions } from './types'
+import type { RenderResultLayer } from './results/controller'
+import type { ResultPick } from './results/types'
 
 export interface RenderAtom {
   readonly instance: AtomInstance
@@ -71,6 +73,9 @@ export interface ViewerBackend {
   commit(frame: RenderFrame, context: RenderContext, signal: AbortSignal): Promise<void>
   resize(width: number, height: number, dpr: number): void
   pick(x: number, y: number): BackendPick | undefined
+  pickResult(x: number, y: number): ResultPick | undefined
+  setResultLayers(layers: readonly RenderResultLayer[], signal: AbortSignal): Promise<void>
+  clearResultLayers(): void
   selectBox(rectangle: ScreenRectangle): readonly string[]
   exportPng(options: BackendPngOptions, signal: AbortSignal): Promise<Blob>
   point(

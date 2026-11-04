@@ -28,6 +28,8 @@
     "build:source": "tsc -p tsconfig.json && vite build && tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
+    "@noble/hashes": "2.0.1",
+    "saxes": "6.0.0",
     "three": "0.186.1"
   }
 }
