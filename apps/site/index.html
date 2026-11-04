@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#102c36" />
+    <meta
+      name="description"
+      content="Alchemion 是浏览器晶体与分子科研工作台和 TypeScript SDK，支持三维结构、建模、测量、计算结果和离线教学示例。"
+    />
+    <title>Alchemion · 晶体与分子科研工作台</title>
+    <link rel="icon" href="./mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">跳至正文</a>
+    <header class="header">
+      <div class="frame header-inner">
+        <a class="brand" href="./">
+          <img src="./mark.svg" width="35" height="35" alt="" />
+          Alchemion
+        </a>
+        <nav aria-label="主要导航">
+          <a href="#workflows">科研流程</a>
+          <a href="#sdk">SDK</a>
+          <a href="https://github.com/SofiaXu/alchemion">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="frame hero-inner">
+          <div>
+            <p class="eyebrow">BROWSER CRYSTALLOGRAPHY</p>
+            <h1 id="hero-title">晶体与分子<br />科研工作台</h1>
+            <p class="intro">
+              在浏览器里检查晶胞与对称性、构建结构、测量几何并浏览计算结果。用内置示例跟做，也可以打开自己的本地文件。
+            </p>
+            <div class="actions">
+              <a class="primary" href="./demo/">打开 Demo <span aria-hidden="true">↗</span></a>
+              <a
+                class="secondary"
+                href="https://github.com/SofiaXu/alchemion/blob/master/docs/demo.md"
+              >
+                阅读工作台指南
+              </a>
+            </div>
+            <p class="hero-note">中英双语 · 桌面 WebGL2 · 自带教学示例</p>
+          </div>
+
+          <figure class="plate">
+            <div class="plate-header">
+              <span>结构图 01</span>
+              <span>ORTHOGONAL CELL</span>
+            </div>
+            <svg
+              viewBox="0 0 540 410"
+              role="img"
+              aria-labelledby="cell-title cell-description"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <title id="cell-title">正交教学晶胞</title>
+              <desc id="cell-description">
+                正交晶胞的斜投影，含两个碳原子和两个氧原子显示实例。
+              </desc>
+              <defs>
+                <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <path d="M24 0H0V24" fill="none" stroke="#31515b" stroke-width="1" />
+                </pattern>
+                <radialGradient id="carbon" cx=".31" cy=".26" r=".77">
+                  <stop stop-color="#c4f2ea" />
+                  <stop offset=".51" stop-color="#68ada9" />
+                  <stop offset="1" stop-color="#2b6269" />
+                </radialGradient>
+                <radialGradient id="oxygen" cx=".31" cy=".26" r=".77">
+                  <stop stop-color="#fff0ce" />
+                  <stop offset=".5" stop-color="#e3a277" />
+                  <stop offset="1" stop-color="#a35443" />
+                </radialGradient>
+              </defs>
+              <path d="M24 30h492v350H24z" fill="url(#grid)" opacity=".62" />
+              <g transform="translate(8 15)">
+                <path d="M120 310 334 356 430 238 216 192Z" fill="#5ba1a2" opacity=".13" />
+                <path d="M334 356 430 238V65L334 183Z" fill="#6abcb9" opacity=".1" />
+                <path d="M120 137 334 183 430 65 216 19Z" fill="#9dd2cc" opacity=".1" />
+                <path
+                  d="M216 19v173m-96 118 96-118 214 46"
+                  fill="none"
+                  stroke="#739096"
+                  stroke-dasharray="6 6"
+                  stroke-width="1.4"
+                />
+                <circle cx="352.5" cy="126.25" r="25" fill="url(#carbon)" stroke="#a5d8cf" />
+                <circle cx="299" cy="114.75" r="23" fill="url(#oxygen)" stroke="#e9b598" />
+                <circle cx="197.5" cy="248.75" r="25" fill="url(#carbon)" stroke="#a5d8cf" />
+                <circle cx="251" cy="260.25" r="23" fill="url(#oxygen)" stroke="#e9b598" />
+                <path
+                  d="M120 310V137l96-118 214 46v173l-96 118-214-46m0-173 214 46 96-118m-96 118v173"
+                  fill="none"
+                  stroke="#b8dedb"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <g fill="#c2e2de" font-family="monospace" font-size="15">
+                  <text x="337" y="374">a</text>
+                  <text x="440" y="246">b</text>
+                  <text x="102" y="135">c</text>
+                </g>
+              </g>
+            </svg>
+            <figcaption>
+              <span>正交教学晶胞 · 投影示意</span>
+              <span class="legend"><span class="carbon">C</span><span class="oxygen">O</span></span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="workflows" class="frame section" aria-labelledby="workflow-title">
+        <p class="eyebrow">RESEARCH WORKFLOWS</p>
+        <h2 id="workflow-title">在工作台中完成一次研究流程</h2>
+        <div class="workflows">
+          <article>
+            <p class="number" aria-hidden="true">01</p>
+            <h3>导入与检查</h3>
+            <p>打开 CIF、MOL 或 POSCAR，旋转三维结构，检查原子来源、对称等价位置和第一布里渊区。</p>
+          </article>
+          <article>
+            <p class="number" aria-hidden="true">02</p>
+            <h3>测量与建模</h3>
+            <p>
+              测量距离、角度和有符号二面角。用表单预览超胞、薄层、缺陷等构型，确认后应用或撤销。
+            </p>
+          </article>
+          <article>
+            <p class="number" aria-hidden="true">03</p>
+            <h3>配准与导出</h3>
+            <p>配准本地计算结果，查看等值面、轨迹或能带与 DOS。导出前检查格式限制和数据损失。</p>
+          </article>
+        </div>
+        <a class="text-link" href="./demo/"
+          >打开工作台查看示例与教程 <span aria-hidden="true">→</span></a
+        >
+      </section>
+
+      <section id="sdk" class="sdk" aria-labelledby="sdk-title">
+        <div class="frame sdk-inner">
+          <div>
+            <p class="eyebrow">TYPESCRIPT SDK</p>
+            <h2 id="sdk-title">把结构工具集成到自己的应用</h2>
+            <p>
+              工作台通过三个公开模块使用 Alchemion。集成文档包含包构建、浏览器示例和资源释放方法。
+            </p>
+            <a
+              class="text-link"
+              href="https://github.com/SofiaXu/alchemion/blob/master/docs/getting-started.md"
+            >
+              阅读 SDK 快速开始 <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <dl>
+            <div>
+              <dt><code>alchemion/core</code></dt>
+              <dd>结构、晶体学与编辑事务</dd>
+            </div>
+            <div>
+              <dt><code>alchemion/formats</code></dt>
+              <dd>结构格式读写与计算结果导入</dd>
+            </div>
+            <div>
+              <dt><code>alchemion/viewer</code></dt>
+              <dd>三维显示、拾取与异步工作流</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+    </main>
+
+    <footer class="frame footer">
+      <strong>Alchemion</strong>
+      <nav aria-label="项目资源">
+        <a href="https://github.com/SofiaXu/alchemion/blob/master/docs/README.md">项目文档</a>
+        <a href="https://github.com/SofiaXu/alchemion/blob/master/LICENSE">MIT 许可</a>
+        <a href="./demo/generated/notices.txt">数据来源</a>
+      </nav>
+    </footer>
+  </body>
+</html>

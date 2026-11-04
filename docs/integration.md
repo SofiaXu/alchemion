@@ -108,6 +108,8 @@ window.addEventListener('pagehide', onPageHide)
 
 ## 构建和部署
 
+可通过[项目主页](https://sofiaxu.github.io/alchemion/)打开[在线工作台](https://sofiaxu.github.io/alchemion/demo/)。从源码构建或维护该站点见[开发指南](development.md#项目站点)。
+
 使用能处理 ESM、静态 `import.meta.url` 与模块 Worker 的构建器。Vite 生产构建例如：
 
 ```sh
@@ -132,4 +134,4 @@ pnpm test:package -- --prepared
 pnpm --dir apps/demo exec vite build --base=./ --outDir ../../.tmp/portable-demo
 ```
 
-`--prepared` 只复用本轮构建。第二条命令生成并验证真实 tarball；其路径和 SHA-256 记录在 `.tmp/package-inspection.json` 的 `archive` 和 `tarballSha256` 字段。第三条命令将相对路径 demo 构建到一个新的、空的输出目录；若使用其他目录，应相应修改命令。交付时把通过验证的同一 tarball、此 demo 目录和本说明 `docs/integration.md`（复制为 `INTEGRATION.md`）放入新目录，再将该目录内容压缩为 ZIP。解压后通过 HTTP 子目录检查工作台和 Worker，并核对 tarball 散列。构建产物不代表已经发布到 npm 或线上站点。
+`--prepared` 只复用本轮构建。第二条命令生成并验证真实 tarball；其路径和 SHA-256 记录在 `.tmp/package-inspection.json` 的 `archive` 和 `tarballSha256` 字段。第三条命令将相对路径 demo 构建到一个新的、空的输出目录；若使用其他目录，应相应修改命令。交付时把通过验证的同一 tarball、此 demo 目录和本说明 `docs/integration.md`（复制为 `INTEGRATION.md`）放入新目录，再将该目录内容压缩为 ZIP。解压后通过 HTTP 子目录检查工作台和 Worker，并核对 tarball 散列。

@@ -2,6 +2,8 @@
 
 Alchemion 提供浏览器 TypeScript SDK 和独立中英工作台。当前公开入口为 `alchemion/core`、`alchemion/formats`、`alchemion/viewer`，正式渲染后端为 Three.js。
 
+[项目主页](https://sofiaxu.github.io/alchemion/) · [在线工作台](https://sofiaxu.github.io/alchemion/demo/)
+
 ## 使用与接口
 
 | 文档                           | 内容                                                |
@@ -26,4 +28,4 @@ Alchemion 提供浏览器 TypeScript SDK 和独立中英工作台。当前公开
 | [数据来源](data-sources.md)  | 当前数据、样例、转换与许可             |
 | [未完成需求](plan/README.md) | 下一项任务及尚未实施的维护与验证工作   |
 
-运行目标是现代桌面 WebGL2；Node.js 只用于开发。Playwright WebKit 验证不能替代真实 Safari，软件驱动结果不能作为硬件性能结果。当前验证边界和后续任务分别见质量文档与计划索引。可打包产物不等于已经发布到 npm 或线上站点。
+运行目标是现代桌面 WebGL2；Node.js 只用于开发。Playwright WebKit 验证不能替代真实 Safari，软件驱动结果不能作为硬件性能结果。当前验证边界和后续任务分别见质量文档与计划索引。

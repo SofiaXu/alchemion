@@ -392,6 +392,19 @@ try {
       await sdk()
       await run(['--filter', '@alchemion/demo', 'build'])
       break
+    case 'site':
+      await sdk()
+      await run(['exec', 'vite', 'build', 'apps/site', '--base=./'])
+      await run([
+        '--filter',
+        '@alchemion/demo',
+        'build',
+        '--base=./',
+        '--outDir',
+        '../site/dist/demo',
+        '--emptyOutDir'
+      ])
+      break
     case 'typecheck':
       await sdk()
       await types()

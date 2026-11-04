@@ -76,6 +76,12 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 
 [交付 CI](../.github/workflows/ci.yml)在 Ubuntu 24.04 上使用同一固定 Node/pnpm、冻结安装和公共命令，按实际 diff 选择单元、构建/类型、runtime/viewer/demo、开发冒烟和真实消费者。变化的路径包括删除项，格式/lint 只检查仍存在的改动文件；文档归档不触发无关科学/格式或硬件重测。`ci:changes` 比较提交，不覆盖当前未提交工作区；本地审查须额外检查实际修改/新增文件。
 
+## 项目站点
+
+在仓库根执行 `pnpm build:site`，生成 `apps/site/dist`。目录根为项目主页，`demo/` 包含相对路径构建的工作台、模块 Worker、WASM 与来源声明。通过 HTTP 挂载该目录后，可从主页进入工作台核对资源路径。
+
+[发布工作流](../.github/workflows/pages.yml)在 `master` 上相关源码或构建配置变化时运行，也可手动触发。仓库 Pages 源设置为 GitHub Actions，工作流只上传 `apps/site/dist`。线上入口见[项目主页](https://sofiaxu.github.io/alchemion/)。
+
 ## 结果与临时产物
 
 | 输出                                 | 内容                                             |

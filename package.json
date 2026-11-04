@@ -10,6 +10,7 @@
     "dev": "node scripts/tasks.mjs dev",
     "demo": "node scripts/tasks.mjs dev",
     "build": "node scripts/tasks.mjs build",
+    "build:site": "node scripts/tasks.mjs site",
     "typecheck": "node scripts/tasks.mjs typecheck",
     "lint": "eslint .",
     "format:check": "prettier --check .",

@@ -6,6 +6,8 @@ SDK 提供 `alchemion/core`、`alchemion/formats`、`alchemion/viewer` 三个公
 
 [计算结果工作台](docs/demo.md#计算结果)可配准本地 VASP 和版本化结果，叠加等值面、切片、结构差异、原子属性、振动和费米面，并联动轨迹、频谱、能带及 DOS。
 
+[项目主页](https://sofiaxu.github.io/alchemion/) · [在线工作台](https://sofiaxu.github.io/alchemion/demo/)
+
 ## 开始使用
 
 使用 [.node-version](.node-version) 固定的 Node **26.13.0** 和 [package.json](package.json) 固定的 pnpm **12.16.1**：
@@ -16,7 +18,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Windows 本机已有 `.tools/pnpm.cmd` 时可用它调用固定工具。SDK 与 demo 可通过 `pnpm build` 构建；仓库外使用方式和完整示例见[快速开始](docs/getting-started.md)。当前仓库提供可打包产物，不表示已经发布到 npm 或线上站点。
+Windows 本机已有 `.tools/pnpm.cmd` 时可用它调用固定工具。SDK 与 demo 可通过 `pnpm build` 构建；仓库外使用方式和完整示例见[快速开始](docs/getting-started.md)。
 
 ## 文档
 
