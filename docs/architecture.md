@@ -42,6 +42,8 @@ SDK 以显式 `exports` 开放三个子路径，不提供根入口、CJS、内�
 
 `createComputationRuntime({ mode?, timeoutMs? })` 显式创建计算运行时，提供 `compute/invalidate/dispose`；默认 worker 模式和 30 秒超时，sync 模式使用同一 core 任务分派。首次计算才创建自有执行器；worker 模式下每个 runtime 独占一个模块 Worker，sync 模式不创建 Worker，不建设共享可变结构或嵌套 Worker 池。任务包括 derive、reciprocal、brillouin-zone、coordination，响应携带 requestId/documentId/revision/category、结果和诊断。
 
+`createModelingRuntime()` 复用请求、修订及超时协议，并独占一个按需创建的模块 Worker。失效或销毁时终止 Worker，使不可抢占的原生对称搜索也能取消。只有对称任务加载随包的 spglib WASM，纯核心不导入浏览器资产。工作台负责预览 viewer 的创建和释放，构建应用复用文档 store 的 ID 分配与历史。
+
 `createEditorController({ historyLimit?, mode?, timeoutMs?, derivation?, commit? })` 组合唯一 store 和 runtime，提供异步 `load/execute/undo/redo/recompute/compute`、同步 `cancel/clear/dispose/subscribe/getState`。辅助 `compute` 仅接受倒易/BZ 任务，与主派生共享 Worker，不改变主状态或历史。默认 `commit` 立即完成；宿主可传入接收派生结果、请求上下文和 AbortSignal 的回调，回调完成后才发布 ready。接口声明见[运行时类型](../packages/alchemion/src/viewer/runtime/types.ts)。
 
 源事务按顺序接受，不等待昂贵派生结束；同类派生采用 latest-wins。源快照、历史和 revision 只由控制器拥有，Worker 仅持有某次请求的输入和中间结果。renderer 仅拥有显示资源，不建立第二套历史或命令队列。

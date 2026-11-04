@@ -54,6 +54,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 
 ## 测试宿主、脚本与 CI
 
+建模浏览器路径使用 `--grep=@modeling`，真实 CIF 兼容回归使用 `--grep=@real-crystals`。`pnpm test:package -- --prepared --grep=@modeling` 使用本轮生产 SDK 验证真实 tarball 的对称 WASM 与释放。单元验证按相关文件或用例选择，CI 根据已识别的建模变更路由。
+
 | 位置                                                  | 用途                                                  |
 | ----------------------------------------------------- | ----------------------------------------------------- |
 | `tests/runtime`                                       | 无 canvas 的控制器/计算运行时浏览器宿主。             |
@@ -88,6 +90,8 @@ SDK 构建固定 `json: { stringify: true, namedExports: false }`，使科学/�
 结果保留首轮失败和后续修正的对应关系，失败、未运行、通过分开记录。采样输入或产物改变时不能拼成同一轮成绩。持久文档只保留当前能力、约束和方法；未完成任务进入[计划索引](plan/README.md)，原始日志留在 `.tmp` 或 CI artifacts。
 
 ## 独立参考与数据工具
+
+重建对称识别资产时，在临时目录检出 spglib `v2.6.0`，激活 Emscripten `4.0.23`，运行 `python scripts/spglib-wasm/build.py <spglib-checkout>`。脚本核对提交与编译器，更新浏览器资产、许可证及 SHA-256 清单。日常 SDK 构建使用已固定的资产并校验其散列。
 
 ### 源编辑定向归因
 

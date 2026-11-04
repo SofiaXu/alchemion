@@ -1,11 +1,14 @@
 import type { DerivationOptions } from '../../core/bonds'
 import type { BrillouinZone, BrillouinZoneOptions } from '../../core/brillouin-zone'
 import type { CoordinationOptions, CoordinationResult } from '../../core/coordination'
+import type { ConstructionResult } from '../../core/construction'
 import type { DocumentState, EditCommand } from '../../core/editing'
 import type { ReciprocalLattice } from '../../core/reciprocal'
 import type { Cell, DerivedStructure, Diagnostic, StructureSnapshot } from '../../core/types'
+import type { ModelingTask } from './modeling-task'
 
 export type ComputationTask =
+  | { readonly kind: 'construction'; readonly construction: ModelingTask }
   | {
       readonly kind: 'coordination'
       readonly snapshot: StructureSnapshot
@@ -41,6 +44,7 @@ export type ComputationResult = ComputationContext & {
     | { readonly category: 'reciprocal'; readonly value: ReciprocalLattice }
     | { readonly category: 'brillouin-zone'; readonly value: BrillouinZone }
     | { readonly category: 'coordination'; readonly value: CoordinationResult }
+    | { readonly category: 'construction'; readonly value: ConstructionResult }
   )
 export interface ComputationRuntimeOptions {
   readonly mode?: 'worker' | 'sync'
@@ -77,7 +81,7 @@ export interface EditorController {
   cancel(): void
   recompute(options?: DerivationOptions): Promise<void>
   compute(
-    task: Exclude<ComputationTask, { readonly kind: 'derive' }>,
+    task: Exclude<ComputationTask, { readonly kind: 'derive' | 'construction' }>,
     options?: { readonly signal?: AbortSignal }
   ): Promise<ComputationResult>
   subscribe(listener: (state: EditorState) => void): () => void

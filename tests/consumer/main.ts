@@ -265,7 +265,77 @@ async function features() {
   }
   return { ...result, released: resources.snapshot() }
 }
-window.consumerHarness = { headless, run, selection, removeFirst, finish, features }
+async function modeling() {
+  const { createModelingRuntime } = await import('alchemion/viewer')
+  const cell = core.createCell({ a: 4, b: 4, c: 4, alpha: 90, beta: 90, gamma: 90 })
+  if (!cell.ok) throw new Error('Invalid fcc fixture')
+  const initial = core.createCrystal({
+    cell: cell.value,
+    atoms: [{ id: 'C', element: 'C', fractional: [0, 0, 0] }],
+    symmetry: { spaceGroup: { hallNumber: 523 } }
+  })
+  if (!initial.ok) throw new Error(JSON.stringify(initial.diagnostics))
+  const runtime = createModelingRuntime()
+  const context = { documentId: 'fcc', revision: 0 }
+  const task = {
+    kind: 'symmetry',
+    source: initial.value.snapshot,
+    options: { output: 'primitive' }
+  } as const
+  try {
+    const packed = await runtime.preview({
+      documentId: 'packing',
+      revision: 0,
+      task: {
+        kind: 'packing',
+        options: {
+          components: [{ molecule: source('He1', 'He'), count: 1 }],
+          shape: cell.value,
+          density: 0.2,
+          minimumDistance: 1,
+          seed: 31
+        }
+      }
+    })
+    const cancelled = runtime.preview({ ...context, task }).catch((error: Error) => error.name)
+    const primitive = await runtime.preview({ ...context, revision: 1, task })
+    if (primitive.snapshot.kind !== 'periodic') throw new Error('Expected a primitive cell')
+    const standard = await runtime.preview({
+      ...context,
+      revision: 1,
+      task: {
+        kind: 'symmetry',
+        source: primitive.snapshot,
+        options: { output: 'standard', hallNumber: 523 }
+      }
+    })
+    const volume = core.cellVolume(primitive.snapshot.cell)
+    if (!volume.ok) throw new Error('Invalid primitive volume')
+    return {
+      packed: packed.stats.composition,
+      cancelled: await cancelled,
+      revision: primitive.revision,
+      hall: primitive.parameters.hallNumber,
+      itNumber: primitive.parameters.itNumber,
+      primitive: primitive.stats.atomCount,
+      volume: volume.value,
+      standard: standard.stats.atomCount,
+      atomOrigins: primitive.atoms[0].origins.length
+    }
+  } finally {
+    runtime.dispose()
+  }
+}
+window.consumerHarness = {
+  headless,
+  run,
+  selection,
+  removeFirst,
+  finish,
+  features,
+  modeling,
+  modelingResources: () => resources.snapshot()
+}
 declare global {
   interface Window {
     consumerHarness: {
@@ -275,6 +345,8 @@ declare global {
       removeFirst: typeof removeFirst
       finish: typeof finish
       features: typeof features
+      modeling: typeof modeling
+      modelingResources: () => ReturnType<typeof resources.snapshot>
     }
   }
 }

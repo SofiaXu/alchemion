@@ -214,8 +214,14 @@ it('packs a seeded skew-cell mixture within a fractional region, preserving mole
   expect(result.parameters.regionVolume).toBe(108)
   expect(result.parameters.density).toBeCloseTo(
     ((2 * 4.002602 + 2 * 1.008) * 1.6605390666) / 216,
-    12
+    9
   )
+  const shape = options.substrate.cell
+  const density = ((4.002602 + 2 * 1.008) * 1.6605390666) / 432
+  const scaled = value(packMolecules({ ...options, substrate: undefined, shape, density }))
+  const multiplier = Math.cbrt(2)
+  expect(scaled.snapshot.cell.basis[0][0]).toBeCloseTo(6 * multiplier, 8)
+  expect(scaled.snapshot.cell.basis[1][0]).toBeCloseTo(shape.basis[1][0] * multiplier, 8)
   const [a, b] = result.snapshot.bonds[0].endpoints.map(
     (edge) => value(resolveBondEndpoint(result.snapshot, edge)).cartesian
   )

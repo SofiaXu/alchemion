@@ -12,6 +12,7 @@ Alchemion 提供浏览器 TypeScript SDK 和独立中英工作台。当前公开
 | [core API](api/core.md)        | 结构模型、超胞、配位分析与同步编辑事务              |
 | [formats API](api/formats.md)  | CIF/MOL/POSCAR 读写、文档语法、诊断与损失           |
 | [viewer API](api/viewer.md)    | 选择、三维显示、PNG 与视图、事件和独立异步控制器    |
+| [建模 API](api/modeling.md)    | 构建选项、来源映射、事务与异步预览                  |
 
 ## 规范与维护
 

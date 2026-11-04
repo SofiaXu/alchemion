@@ -57,6 +57,8 @@ export interface PackingOptions {
   readonly components: readonly PackingComponent[]
   readonly totalMolecules?: number
   readonly cell?: Cell
+  /** Reference cell shape, scaled uniformly to the requested density. */
+  readonly shape?: Cell
   readonly density?: number
   readonly seed: number
   readonly minimumDistance: number
@@ -261,6 +263,15 @@ export function packMolecules(
     )
   if (density !== undefined && (!Number.isFinite(density) || density <= 0))
     return failure('PACKING_DENSITY', 'Density must be positive and finite.')
+  const { shape } = options
+  if (
+    shape !== undefined &&
+    (density === undefined || options.cell !== undefined || options.substrate !== undefined)
+  )
+    return failure(
+      'PACKING_CELL_CONFLICT',
+      'A scalable box shape requires target density and no fixed cell or substrate.'
+    )
   const counts = componentCounts(components, totalMolecules)
   if (!counts)
     return failure(
@@ -300,9 +311,20 @@ export function packMolecules(
   const insertedMass = molecules.reduce((sum, { mass, count }) => sum + mass * count, 0)
   const mass = substrateMass.value + insertedMass
   const side = Math.cbrt((mass * MASS_DENSITY_FACTOR) / (density ?? 1))
+  let scaled: Cell | undefined
+  if (shape !== undefined) {
+    const checked = createCell(shape)
+    if (!checked.ok) return checked
+    const volume = cellVolume(checked.value)
+    if (!volume.ok) return volume
+    const factor = side / Math.cbrt(volume.value)
+    const [a, b, c] = checked.value.basis
+    scaled = { basis: [scale(a, factor), scale(b, factor), scale(c, factor)] }
+  }
   const inputCell =
     substrate?.cell ??
     options.cell ??
+    scaled ??
     (density === undefined
       ? undefined
       : {

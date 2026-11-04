@@ -382,6 +382,156 @@ for (const crystal of realCrystals) {
   })
 }
 
+async function buildModel(page: Page, kind: string, options?: unknown) {
+  await tab(page, 'model')
+  await page.locator('#model-kind').selectOption(kind)
+  if (options !== undefined) await page.locator('#model-options').fill(JSON.stringify(options))
+  await page.locator('#model-preview').click()
+  await expect(page.locator('#model-dialog')).toBeVisible()
+  const result = await details(page, 'model-result')
+  if (await page.locator('#model-loss-field').isVisible())
+    await page.locator('#model-accept-loss').check()
+  await page.locator('#model-apply').click()
+  await expect(page.locator('#model-dialog')).toBeHidden()
+  await ready(page)
+  return result
+}
+
+test('@demo @modeling crystal, matrix, slab and fixed bottom layers round-trip through POSCAR', async ({
+  page
+}) => {
+  await open(page)
+  const crystal = await buildModel(page, 'crystal')
+  expect(crystal).toMatchObject({ atomCount: 1, parameters: { expandedAtomCount: 1 } })
+  const original = await summary(page)
+  await page.locator('#model-kind').selectOption('supercell')
+  await page.locator('#model-options').fill('[[1,0,0],[1,0,0],[0,0,1]]')
+  await page.locator('#model-preview').click()
+  await expect(page.locator('#runtime-diagnostics')).toContainText('SUPERCELL_')
+  await expect(page.locator('#model-dialog')).toBeHidden()
+  expect(await summary(page)).toEqual(original)
+  const matrix = await buildModel(page, 'supercell', [
+    [2, 0, 0],
+    [1, 1, 0],
+    [0, 0, 1]
+  ])
+  expect(matrix.atomCount).toBe(2)
+  const slab = await buildModel(page, 'slab', {
+    hkl: [0, 0, 1],
+    thickness: { repeats: 2 },
+    vacuum: 12
+  })
+  expect(slab).toMatchObject({ atomCount: 4, parameters: { vacuum: 12 } })
+  expect((await summary(page)).documentId).toBe(original.documentId)
+  const beforeFlags = Number((await summary(page)).revision)
+  await page.locator('#model-fix-bottom').click()
+  await ready(page)
+  await expect(page.locator('#document-summary')).toHaveAttribute(
+    'data-revision',
+    String(beforeFlags + 1)
+  )
+  await page.locator('#undo').click()
+  await ready(page)
+  await page.locator('#redo').click()
+  await ready(page)
+  await tab(page, 'export')
+  await page.locator('#export-format').selectOption('poscar')
+  await page.locator('#preview-export').click()
+  await expect(page.locator('#export-diagnostics')).toContainText('POSCAR_SYMMETRY_LOSS')
+  await page.locator('#accept-loss').click()
+  await expect(page.locator('#export-output')).toHaveValue(/Selective Dynamics/i)
+  expect((await page.locator('#export-output').inputValue()).match(/F F F/g)).toHaveLength(2)
+  await page.locator('#reimport-export').click()
+  await ready(page)
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '4')
+})
+
+test('@demo @modeling molecular sketch transaction and capped polymer export', async ({ page }) => {
+  await open(page)
+  await tab(page, 'model')
+  await page.locator('#model-empty-molecule').click()
+  await ready(page)
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '0')
+  await tab(page, 'edit')
+  await page.locator('#atom-element').selectOption('C')
+  await page.locator('#atom-position').fill('0 0 0')
+  await page.locator('#add-atom').click()
+  await ready(page)
+  await page.locator('#atom-position').fill('1.5 0 0')
+  await page.locator('#add-atom').click()
+  await ready(page)
+  const ids = [(await row(page, 0)).atomId, (await row(page, 1)).atomId]
+  await tab(page, 'model')
+  await page.locator('#model-bond-atoms').fill(ids.join(','))
+  await page.locator('#model-add-bond').click()
+  await ready(page)
+  await expect(page.locator('#undo')).toBeEnabled()
+  const polymer = await buildModel(page, 'polymer', {
+    recipe: { kind: 'homopolymer', unit: 'ethylene', count: 2 },
+    ends: [0, 1].map((unit) => ({
+      unit,
+      port: unit === 0 ? 'head' : 'tail',
+      fragment: 'hydrogen',
+      distance: 1.09
+    }))
+  })
+  expect(polymer.composition).toEqual({ C: 4, H: 10 })
+  await tab(page, 'export')
+  await page.locator('#export-format').selectOption('mol')
+  await page.locator('#preview-export').click()
+  await expect(page.locator('#export-diagnostics')).toContainText('MOL_POLYMER_RECIPE_LOSS')
+  await page.locator('#accept-loss').click()
+  await expect(page.locator('#export-output')).toHaveValue(/M {2}V30 COUNTS 14 13/)
+})
+
+test('@demo @modeling seeded packing validates uploaded quotas and edits its substrate once', async ({
+  page
+}) => {
+  await open(page)
+  await page.locator('#file-input').setInputFiles({
+    name: 'POSCAR',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Packing substrate\n1\n6 0 0\n2 6 0\n0 0 6\nC\n1\nDirect\n0.5 0.5 0.1\n')
+  })
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-kind', 'periodic')
+  await ready(page)
+  const original = await summary(page)
+  await tab(page, 'model')
+  await page.locator('#model-kind').selectOption('packing')
+  const helium = `Helium\nAlchemion\n\n  0  0  0     0  0            999 V3000\nM  V30 BEGIN CTAB\nM  V30 COUNTS 1 0 0 0 0\nM  V30 BEGIN ATOM\nM  V30 1 He 0 0 0 0\nM  V30 END ATOM\nM  V30 END CTAB\nM  END\n`
+  await page
+    .locator('#model-files')
+    .setInputFiles({ name: 'He.mol', mimeType: 'text/plain', buffer: Buffer.from(helium) })
+  const input = {
+    useSubstrate: true,
+    counts: [2],
+    region: { minimum: [0, 0, 0.3], maximum: [1, 1, 0.8] },
+    minimumDistance: 1,
+    seed: 25
+  }
+  await page.locator('#model-options').fill(JSON.stringify({ ...input, counts: [2, 3] }))
+  await page.locator('#model-preview').click()
+  await expect(page.locator('#runtime-diagnostics')).toContainText('one count or one ratio')
+  expect(await summary(page)).toEqual(original)
+  await page.locator('#model-options').fill(JSON.stringify(input))
+  await page.locator('#model-preview').click()
+  await expect(page.locator('#model-dialog')).toBeVisible()
+  expect(await details(page, 'model-result')).toMatchObject({
+    atomCount: 3,
+    composition: { C: 1, He: 2 },
+    parameters: { seed: 25 }
+  })
+  if (await page.locator('#model-loss-field').isVisible())
+    await page.locator('#model-accept-loss').check()
+  await page.locator('#model-apply').click()
+  await ready(page)
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '3')
+  expect((await summary(page)).documentId).toBe(original.documentId)
+  await page.locator('#undo').click()
+  await ready(page)
+  await expect(page.locator('#document-summary')).toHaveAttribute('data-atom-count', '1')
+})
+
 test('@demo @features POSCAR, source batches, supercell defects, coordination and portable views', async ({
   page
 }) => {

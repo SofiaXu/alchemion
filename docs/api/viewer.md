@@ -151,6 +151,8 @@ select 拾取原子/键并保留源映射。pick-point 点击几何时返回表�
 
 ## 独立计算运行时与错误
 
+需要晶体识别或结构构建时使用[建模 API](modeling.md#编辑与异步预览)中的 `createModelingRuntime`。它复用计算协议，拥有独立的可终止 Worker。
+
 [`createComputationRuntime(options?)`](../../packages/alchemion/src/viewer/runtime/runtime.ts) 返回 `ComputationRuntime`，不保存源历史、不创建画布。`ComputationRuntimeOptions.mode` 为 `'worker'`（默认）或 `'sync'`；sync 使用同一 core 算法，仍返回 Promise，在浏览器线程执行，计算开始后无法抢占。`timeoutMs` 默认 `30000`，须为正有限浏览器计时区间，不超过 `2147483647`。
 
 | 方法                             | 契约                                                                                                 |

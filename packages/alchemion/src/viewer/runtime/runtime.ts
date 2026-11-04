@@ -34,6 +34,12 @@ function validResultValue(category: ComputationContext['category'], input: unkno
   if (!input || typeof input !== 'object') return false
   const value = input as Record<string, unknown>
   if (category === 'derive') return Array.isArray(value.atoms) && Array.isArray(value.bonds)
+  if (category === 'construction')
+    return (
+      Boolean(value.snapshot && value.stats && value.parameters) &&
+      Array.isArray(value.atoms) &&
+      Array.isArray(value.bonds)
+    )
   if (category === 'coordination')
     return (
       value.unit === 'angstrom' &&
@@ -129,16 +135,19 @@ export function createComputationRuntime(
     throw new TypeError('Computation mode must be worker or sync.')
   return createRuntimeWithTransport(
     options,
-    options.mode === 'sync'
-      ? synchronousTransport
-      : () => new Worker(new URL('./computation-worker.ts', import.meta.url), { type: 'module' })
+    options.mode === 'sync' ? synchronousTransport : moduleWorker
   )
+}
+
+export function moduleWorker(): Worker {
+  return new Worker(new URL('./computation-worker.ts', import.meta.url), { type: 'module' })
 }
 
 /** Internal injection seam; deliberately omitted from the public entry point. */
 export function createRuntimeWithTransport(
   options: ComputationRuntimeOptions,
-  factory: () => ComputationTransport
+  factory: () => ComputationTransport,
+  modeling = false
 ): ComputationRuntime {
   const timeoutMs = options.timeoutMs ?? 30_000
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
@@ -185,6 +194,10 @@ export function createRuntimeWithTransport(
     const record = pending.get(requestId)
     if (!record) return
     finish(requestId, abortError())
+    if (modeling) {
+      releaseTransport()
+      return
+    }
     try {
       transport?.postMessage({ ...record.context, kind: 'cancel' })
     } catch {
@@ -275,6 +288,7 @@ export function createRuntimeWithTransport(
   ]
   function invalidate() {
     for (const id of [...pending.keys()]) cancel(id)
+    if (modeling) releaseTransport()
     documentId = undefined
     revision = -1
   }
@@ -291,7 +305,9 @@ export function createRuntimeWithTransport(
         !input.documentId.trim() ||
         !Number.isSafeInteger(input.revision) ||
         input.revision < 0 ||
-        !['derive', 'reciprocal', 'brillouin-zone', 'coordination'].includes(input.task?.kind)
+        (modeling
+          ? input.task?.kind !== 'construction'
+          : !['derive', 'reciprocal', 'brillouin-zone', 'coordination'].includes(input.task?.kind))
       )
         return Promise.reject(
           new ComputationError(

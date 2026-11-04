@@ -16,6 +16,8 @@ async function source(path) {
 const scientific = JSON.parse(await source(join(sdk, 'SCIENTIFIC_DATA_MANIFEST.json')))
 const vdw = JSON.parse(await source(join(sdk, 'VDW_DATA_MANIFEST.json')))
 const formats = JSON.parse(await source(join(sdk, 'dist/FORMAT_DATA_MANIFEST.json')))
+const spglibNotices = join(sdk, 'dist/spglib-notices')
+const spglib = JSON.parse(await source(join(spglibNotices, 'manifest.json')))
 for (const manifest of [scientific, vdw])
   for (const [path, hash] of Object.entries(manifest.outputs))
     if (sha256(await readFile(resolve(root, path))) !== hash)
@@ -40,6 +42,9 @@ const notices = [
   await source(join(sdk, 'LICENSE')),
   '\n=== Scientific data and format notices ===\n',
   await source(join(sdk, 'THIRD_PARTY_NOTICES.md')),
+  '\n=== spglib WebAssembly and toolchain notices ===\n',
+  await source(join(spglibNotices, 'LICENSE.txt')),
+  await source(join(spglibNotices, 'TOOLCHAIN_LICENSES.txt')),
   '\n=== Three.js 0.186.1 full licence ===\n',
   await source(join(three, 'LICENSE'))
 ].join('\n')
@@ -51,7 +56,7 @@ const data = {
     license: 'MIT',
     sha256: inputs['apps/demo/src/samples.ts']
   },
-  manifests: { scientific, vdw, formats },
+  manifests: { scientific, vdw, formats, spglib },
   sourceHashes: inputs
 }
 await mkdir(output, { recursive: true })

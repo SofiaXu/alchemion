@@ -48,7 +48,8 @@ export function periodicDistance(
   inverse: Matrix3,
   cutoff: number,
   budget: DistanceBudget,
-  excludeUntranslated = false
+  excludeUntranslated = false,
+  nearestImage?: { offset?: Vec3 }
 ): number | undefined {
   const reach = fractionalReach(inverse, cutoff)
   const lower = reach.map((width, axis) => Math.ceil(delta[axis] - width - 1e-12))
@@ -60,7 +61,12 @@ export function periodicDistance(
       for (let z = lower[2]; z <= upper[2]; z++) {
         if (--budget.remaining < 0) return undefined
         if (excludeUntranslated && x === 0 && y === 0 && z === 0) continue
-        nearest = Math.min(nearest, norm(multiplyMatrixVector(basis, subtract(delta, [x, y, z]))))
+        const offset: Vec3 = [x, y, z]
+        const distance = norm(multiplyMatrixVector(basis, subtract(delta, offset)))
+        if (distance < nearest) {
+          nearest = distance
+          if (nearestImage) nearestImage.offset = offset
+        }
       }
   return nearest
 }

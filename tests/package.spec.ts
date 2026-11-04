@@ -1,6 +1,33 @@
 import { expect, test } from '@playwright/test'
 
 const zero = { gpuObjects: 0, workers: 0, rafs: 0, observers: 0, listeners: 0, canvases: 0 }
+test('@package @modeling installed symmetry WASM, superseded requests and release', async ({
+  page
+}) => {
+  const requests: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('.wasm')) requests.push(request.url())
+  })
+  await page.goto('./')
+  await page.waitForFunction(() => !!window.consumerHarness)
+  expect(requests).toEqual([])
+  const result = await page.evaluate(() => window.consumerHarness.modeling())
+  expect(result).toMatchObject({
+    packed: { He: 1 },
+    cancelled: 'AbortError',
+    revision: 1,
+    hall: 523,
+    itNumber: 225,
+    primitive: 1,
+    standard: 4
+  })
+  expect(result.volume).toBeCloseTo(16, 8)
+  expect(result.atomOrigins).toBeGreaterThanOrEqual(4)
+  expect(requests).toHaveLength(1)
+  expect(new URL(requests[0]).pathname).toMatch(/^\/installed\/nested\/assets\/spglib-.*\.wasm$/)
+  expect(await page.evaluate(() => window.consumerHarness.modelingResources())).toEqual(zero)
+})
+
 test('@package @features new scientific, format and viewer APIs work from the installed tarball', async ({
   page
 }) => {

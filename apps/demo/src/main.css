@@ -195,6 +195,26 @@ a:focus-visible {
   border-color: #b3d5d6;
   font-weight: 600;
 }
+.model-dialog {
+  width: min(680px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  border: 1px solid #b3d5d6;
+  border-radius: 8px;
+  padding: 18px;
+}
+.model-dialog::backdrop {
+  background: #102f3d70;
+}
+.model-canvas {
+  position: relative;
+  height: min(34vh, 300px);
+  background: #f8fbfc;
+}
+.model-dialog pre {
+  max-height: 28vh;
+  overflow: auto;
+  white-space: pre-wrap;
+}
 .tool-panel {
   padding: 18px;
 }

@@ -248,6 +248,23 @@ export function buildDefects(
     return failure('DEFECT_ELEMENT', 'The inserted element must be a recognized element symbol.')
   if (options.kind !== 'interstitial' && !validConstructionSeed(options.seed))
     return failure('DEFECT_SEED', 'The seed must be an unsigned 32-bit integer.')
+  const formats = input.metadata?.alchemionFormats
+  if (
+    options.kind === 'disorder' &&
+    formats &&
+    typeof formats === 'object' &&
+    'losses' in formats &&
+    Array.isArray(formats.losses) &&
+    formats.losses.some(
+      (loss: Diagnostic) =>
+        typeof loss?.context?.tag === 'string' &&
+        /^_?atom_site[_.]disorder_(assembly|group)$/i.test(loss.context.tag)
+    )
+  )
+    return failure(
+      'DISORDER_CORRELATION',
+      'The source declares CIF disorder groups or assemblies whose correlations are not represented by the structure model.'
+    )
   const source = periodicSource(input)
   if (!source.ok) return source
   const { snapshot } = source.value

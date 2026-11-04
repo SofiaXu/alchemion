@@ -232,7 +232,63 @@ const messages = {
   ],
   fileReadFailed: ['The local file could not be read.', '无法读取本地文件。'],
   count: ['Collected instances', '已收集实例'],
-  cellOnly: ['Cell controls apply to periodic structures.', '晶胞控件适用于周期结构。']
+  cellOnly: ['Cell controls apply to periodic structures.', '晶胞控件适用于周期结构。'],
+  modeling: ['Model', '建模'],
+  modelHelp: [
+    'Choose a tool, edit its example recipe, then preview before applying. Recipe keys follow the SDK.',
+    '选择工具，编辑示例配方，再预览并应用。配方字段沿用 SDK。'
+  ],
+  modelCrystal: ['Create a crystal', '创建晶体'],
+  modelSymmetry: ['Recognize or convert crystal symmetry', '识别对称或转换晶胞'],
+  modelMatrix: ['Integer matrix supercell', '整数矩阵超胞'],
+  modelTerminations: ['List surface terminations', '列出表面终止'],
+  modelSlab: ['Cut a slab', '切割薄层'],
+  modelInterface: ['Match or stack slabs', '匹配或叠放薄层'],
+  modelAdsorbate: ['Place an adsorbate', '放置吸附物'],
+  modelInterstitials: ['List interstitial candidates', '列出间隙候选'],
+  modelDefects: ['Build defects or disorder', '构建缺陷或无序'],
+  modelFragment: ['Attach a molecular fragment', '连接分子片段'],
+  modelHydrogens: ['Add explicit hydrogen', '添加显式氢'],
+  modelPolymer: ['Build a polymer', '构建聚合物'],
+  modelPacking: ['Pack a molecular cell', '填充分子盒'],
+  modelPackingQuota: [
+    'Enter one count or one ratio per molecule input.',
+    '请为每个分子输入填写一个数量或一个比例。'
+  ],
+  modelNanotube: ['Build carbon nanotubes', '构建碳纳米管'],
+  modelCluster: ['Crop a finite cluster', '裁切有限团簇'],
+  modelOptions: ['Model recipe (JSON)', '建模配方（JSON）'],
+  modelOther: ['Choose the additional input files', '选择额外输入文件'],
+  modelNewDocument: ['Open as a new document', '作为新文档打开'],
+  modelMobility: ['Selective Dynamics', '原子移动约束'],
+  modelMovableFlags: ['Three Direct flags (T or F)', '三个 Direct 移动标志（T 或 F）'],
+  modelBottomLayers: ['Number of bottom layers', '底层层数'],
+  modelFixSelection: ['Set flags on selection', '设置所选原子的标志'],
+  modelFixBottom: ['Set flags on bottom layers', '设置底层的标志'],
+  modelSketch: ['Molecular sketch', '分子草绘'],
+  modelEmptyMolecule: ['New empty molecule', '新建空白分子'],
+  modelBondAtoms: [
+    'Two atom IDs, comma separated, or two selected atoms',
+    '输入两个逗号分隔的原子 ID，或选择两个原子'
+  ],
+  modelBondOrder: ['Bond order', '键阶'],
+  modelOrdersingle: ['Single', '单键'],
+  modelOrderdouble: ['Double', '双键'],
+  modelOrdertriple: ['Triple', '三键'],
+  modelOrderaromatic: ['Aromatic', '芳香键'],
+  modelAddBond: ['Add bond', '添加键'],
+  modelSetBond: ['Set picked bond order', '修改拾取键的键阶'],
+  modelRemoveBond: ['Remove picked bond', '删除拾取的键'],
+  modelPickBond: ['Pick an explicit bond in the viewer first.', '请先在视图中拾取显式键。'],
+  modelPeriodicRequired: ['Load a periodic structure first.', '请先载入周期结构。'],
+  modelMolecularRequired: [
+    'Load or create a molecular structure first.',
+    '请先载入或新建分子结构。'
+  ],
+  modelSearching: ['Calculating preview…', '正在计算预览…'],
+  modelApply: ['Apply model', '应用构建结果'],
+  modelClose: ['Close preview', '关闭预览'],
+  modelStale: ['The source changed. Recalculate the preview.', '源结构已改变，请重新计算预览。']
 } satisfies Record<string, readonly [string, string]>
 export type Message = keyof typeof messages
 let locale: Locale

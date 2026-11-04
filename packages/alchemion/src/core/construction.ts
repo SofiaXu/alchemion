@@ -1,11 +1,19 @@
 import { failureFrom, success } from './result'
 import { createStructureSnapshot } from './structure'
-import type { BondEndpoint, Diagnostic, JsonValue, ScientificResult, StructureSnapshot } from './types'
+import type {
+  BondEndpoint,
+  Diagnostic,
+  JsonValue,
+  ScientificResult,
+  StructureSnapshot,
+  Vec3
+} from './types'
 
 export interface ConstructionOrigin {
   readonly input: string
   readonly sourceId: string
   readonly endpoint?: BondEndpoint
+  readonly outputCellOffset?: Vec3
 }
 
 export interface ConstructionMapping {
@@ -25,6 +33,42 @@ export interface ConstructionResult<T extends StructureSnapshot = StructureSnaps
   }
 }
 
+export function constructionSnapshot<T extends StructureSnapshot>(
+  result: ConstructionResult<T>
+): T {
+  const serialize = (entries: readonly ConstructionMapping[]) =>
+    entries.map(({ id, origins }) => ({
+      id,
+      origins: origins.map(({ input, sourceId, endpoint, outputCellOffset }) => ({
+        input,
+        sourceId,
+        ...(endpoint ? { endpoint: { ...endpoint } } : {}),
+        ...(outputCellOffset ? { outputCellOffset } : {})
+      }))
+    }))
+  return {
+    ...result.snapshot,
+    metadata: {
+      ...result.snapshot.metadata,
+      alchemionConstruction: {
+        schemaVersion: 1,
+        parameters: result.parameters,
+        atoms: serialize(result.atoms),
+        bonds: serialize(result.bonds)
+      }
+    }
+  }
+}
+
+function frozenCopy<T>(value: T): T {
+  if (!value || typeof value !== 'object') return value
+  return Object.freeze(
+    Array.isArray(value)
+      ? value.map(frozenCopy)
+      : Object.fromEntries(Object.entries(value).map(([key, item]) => [key, frozenCopy(item)]))
+  ) as T
+}
+
 export function finishConstruction<T extends StructureSnapshot>(
   input: T,
   atoms: readonly ConstructionMapping[],
@@ -42,9 +86,9 @@ export function finishConstruction<T extends StructureSnapshot>(
   return success(
     Object.freeze({
       snapshot: checked.value as T,
-      atoms,
-      bonds,
-      parameters,
+      atoms: frozenCopy(atoms),
+      bonds: frozenCopy(bonds),
+      parameters: frozenCopy(parameters),
       stats: Object.freeze({
         atomCount: input.atoms.length,
         bondCount: input.bonds.length,

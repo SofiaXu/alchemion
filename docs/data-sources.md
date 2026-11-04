@@ -39,6 +39,8 @@
 
 ## 分发与署名
 
+晶体识别使用由 spglib `v2.6.0` 与 Emscripten `4.0.23` 构建的 WebAssembly。源提交、编译器版本、资产 SHA-256 与许可证散列记录在[构建清单](../packages/alchemion/src/viewer/runtime/spglib/manifest.json)。SDK 在 `dist/spglib-notices` 提供清单和 BSD-3-Clause、工具链许可。demo 的离线来源页同时包含这些内容。
+
 SDK 随包携带 `SCIENTIFIC_DATA_MANIFEST.json`、`VDW_DATA_MANIFEST.json`、构建生成的 `dist/FORMAT_DATA_MANIFEST.json` 和完整 `THIRD_PARTY_NOTICES.md`。格式 manifest 记录 Unicode/CTfile 数据来源、许可和分发表 SHA，数据源与输出是不同散列。Three 运行依赖由 SDK manifest 声明。
 
 [demo 资产生成器](../scripts/demo-assets.mjs)核验科学/范德华/格式 manifest、许可与自产样例源码，生成静态 `generated/notices.txt` 和 `generated/data-manifests.json`，无网络也可查看来源与许可。真实包消费者与 demo 验证须核对实际产物内容和散列，来源登记不代替行为验证。
