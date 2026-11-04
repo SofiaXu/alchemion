@@ -1,7 +1,7 @@
 import { cartesianToFractional, cellVolume, createCell } from '../../core/cell'
 import { getElement } from '../../core/data'
 import { createStructureSnapshot } from '../../core/structure'
-import type { Diagnostic, Matrix3, PeriodicAtom, Vec3 } from '../../core/types'
+import type { Diagnostic, Matrix3, Mobility, PeriodicAtom, Vec3 } from '../../core/types'
 import type { ParseResult } from '../contracts'
 
 const numeric = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][+-]?\d+)?$/
@@ -10,7 +10,7 @@ const number = (text: string): number =>
 const tokens = (line: string): string[] =>
   line.split(/[!#]/, 1)[0].trim().split(/\s+/).filter(Boolean)
 
-/** Geometry-only VASP5 reader. Unmodelled scientific sections are hard failures. */
+/** VASP5 geometry and Direct mobility. Unmodelled scientific sections are hard failures. */
 export function parsePoscarStructure(text: string): ParseResult {
   const lines = text.replace(/^\uFEFF/, '').split(/\r\n?|\n/)
   const diagnostics: Diagnostic[] = []
@@ -113,19 +113,14 @@ export function parsePoscarStructure(text: string): ParseResult {
       7,
       'counts'
     )
-  if (/^\s*[sS]/.test(lines[7]))
-    return fail(
-      'POSCAR_SELECTIVE_DYNAMICS_UNSUPPORTED',
-      'Selective-dynamics constraints are not represented by the structure model.',
-      8,
-      'constraints'
-    )
-  const mode = tokens(lines[7])[0]?.toLowerCase()
+  const selective = /^[sS]/.test(tokens(lines[7])[0] ?? '')
+  const modeIndex = selective ? 8 : 7
+  const mode = tokens(lines[modeIndex] ?? '')[0]?.toLowerCase()
   if (!mode || !/^[dck]/.test(mode))
     return fail(
       'POSCAR_COORDINATE_MODE',
       'Choose explicit Direct or Cartesian coordinates (C/c/K/k).',
-      8,
+      modeIndex + 1,
       'coordinates'
     )
   const cartesian = /^[ck]/.test(mode)
@@ -134,8 +129,9 @@ export function parsePoscarStructure(text: string): ParseResult {
   let group = 0,
     groupEnd = counts[0]
   for (let index = 0; index < total; index++) {
-    const lineNumber = index + 9
-    if (lines[index + 8] === undefined || !lines[index + 8].trim())
+    const lineIndex = index + modeIndex + 1
+    const lineNumber = lineIndex + 1
+    if (lines[lineIndex] === undefined || !lines[lineIndex].trim())
       return fail(
         'POSCAR_TRUNCATED',
         'The coordinate section contains fewer atom records than declared.',
@@ -143,7 +139,7 @@ export function parsePoscarStructure(text: string): ParseResult {
         'coordinates'
       )
     while (index >= groupEnd) groupEnd += counts[++group]
-    const fields = tokens(lines[index + 8])
+    const fields = tokens(lines[lineIndex])
     const values = fields.slice(0, 3).map(number)
     if (values.length !== 3 || !values.every(Number.isFinite))
       return fail(
@@ -152,10 +148,26 @@ export function parsePoscarStructure(text: string): ParseResult {
         lineNumber,
         'coordinates'
       )
-    if (fields.length > 3 && (fields.length !== 4 || fields[3] !== species[group]))
+    let movable: Mobility | undefined
+    if (selective) {
+      const flags = fields.slice(3, 6)
+      if (flags.length !== 3 || flags.some((flag) => flag !== 'T' && flag !== 'F'))
+        return fail(
+          'POSCAR_SELECTIVE_FLAGS',
+          'Selective dynamics requires exactly three Direct flags, T or F.',
+          lineNumber,
+          'constraints'
+        )
+      movable = [flags[0] === 'T', flags[1] === 'T', flags[2] === 'T']
+    }
+    const fieldCount = selective ? 6 : 3
+    if (
+      fields.length > fieldCount &&
+      (fields.length !== fieldCount + 1 || fields[fieldCount] !== species[group])
+    )
       return fail(
         'POSCAR_COORDINATE_FIELDS',
-        'Only an optional matching element label may follow the coordinate triple; constraints and extra scientific fields are unsupported.',
+        'Only an optional matching element label may follow coordinates and any enabled flags.',
         lineNumber,
         'coordinates'
       )
@@ -178,10 +190,13 @@ export function parsePoscarStructure(text: string): ParseResult {
       id: `poscar:atom:${index + 1}`,
       element: species[group],
       fractional,
+      ...(movable ? { movable } : {}),
       occupancy: { kind: 'known', value: 1, provenance: { source: 'POSCAR', version: 'VASP5' } }
     })
   }
-  const trailing = lines.findIndex((line, index) => index >= total + 8 && line.trim().length > 0)
+  const trailing = lines.findIndex(
+    (line, index) => index >= total + modeIndex + 1 && line.trim().length > 0
+  )
   if (trailing >= 0)
     return fail(
       /^\s*[lL]/.test(lines[trailing])

@@ -125,6 +125,14 @@ export function finiteMolecule(
     const copy = { ...source } as Record<string, unknown>
     delete copy.id
     delete copy.fractional
+    delete copy.movable
+    if ('movable' in source && source.movable?.some((value) => !value))
+      diagnostics.push(
+        lossDiagnostic('MOL_MOBILITY_LOSS', 'MOL cannot record Direct mobility flags.', allowLoss, {
+          format: 'mol',
+          atomId: source.id
+        })
+      )
     // Coordinates are reconstructed from core provenance, never copied from a stale display object.
     const cartesian =
       selection.kind === 'source' && snapshot.kind === 'periodic' && 'fractional' in source

@@ -1,6 +1,9 @@
 import { canonicalizeBondEndpoints } from './bonds'
+import { createCell } from './cell'
 import { compareStrings, deriveInstances } from './derivation'
-import { isIntegerVector } from './math'
+import { integerCellTransform } from './integer-cell'
+import { add, isIntegerVector, multiplyMatrices, multiplyMatrixVector, subtract } from './math'
+import { transformMobility } from './mobility'
 import { failure, failureFrom, success } from './result'
 import { createStructureSnapshot } from './structure'
 import {
@@ -17,6 +20,7 @@ import type {
   BondId,
   Diagnostic,
   JsonValue,
+  Matrix3,
   PeriodicAtom,
   PeriodicStructureSnapshot,
   ScientificResult,
@@ -59,7 +63,7 @@ const siteKey = (instanceId: string, cell: Vec3): string => JSON.stringify([inst
 /** Construct a new P1 source; displaying neighbor cells is deliberately a separate operation. */
 export function createSupercell(
   snapshot: StructureSnapshot,
-  repetitions: Vec3
+  repetitionsOrMatrix: Vec3 | Matrix3
 ): ScientificResult<SupercellResult> {
   const atoms = new Set(
     Array.isArray(snapshot?.atoms)
@@ -82,7 +86,7 @@ export function createSupercell(
     used.add(id)
     return id
   }
-  return buildSupercell(snapshot, repetitions, {
+  return buildSupercell(snapshot, repetitionsOrMatrix, {
     atom: () => next('atom'),
     bond: () => next('bond')
   })
@@ -91,7 +95,7 @@ export function createSupercell(
 /** The sole construction algorithm, shared by the pure API and one-transaction editing. */
 export function buildSupercell(
   input: StructureSnapshot,
-  repetitions: Vec3,
+  repetitionsOrMatrix: Vec3 | Matrix3,
   allocate: SupercellIdAllocator
 ): ScientificResult<SupercellResult> {
   if (input?.kind !== 'periodic')
@@ -99,17 +103,33 @@ export function buildSupercell(
       'SUPERCELL_PERIODIC_REQUIRED',
       'Supercell construction requires a periodic source.'
     )
-  if (!isIntegerVector(repetitions) || repetitions.some((value) => value <= 0))
+  const repetitions = isIntegerVector(repetitionsOrMatrix) ? repetitionsOrMatrix : undefined
+  if (
+    repetitions?.some((value) => value <= 0) ||
+    (Array.isArray(repetitionsOrMatrix) &&
+      !repetitions &&
+      repetitionsOrMatrix.every((value) => typeof value === 'number'))
+  )
     return failure(
       'SUPERCELL_REPETITIONS',
       'Supercell repetitions must be three positive safe integers.'
     )
-  const cells = repetitions.reduce((product, value) => product * value, 1)
-  if (!Number.isSafeInteger(cells) || cells > MAX_SUPERCELL_ATOMS)
-    return failure('SUPERCELL_BUDGET', 'The requested supercell exceeds the 100,000-atom budget.')
+  const matrix: Matrix3 = repetitions
+    ? [
+        [repetitions[0], 0, 0],
+        [0, repetitions[1], 0],
+        [0, 0, repetitions[2]]
+      ]
+    : (repetitionsOrMatrix as Matrix3)
+  const transform = integerCellTransform(matrix, MAX_SUPERCELL_ATOMS)
+  if (!transform.ok) return transform
+  const { index: cells, inverse } = transform.value
   const checked = createStructureSnapshot(input)
   if (!checked.ok) return checked
   const source = checked.value as PeriodicStructureSnapshot
+  const basis = multiplyMatrices(source.cell.basis, matrix)
+  const cellResult = createCell({ basis })
+  if (!cellResult.ok) return cellResult
   if (source.atoms.length > MAX_SUPERCELL_ATOMS)
     return failure('SUPERCELL_BUDGET', 'The requested supercell exceeds the 100,000-atom budget.')
   const stereo = source.bonds.find((bond) => bond.stereo !== undefined)
@@ -139,15 +159,19 @@ export function buildSupercell(
   const bondMapping: SupercellBondMapping[] = []
   const atoms: PeriodicAtom[] = []
   const bonds: SourceBond[] = []
-  const outputSites = new Map<string, AtomId>()
+  const outputSites = new Map<string, { id: AtomId; wrap: Vec3 }>()
   const labels = new Set(
     source.atoms.flatMap((atom) => (atom.label === undefined ? [] : [atom.label]))
   )
   let labelSequence = 0
-  const replicaCells: Vec3[] = []
-  for (let x = 0; x < repetitions[0]; x++)
-    for (let y = 0; y < repetitions[1]; y++)
-      for (let z = 0; z < repetitions[2]; z++) replicaCells.push([x, y, z])
+  const replicaCells = transform.value.representatives()
+  if (!replicaCells)
+    return failure('SUPERCELL_MATRIX_RANGE', 'Cell representatives exceed exact integer range.')
+  const representatives = new Map(replicaCells.map((cell) => [transform.value.key(cell), cell]))
+  const replicaPositions = replicaCells.map((cell) => ({
+    cell,
+    fractional: transform.value.fractionalRepresentative(cell)
+  }))
   for (const original of source.atoms)
     if (original.coordinateUncertainties)
       diagnostics.push({
@@ -159,11 +183,52 @@ export function buildSupercell(
       })
   for (const instance of base.value) {
     const original = sourceAtoms.get(instance.sourceAtomId)!
-    for (const cell of replicaCells) {
+    const mobility = transformMobility(
+      original.movable,
+      multiplyMatrices(inverse, operationMap.get(instance.symmetryOperationId)!.rotation),
+      original.id
+    )
+    if (!mobility.ok) return mobility
+    if (original.movable) {
+      for (const alias of instance.equivalentSources) {
+        const alternative = transformMobility(
+          original.movable,
+          multiplyMatrices(inverse, operationMap.get(alias.symmetryOperationId)!.rotation),
+          original.id
+        )
+        if (!alternative.ok) return alternative
+        if (alternative.value?.some((value, axis) => value !== mobility.value?.[axis]))
+          return failure(
+            'MOBILITY_ALIAS_CONFLICT',
+            'Equivalent source images have different mobility.',
+            {
+              atomId: original.id
+            }
+          )
+      }
+    }
+    const transformed = multiplyMatrixVector(inverse, instance.fractional!)
+    for (const replica of replicaPositions) {
+      const { cell } = replica
       const id = allocate.atom()
-      const fractional = instance.fractional!.map(
-        (value, i) => (value + cell[i]) / repetitions[i]
-      ) as unknown as Vec3
+      const unwrapped = repetitions
+        ? (instance.fractional!.map(
+            (value, i) => (value + cell[i]) / repetitions[i]
+          ) as unknown as Vec3)
+        : add(transformed, replica.fractional)
+      const wrap = unwrapped.map(Math.floor) as unknown as Vec3
+      if (!isIntegerVector(wrap))
+        return failure(
+          'SUPERCELL_MATRIX_RANGE',
+          'Transformed positions exceed exact integer range.'
+        )
+      const fractional = subtract(unwrapped, wrap)
+      const sourceOffset = transform.value.translateBack(cell, wrap)
+      if (!sourceOffset)
+        return failure(
+          'SUPERCELL_MATRIX_RANGE',
+          'Mapped source offsets exceed exact integer range.'
+        )
       let label: string | undefined
       if (original.label !== undefined) {
         do {
@@ -176,13 +241,24 @@ export function buildSupercell(
         coordinateUncertainties: undefined,
         id,
         fractional,
+        ...(mobility.value ? { movable: mobility.value } : {}),
         ...(label !== undefined ? { label } : {})
       })
-      outputSites.set(siteKey(instance.id, cell), id)
+      outputSites.set(siteKey(instance.id, cell), { id, wrap })
+      const mapped = translated(instance, sourceOffset)
+      const equivalentSources = instance.equivalentSources.map((alias) =>
+        translated(alias, sourceOffset)
+      )
+      if (
+        ![mapped, ...equivalentSources].every((endpoint) =>
+          isIntegerVector(endpoint.integerCellOffset)
+        )
+      )
+        return failure('SUPERCELL_MATRIX_RANGE', 'Source provenance exceeds exact integer range.')
       atomMapping.push({
         atomId: id,
-        source: translated(instance, cell),
-        equivalentSources: instance.equivalentSources.map((alias) => translated(alias, cell))
+        source: mapped,
+        equivalentSources
       })
     }
   }
@@ -224,23 +300,20 @@ export function buildSupercell(
             'An explicit bond translation exceeds exact integer range.',
             { bondId: bond.id }
           )
-        const offset = rightCell.map((value, i) =>
-          Math.floor(value / repetitions[i])
-        ) as unknown as Vec3
-        const representative = rightCell.map(
-          (value, i) => value - offset[i] * repetitions[i]
-        ) as unknown as Vec3
+        const representative = representatives.get(transform.value.key(rightCell))
         const a = outputSites.get(siteKey(left.instance.id, cell))!
-        const b = outputSites.get(siteKey(right.instance.id, representative))
-        if (!b || !isIntegerVector(offset))
+        const b = representative && outputSites.get(siteKey(right.instance.id, representative))
+        const quotient = representative && transform.value.decompose(rightCell, representative)
+        const offset = b && quotient && add(quotient, subtract(b.wrap, a.wrap))
+        if (!b || !offset || !isIntegerVector(offset))
           return failure(
             'SUPERCELL_BOND_MAPPING',
             'An explicit bond cannot be mapped to the expanded source.',
             { bondId: bond.id }
           )
         const endpoints: readonly [BondEndpoint, BondEndpoint] = [
-          { sourceAtomId: a, symmetryOperationId: 'identity', integerCellOffset: [0, 0, 0] },
-          { sourceAtomId: b, symmetryOperationId: 'identity', integerCellOffset: offset }
+          { sourceAtomId: a.id, symmetryOperationId: 'identity', integerCellOffset: [0, 0, 0] },
+          { sourceAtomId: b.id, symmetryOperationId: 'identity', integerCellOffset: offset }
         ]
         const key = JSON.stringify(canonicalizeBondEndpoints(...endpoints))
         const existing = seenBonds.get(key)
@@ -261,10 +334,9 @@ export function buildSupercell(
       }
     }
   }
-  const basis = source.cell.basis.map((column, i) =>
-    column.map((value) => value * repetitions[i])
-  ) as unknown as PeriodicStructureSnapshot['cell']['basis']
-  const basisChanged = repetitions.some((value) => value !== 1)
+  const basisChanged = matrix.some((column, i) =>
+    column.some((value, j) => value !== Number(i === j))
+  )
   if (basisChanged && source.cell.parameterUncertainties)
     diagnostics.push({
       severity: 'warning',
@@ -273,8 +345,7 @@ export function buildSupercell(
         'Constructed cell vectors no longer carry the original cell measurement uncertainties.'
     })
   const provenance = {
-    schemaVersion: 1,
-    repetitions,
+    ...(repetitions ? { schemaVersion: 1, repetitions } : { schemaVersion: 2, matrix }),
     sourceCell: source.cell,
     sourceSymmetry: symmetry.value,
     atomMapping,

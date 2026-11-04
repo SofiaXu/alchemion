@@ -1,6 +1,7 @@
 import { validateCell } from './cell'
 import { getElement } from './data'
 import { isFiniteVector, isIntegerVector } from './math'
+import { isMobility } from './mobility'
 import { failureFrom, success } from './result'
 import { createEndpointResolver, resolveSymmetry } from './symmetry'
 import type {
@@ -192,6 +193,10 @@ export function validateStructure(input: unknown): readonly Diagnostic[] {
         'Atom requires exactly the coordinate frame declared by its structure.',
         { atomId, field }
       )
+    if (item.movable !== undefined && (snapshot.kind !== 'periodic' || !isMobility(item.movable)))
+      error('ATOM_MOBILITY', 'Direct mobility requires three Boolean flags on a periodic atom.', {
+        atomId
+      })
     scientificValue(item.occupancy, 'occupancy', atomId, 0, 1)
     scientificValue(item.displacementU, 'displacementU', atomId, 0)
     scientificValue(item.oxidationState, 'oxidationState', atomId)

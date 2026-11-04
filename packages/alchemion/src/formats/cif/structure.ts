@@ -345,11 +345,9 @@ function readBlock(block: CifDataBlock, version: '1' | '2'): ParseResult {
     )
       continue
     const fractionalInput = fractionalMeasurements?.map((entry) => entry!.value) as unknown as
-      | Vec3
-      | undefined
+      Vec3 | undefined
     const cartesianInput = cartesianMeasurements?.map((entry) => entry!.value) as unknown as
-      | Vec3
-      | undefined
+      Vec3 | undefined
     const converted = cartesianInput ? cartesianToFractional(cell, cartesianInput) : undefined
     if (converted && !converted.ok) {
       diagnostics.push(...converted.diagnostics)
@@ -744,6 +742,11 @@ export function writeCifStructure(
       'The supported crystal CIF mapping does not express explicit bond semantics.',
       { bondId: bond.id }
     )
+  for (const atom of snapshot.atoms)
+    if (atom.movable?.some((value) => !value))
+      loss('CIF_MOBILITY_LOSS', 'Crystal CIF cannot record Direct mobility flags.', {
+        atomId: atom.id
+      })
   const parameters = cellParameters(snapshot.cell)
   if (!parameters.ok) return { diagnostics: [...diagnostics, ...parameters.diagnostics] }
   const metadata = snapshot.metadata?.alchemionFormats

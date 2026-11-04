@@ -3,7 +3,13 @@ import { createSupercell } from '../supercell'
 import { createDocumentStore } from '../editing'
 import { cellVolume } from '../cell'
 import { parseSymmetryOperation, resolveBondEndpoint } from '../symmetry'
-import type { BondEndpoint, PeriodicStructureSnapshot, ScientificResult, Vec3 } from '../types'
+import type {
+  BondEndpoint,
+  Matrix3,
+  PeriodicStructureSnapshot,
+  ScientificResult,
+  Vec3
+} from '../types'
 
 function value<T>(result: ScientificResult<T>): T {
   if (!result.ok) throw new Error(JSON.stringify(result.diagnostics))
@@ -38,6 +44,82 @@ const crystal = (): PeriodicStructureSnapshot => ({
 })
 
 describe('editable P1 supercell construction', () => {
+  it('wraps oblique quotient representatives with their source positions, bonds and Direct mobility', () => {
+    const input: PeriodicStructureSnapshot = {
+      ...crystal(),
+      symmetry: { operations: [identity] },
+      atoms: [
+        { id: 'a', element: 'C', fractional: [0.1, 0.8, 0.2], movable: [true, false, false] },
+        { id: 'b', element: 'O', fractional: [0.8, 0.1, 0.2], movable: [true, true, false] }
+      ],
+      bonds: [
+        { id: 'cross', order: 'single', endpoints: [endpoint('a'), endpoint('b', [1, -1, 0])] }
+      ]
+    }
+    const matrix: Matrix3 = [
+      [2, 0, 0],
+      [1, 1, 0],
+      [0, 0, 1]
+    ]
+    const result = value(createSupercell(input, matrix))
+    expect(result.snapshot.cell.basis).toEqual([
+      [4, 0, 0],
+      [3, 3, 0],
+      [0.5, 0.25, 4]
+    ])
+    expect(value(cellVolume(result.snapshot.cell))).toBe(48)
+    expect(result.snapshot.atoms).toHaveLength(4)
+    expect(result.snapshot.atoms.map((atom) => atom.fractional[0])).toEqual([
+      expect.closeTo(0.65),
+      expect.closeTo(0.15),
+      expect.closeTo(0.35),
+      expect.closeTo(0.85)
+    ])
+    for (const { atomId, source } of result.atomMapping) {
+      const oldPosition = value(resolveBondEndpoint(input, source)).cartesian
+      const newPosition = value(
+        resolveBondEndpoint(result.snapshot, endpoint(atomId, [0, 0, 0], 'identity'))
+      ).cartesian
+      oldPosition.forEach((coordinate, axis) =>
+        expect(newPosition[axis]).toBeCloseTo(coordinate, 12)
+      )
+    }
+    expect(result.snapshot.bonds).toHaveLength(2)
+    for (const bond of result.snapshot.bonds) {
+      const [a, b] = bond.endpoints.map(
+        (end) => value(resolveBondEndpoint(result.snapshot, end)).cartesian
+      )
+      expect(b.map((coordinate, i) => coordinate - a[i])).toEqual([
+        expect.closeTo(1.7),
+        expect.closeTo(-5.1),
+        0
+      ])
+    }
+    expect(result.snapshot.atoms[0].movable).toEqual([true, false, false])
+    const incompatible = {
+      ...input,
+      atoms: [{ ...input.atoms[0], movable: [false, true, false] as const }, input.atoms[1]]
+    }
+    expect(createSupercell(incompatible, matrix)).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: 'MOBILITY_TRANSFORM' }]
+    })
+    expect(
+      createSupercell(input, [
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+      ]).ok
+    ).toBe(false)
+    expect(
+      createSupercell(input, [
+        [1, 0, 0],
+        [1, 0, 0],
+        [0, 0, 1]
+      ]).ok
+    ).toBe(false)
+  })
+
   it('expands real symmetry and oblique cells with independently calculated positions and reversible sources', () => {
     const input = crystal()
     const before = JSON.stringify(input)
