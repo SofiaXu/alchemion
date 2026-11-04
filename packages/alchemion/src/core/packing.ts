@@ -34,6 +34,7 @@ import type {
   Cell,
   Diagnostic,
   JsonValue,
+  MolecularAtom,
   MolecularStructureSnapshot,
   PeriodicAtom,
   PeriodicStructureSnapshot,
@@ -464,13 +465,16 @@ export function packMolecules(
         )
       const endpoints = new Map<string, BondEndpoint>()
       for (const [site, atom] of molecule.atoms.entries()) {
-        const { cartesian, coordinateUncertainties, stereoParity, ...properties } = atom
+        const properties: Omit<MolecularAtom, 'cartesian'> & { cartesian?: Vec3 } = { ...atom }
+        delete properties.cartesian
         const id = `packing:atom:${index + 1}:${copy + 1}:${site + 1}`
         const point = accepted[site]
         atoms.push({
           ...properties,
           id,
           fractional: wrapPosition(point),
+          coordinateUncertainties: undefined,
+          stereoParity: undefined,
           ...(atom.label === undefined
             ? {}
             : { label: `packing_${index + 1}_${copy + 1}_${atom.label}` })
@@ -484,7 +488,6 @@ export function packMolecules(
         atomMapping.push({ id, origins: [{ input, sourceId: atom.id }] })
       }
       for (const [position, bond] of molecule.bonds.entries()) {
-        const { stereo, ...properties } = bond
         const id = `packing:bond:${index + 1}:${copy + 1}:${position + 1}`
         const a = endpoints.get(bond.endpoints[0].sourceAtomId)!
         const b = endpoints.get(bond.endpoints[1].sourceAtomId)!
@@ -495,8 +498,9 @@ export function packMolecules(
             'A periodic bond translation is outside safe integer range.'
           )
         bonds.push({
-          ...properties,
+          ...bond,
           id,
+          stereo: undefined,
           endpoints: [
             { ...a, integerCellOffset: [0, 0, 0] },
             { ...b, integerCellOffset: shift }
